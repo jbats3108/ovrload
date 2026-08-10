@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import BlockSetupOptions from '@/routines/components/BlockSetupOptions.vue';
+import DeloadAlternateFields from '@/routines/components/DeloadAlternateFields.vue';
 import DeloadSettings from '@/routines/components/DeloadSettings.vue';
 import DropsetEditor from '@/routines/components/DropsetEditor.vue';
 import ExercisePicker from '@/routines/components/ExercisePicker.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
-import { clearDeloadAlternate, setDeloadAlternateExercise } from '@/routines/lib/blocks';
 import { optionalRepsPlaceholder, parseOptionalReps } from '@/routines/lib/optionalReps';
-import type { BlockExercise } from '@/routines/types';
 
 const {
     form,
@@ -23,10 +22,6 @@ const {
     dropsetSummary,
     achievementFloorDefault,
 } = useRoutineEditor();
-
-const onDeloadExercise = (exercise: BlockExercise, id: number | null) => {
-    setDeloadAlternateExercise(exercise, id);
-};
 </script>
 
 <template>
@@ -71,39 +66,15 @@ const onDeloadExercise = (exercise: BlockExercise, id: number | null) => {
                                             @open="selectBlockExercise(bi, ei)"
                                         />
                                     </div>
-                                    <div class="flex min-w-0 items-center gap-1 pl-0" :class="block.is_superset ? 'pl-5' : ''">
-                                        <span class="shrink-0 font-mono text-[10px] text-muted-foreground uppercase">Deload</span>
-                                        <ExercisePicker
-                                            :model-value="ex.deload_exercise_id"
-                                            variant="desktop"
-                                            @update:model-value="onDeloadExercise(ex, $event)"
-                                        />
-                                        <input
-                                            :value="ex.deload_working_weight_kg ?? ''"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            inputmode="decimal"
-                                            placeholder="kg"
-                                            title="Deload alternate working weight"
-                                            class="w-16 rounded border border-border bg-card px-1.5 py-1 font-mono text-xs tabular-nums"
-                                            :disabled="ex.deload_exercise_id === null"
-                                            @input="
-                                                ex.deload_working_weight_kg = ($event.target as HTMLInputElement).value
-                                                    ? Number(($event.target as HTMLInputElement).value)
-                                                    : null
-                                            "
-                                        />
-                                        <button
-                                            v-if="ex.deload_exercise_id !== null"
-                                            type="button"
-                                            class="shrink-0 text-[10px] text-muted-foreground hover:text-foreground"
-                                            title="Clear deload alternate"
-                                            @click="clearDeloadAlternate(ex)"
-                                        >
-                                            Clear
-                                        </button>
-                                    </div>
+                                    <DeloadAlternateFields
+                                        :deload-exercise-id="ex.deload_exercise_id"
+                                        :deload-working-weight-kg="ex.deload_working_weight_kg"
+                                        :working-weight-kg="ex.working_weight_kg"
+                                        variant="desktop"
+                                        :class="block.is_superset ? 'pl-5' : ''"
+                                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
+                                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
+                                    />
                                 </div>
                             </td>
                             <td class="px-2 py-2">
