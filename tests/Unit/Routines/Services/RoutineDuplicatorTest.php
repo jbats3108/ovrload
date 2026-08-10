@@ -40,6 +40,7 @@ class RoutineDuplicatorTest extends TestCase
             'deload_every_n' => 4,
         ]);
         $squat = Exercise::factory()->create();
+        $squatDeload = Exercise::factory()->create();
         $bench = Exercise::factory()->create();
         $row = Exercise::factory()->create();
 
@@ -60,6 +61,8 @@ class RoutineDuplicatorTest extends TestCase
                             'prescribed_reps' => 5,
                             'achievement_floor' => 3,
                             'progression_target' => 5,
+                            'deload_exercise_id' => $squatDeload->id,
+                            'deload_working_weight_kg' => 40,
                         ],
                     ],
                     'working' => [
@@ -125,6 +128,8 @@ class RoutineDuplicatorTest extends TestCase
         $exercise = $first->blockExercises->first();
         $this->assertSame($squat->id, $exercise->exercise_id);
         $this->assertSame(100000, $exercise->working_weight_g);
+        $this->assertSame($squatDeload->id, $exercise->deload_exercise_id);
+        $this->assertSame(40000, $exercise->deload_working_weight_g);
         $this->assertSame(5, $exercise->prescribed_reps);
         $this->assertSame(3, $exercise->achievement_floor_override);
         $this->assertSame(5, $exercise->progression_target_override);

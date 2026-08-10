@@ -75,11 +75,17 @@ class RoutineDuplicator
         foreach ($block->blockExercises as $blockExercise) {
             Exercise::assertAvailableFor($copy->user, $blockExercise->exercise_id);
 
+            if ($blockExercise->deload_exercise_id !== null) {
+                Exercise::assertAvailableFor($copy->user, $blockExercise->deload_exercise_id);
+            }
+
             RoutineBlockExercise::create([
                 'routine_block_id' => $newBlock->id,
                 'exercise_id' => $blockExercise->exercise_id,
                 'position' => $blockExercise->position,
                 'working_weight_g' => $blockExercise->working_weight_g,
+                'deload_exercise_id' => $blockExercise->deload_exercise_id,
+                'deload_working_weight_g' => $blockExercise->deload_working_weight_g,
                 'prescribed_reps' => $blockExercise->prescribed_reps,
                 'achievement_floor_override' => $blockExercise->achievement_floor_override,
                 'progression_target_override' => $blockExercise->progression_target_override,

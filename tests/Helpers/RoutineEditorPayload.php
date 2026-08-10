@@ -18,6 +18,8 @@ final class RoutineEditorPayload
             'prescribed_reps' => $overrides['prescribed_reps'] ?? 6,
             'achievement_floor' => $overrides['achievement_floor'] ?? null,
             'progression_target' => $overrides['progression_target'] ?? null,
+            'deload_exercise_id' => $overrides['deload_exercise_id'] ?? null,
+            'deload_working_weight_kg' => $overrides['deload_working_weight_kg'] ?? null,
         ];
 
         $exercises = $overrides['exercises'] ?? [$exercise];
