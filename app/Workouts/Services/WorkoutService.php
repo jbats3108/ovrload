@@ -721,9 +721,10 @@ class WorkoutService
                 $sourceExercise = $useAlternate
                     ? $routineBlockExercise->deloadExercise
                     : $routineBlockExercise->exercise;
-                $baseWeightG = $useAlternate
+                // Alternate weight is already the deload load — do not apply the recipe weight factor.
+                $workingWeightG = $useAlternate
                     ? (int) $routineBlockExercise->deload_working_weight_g
-                    : $routineBlockExercise->working_weight_g;
+                    : (int) round($routineBlockExercise->working_weight_g * $weightFactor);
 
                 $workoutBlockExercise = WorkoutBlockExercise::create([
                     'workout_block_id' => $workoutBlock->id,
@@ -731,7 +732,7 @@ class WorkoutService
                     'position' => $routineBlockExercise->position,
                     'exercise_name' => $sourceExercise->getName(),
                     'equipment' => $sourceExercise->equipment,
-                    'working_weight_g' => (int) round($baseWeightG * $weightFactor),
+                    'working_weight_g' => $workingWeightG,
                     'prescribed_reps' => max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor)),
                     'achievement_floor' => $routineBlockExercise->achievement_floor_override
                         ?? $routine->user->achievement_floor_default,

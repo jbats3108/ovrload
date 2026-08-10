@@ -100,7 +100,7 @@ function scaleSet(set: HistoricalCreateSet, block: HistoricalCreateBlock, deload
             exercise_name: exercise.deload_name,
             set_index: set.set_index,
             is_dropset: false,
-            weight_kg: scaleWeight(exercise.deload_working_weight_kg, weightFactor),
+            weight_kg: exercise.deload_working_weight_kg,
             reps: scaleReps(set.reps, repsFactor),
             segments: [],
         };

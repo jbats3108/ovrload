@@ -84,7 +84,7 @@ A way to start a workout that applies the routine’s deload recipe to the snaps
 _Avoid_: Easy mode, recovery mode, normal mode (use **standard**)
 
 **Deload Alternate**:
-Optional replacement **Exercise** plus its own **Working Weight** on a routine block exercise, used only when starting (or historically logging) in **Deload Mode**. Prescribed reps still come from the primary via the **Deload Recipe**. When set, that exercise’s Deload snapshot is **Singles** only (no **Dropset** segments).
+Optional replacement **Exercise** plus its own **Working Weight** on a routine block exercise, used only when starting (or historically logging) in **Deload Mode**. That working weight is used as-is (the **Deload Recipe** weight factor does not apply). Prescribed reps still come from the primary via the recipe’s reps factor. When set, that exercise’s Deload snapshot is **Singles** only (no **Dropset** segments).
 _Avoid_: Swap exercise, deload substitute, recovery lift
 
 ## Pauses

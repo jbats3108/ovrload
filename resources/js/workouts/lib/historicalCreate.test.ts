@@ -153,7 +153,7 @@ describe('historicalCreate', () => {
         expect(block!.sets[0]?.exercise_name).toBe('Goblet Squat');
         expect(block!.sets[0]?.is_dropset).toBe(false);
         expect(block!.sets[0]?.segments).toEqual([]);
-        expect(block!.sets[0]?.weight_kg).toBe(20);
+        expect(block!.sets[0]?.weight_kg).toBe(40);
         expect(block!.sets[0]?.reps).toBe(3);
     });
 

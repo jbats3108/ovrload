@@ -530,7 +530,7 @@ class WorkoutServiceTest extends TestCase
 
         $this->assertSame($alternate->id, $exercise->exercise_id);
         $this->assertSame('Goblet Squat', $exercise->exercise_name);
-        $this->assertSame(20000, $exercise->working_weight_g);
+        $this->assertSame(40000, $exercise->working_weight_g);
         $this->assertSame(3, $exercise->prescribed_reps);
     }
 
