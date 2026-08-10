@@ -729,7 +729,7 @@ class WorkoutService
                 $setCount = $routineSetGroup->set_count;
                 if (
                     $routineSetGroup->type === SetGroupType::Working
-                    && array_key_exists($routineBlock->position, $workingSetCountByPosition)
+                    && array_key_exists((string) $routineBlock->position, $workingSetCountByPosition)
                 ) {
                     $setCount = $workingSetCountByPosition[$routineBlock->position];
                 }
