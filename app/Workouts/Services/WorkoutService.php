@@ -427,7 +427,7 @@ class WorkoutService
                     $offset = ((int) $oldIndexes->max()) + 1;
 
                     foreach ($remaining as $set) {
-                        $set->set_index = $set->set_index + $offset;
+                        $set->set_index += $offset;
                         $set->save();
                     }
 
