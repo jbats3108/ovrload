@@ -109,13 +109,11 @@ Public order matches `/beta-tester-faqs`.
 
 ### Polish & mobile integration
 
-- ~~**Plate suggestions from prior sets**~~ — heaviest-first default; Edit plates toggle; logged stack resume-safe continuity for next same-exercise working set
-- ~~**Skip rest of block**~~ (was “Bail on last set”) — − Set trims incomplete rounds (never last); confirmed Skip rest of block clears remaining incompletes; Set + Rest; #64
+-
 
 ### Bugfixes
 
-- ~~**Save error feedback**~~ — show validation errors near mobile Save + scroll into view on failure
-- ~~**Empty rest as 0**~~ — treat cleared rest inputs as 0 on routine save
+-
 
 ### Code quality & security
 
@@ -125,4 +123,3 @@ Public order matches `/beta-tester-faqs`.
 
 - **Soft host cap ~100 accounts** — prod: Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 - **Maintenance handoff plan** — reduce ongoing Cursor dependence so a human can keep the app running without constant AI spend
-- ~~**Dockerise?**~~ — shipped as Laravel Sail local stack (#63); prod remains Laravel Cloud
