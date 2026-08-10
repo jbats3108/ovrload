@@ -82,7 +82,9 @@ export function buildDraftBlocks(blocks: HistoricalCreateBlock[], deload: boolea
             warm_ups: [],
         };
 
-        draft.warm_ups = (block.warm_ups ?? []).map((recipe) => warmUpFromRecipe(recipe, firstWorkingWeightKg(draft, recipe.exercise_position)));
+        if (!deload) {
+            draft.warm_ups = (block.warm_ups ?? []).map((recipe) => warmUpFromRecipe(recipe, firstWorkingWeightKg(draft, recipe.exercise_position)));
+        }
 
         return draft;
     });
