@@ -97,4 +97,60 @@ class WorkingSetControllerTest extends TestCase
             ->delete(route('workouts.sets.remove', ['workout' => $workout, 'set' => $foreignSet]))
             ->assertNotFound();
     }
+
+    #[Test]
+    public function owner_can_skip_rest_of_block_on_in_progress_workout(): void
+    {
+        $workout = $this->createPlayableWorkout(setCount: 3, loadBlocks: true);
+        $block = $workout->blocks->first();
+        $first = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->where('set_index', 0)
+            ->firstOrFail();
+        $first->update(['completed_at' => now(), 'reps' => 5, 'weight_g' => 80000]);
+
+        $this->actingAs($this->user)
+            ->from(route('workouts.play', $workout))
+            ->post(route('workouts.blocks.skip-rest', ['workout' => $workout, 'block' => $block]))
+            ->assertRedirect(route('workouts.play', $workout));
+
+        $working = $block->fresh()->workingSetGroup;
+        $this->assertSame(1, $working->set_count);
+        $this->assertCount(1, $working->sets);
+    }
+
+    #[Test]
+    public function non_owner_cannot_skip_rest_of_block(): void
+    {
+        $workout = $this->createPlayableWorkout(setCount: 2, loadBlocks: true);
+        $block = $workout->blocks->first();
+
+        $this->actingAs($this->secondUser)
+            ->post(route('workouts.blocks.skip-rest', ['workout' => $workout, 'block' => $block]))
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function finished_workout_cannot_skip_rest_of_block(): void
+    {
+        $workout = $this->createPlayableWorkout(setCount: 2, loadBlocks: true);
+        $workout->update(['status' => WorkoutStatus::Finished]);
+        $block = $workout->blocks->first();
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.blocks.skip-rest', ['workout' => $workout, 'block' => $block]))
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function skip_rest_rejects_block_from_another_workout(): void
+    {
+        $workout = $this->createPlayableWorkout(setCount: 2, loadBlocks: true);
+        $other = $this->createPlayableWorkout(user: $this->secondUser, setCount: 2, loadBlocks: true);
+        $foreignBlock = $other->blocks->first();
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.blocks.skip-rest', ['workout' => $workout, 'block' => $foreignBlock]))
+            ->assertNotFound();
+    }
 }

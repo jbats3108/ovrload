@@ -3,7 +3,7 @@ import UpcomingCard from '@/workouts/components/UpcomingCard.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
 import { ref } from 'vue';
 
-const { restLabel, upcoming, workout, skipRest } = useWorkoutPlayer();
+const { restLabel, upcoming, workout, skipRest, canSkipRestOfBlock, skipRestOfBlock, mutating } = useWorkoutPlayer();
 
 const confirmingSkip = ref(false);
 
@@ -33,6 +33,17 @@ function confirmSkip() {
                 Skip
             </button>
         </div>
-        <button v-else type="button" class="rounded-full border border-border px-5 py-2 text-sm" @click="requestSkip">Skip</button>
+        <div v-else class="flex flex-wrap items-center justify-center gap-3">
+            <button type="button" class="rounded-full border border-border px-5 py-2 text-sm" @click="requestSkip">Skip</button>
+            <button
+                v-if="canSkipRestOfBlock"
+                type="button"
+                class="rounded-full border border-border px-5 py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+                :disabled="mutating"
+                @click="skipRestOfBlock"
+            >
+                Skip rest of block
+            </button>
+        </div>
     </div>
 </template>

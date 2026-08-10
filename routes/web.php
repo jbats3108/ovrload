@@ -42,6 +42,7 @@ use App\Workouts\Http\Controllers\RemoveWorkingSetController;
 use App\Workouts\Http\Controllers\ShowProgressionController;
 use App\Workouts\Http\Controllers\ShowWorkoutHistoryController;
 use App\Workouts\Http\Controllers\SkipProgressionController;
+use App\Workouts\Http\Controllers\SkipRestOfBlockController;
 use App\Workouts\Http\Controllers\StoreWorkoutController;
 use App\Workouts\Http\Controllers\UpdateWorkoutHistorySetController;
 use App\Workouts\Models\Workout;
@@ -151,6 +152,10 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/{workout}/blocks/{block}/working-sets', AddWorkingSetController::class)
             ->can('update', 'workout')
             ->name('workouts.working-sets.add');
+
+        Route::post('/{workout}/blocks/{block}/skip-rest', SkipRestOfBlockController::class)
+            ->can('update', 'workout')
+            ->name('workouts.blocks.skip-rest');
 
         Route::delete('/{workout}/sets/{set}', RemoveWorkingSetController::class)
             ->can('update', 'workout')

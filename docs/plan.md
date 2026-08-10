@@ -114,7 +114,7 @@ Public order matches `/beta-tester-faqs`.
 ### Polish & mobile integration
 
 - ~~**Plate suggestions from prior sets**~~ — heaviest-first default; Edit plates toggle; logged stack resume-safe continuity for next same-exercise working set
-- **Bail on last set** — after penultimate set is complete, option to skip / bail the final set
+- ~~**Skip rest of block**~~ — − Set trims incomplete rounds (never last); confirmed Skip rest of block deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History
 
 ### Bugfixes
 

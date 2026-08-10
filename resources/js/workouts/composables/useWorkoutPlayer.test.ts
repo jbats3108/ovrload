@@ -614,6 +614,94 @@ describe('createWorkoutPlayer', () => {
         expect(inertiaMocks().routerMocks.delete).not.toHaveBeenCalled();
     });
 
+    it('offers skip rest of block when incompletes remain', async () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    sets: [
+                        playerSet({ id: 1, set_index: 0, completed: true, logged_weight_kg: 100 }),
+                        playerSet({ id: 2, set_index: 1, completed: false }),
+                    ],
+                }),
+            ],
+        });
+        expect(player.canSkipRestOfBlock.value).toBe(true);
+        await player.skipRestOfBlock();
+        expect(confirmDialog.confirmDialog).toHaveBeenCalledWith({
+            title: 'Skip rest of this block?',
+            description: 'Remaining sets won’t appear in History.',
+            confirmLabel: 'Skip',
+        });
+        expect(inertiaMocks().routerMocks.post).toHaveBeenCalledWith(
+            '/workouts.blocks.skip-rest',
+            {},
+            expect.objectContaining({
+                preserveScroll: true,
+                only: ['workout'],
+                onSuccess: expect.any(Function),
+                onFinish: expect.any(Function),
+            }),
+        );
+    });
+
+    it('does not skip rest of block when confirm is declined', async () => {
+        vi.mocked(confirmDialog.confirmDialog).mockResolvedValueOnce(false);
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    sets: [
+                        playerSet({ id: 1, set_index: 0, completed: true, logged_weight_kg: 100 }),
+                        playerSet({ id: 2, set_index: 1, completed: false }),
+                    ],
+                }),
+            ],
+        });
+        await player.skipRestOfBlock();
+        expect(inertiaMocks().routerMocks.post).not.toHaveBeenCalled();
+    });
+
+    it('offers skip rest of block during rest before the next set in the block', async () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    sets: [
+                        playerSet({ id: 1, set_index: 0, completed: true, logged_weight_kg: 100 }),
+                        playerSet({ id: 2, set_index: 1, completed: false }),
+                    ],
+                }),
+            ],
+        });
+        player.focus.value = { kind: 'set', blockIndex: 0, setId: 1 };
+        player.restSecondsLeft.value = 90;
+        expect(player.canSkipRestOfBlock.value).toBe(true);
+        await player.skipRestOfBlock();
+        expect(inertiaMocks().routerMocks.post).toHaveBeenCalledWith(
+            '/workouts.blocks.skip-rest',
+            {},
+            expect.objectContaining({ onSuccess: expect.any(Function) }),
+        );
+    });
+
+    it('hides skip rest of block when the block has no incompletes', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    sets: [playerSet({ id: 1, set_index: 0, completed: true, logged_weight_kg: 100 })],
+                }),
+                playerBlock({
+                    id: 6,
+                    sets: [playerSet({ id: 3, set_index: 0, completed: false })],
+                }),
+            ],
+        });
+        player.focus.value = { kind: 'set', blockIndex: 0, setId: 1 };
+        expect(player.canSkipRestOfBlock.value).toBe(false);
+    });
+
     it('keeps focus on the current set when an extra set is added to the workout payload', async () => {
         const props = reactive({
             workout: workoutPayload({

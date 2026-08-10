@@ -721,13 +721,36 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         const index = current.value.set.set_index;
         const hasLaterRound = current.value.block.sets.some((s) => s.group_type === 'working' && s.set_index > index);
         if (!hasLaterRound) {
-            // Last round: removing it would skip straight to the next block/setup.
+            // Last round: use Skip rest of block instead of − Set.
             return false;
         }
 
         const round = current.value.block.sets.filter((s) => s.group_type === 'working' && s.set_index === index);
         return round.every((s) => !s.completed);
     });
+
+    const skipRestOfBlockTarget = computed(() => {
+        if (props.workout.status !== 'in_progress') {
+            return null;
+        }
+
+        if (current.value?.block.sets.some((s) => !s.completed)) {
+            return current.value.block;
+        }
+
+        if (restSecondsLeft.value <= 0 && pendingRestSeconds.value <= 0) {
+            return null;
+        }
+
+        const upcomingEntry = flatSets.value.find(({ set }) => !set.completed) ?? null;
+        if (!upcomingEntry?.block.sets.some((s) => !s.completed)) {
+            return null;
+        }
+
+        return upcomingEntry.block;
+    });
+
+    const canSkipRestOfBlock = computed(() => skipRestOfBlockTarget.value !== null);
 
     const addWorkingSet = () => {
         if (mutating.value || !current.value) {
@@ -759,6 +782,39 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                 mutating.value = false;
             },
         });
+    };
+
+    const skipRestOfBlock = async () => {
+        const block = skipRestOfBlockTarget.value;
+        if (mutating.value || !block || !canSkipRestOfBlock.value) {
+            return;
+        }
+
+        const ok = await confirmDialog({
+            title: 'Skip rest of this block?',
+            description: 'Remaining sets won’t appear in History.',
+            confirmLabel: 'Skip',
+        });
+        if (!ok || mutating.value || skipRestOfBlockTarget.value?.id !== block.id) {
+            return;
+        }
+
+        mutating.value = true;
+        router.post(
+            route('workouts.blocks.skip-rest', [props.workout.id, block.id]),
+            {},
+            {
+                preserveScroll: true,
+                only: ['workout'],
+                onSuccess: () => {
+                    clearRest();
+                    focus.value = firstIncomplete();
+                },
+                onFinish: () => {
+                    mutating.value = false;
+                },
+            },
+        );
     };
 
     const plateLoad = computed(() => {
@@ -886,6 +942,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         canPromoteToDropset,
         canAddWorkingSet,
         canRemoveWorkingSet,
+        canSkipRestOfBlock,
         plateLoad,
         stagePlateLoad,
         stageWeightKg,
@@ -907,6 +964,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         leaveWorkout,
         addWorkingSet,
         removeWorkingSet,
+        skipRestOfBlock,
         applyNearestLoad,
         applyStageNearestLoad,
         changeLogPlate,
