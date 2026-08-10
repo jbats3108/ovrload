@@ -17,6 +17,12 @@ const backlogItems = [
         recentlyAdded: true,
     },
     {
+        title: 'Custom user exercises',
+        description:
+            'Add your own personal lifts from the routine editor. They stay private to your account — they never show up in anyone else’s catalog.',
+        recentlyAdded: true,
+    },
+    {
         title: 'Better History Edits',
         description:
             'Allow editing more details of past workouts, such as warmup weights; see discarded workouts in history, even add or remove exercises and sets from a logged workout.',
