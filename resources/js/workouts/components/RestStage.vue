@@ -42,7 +42,7 @@ function confirmSkip() {
                 :disabled="mutating"
                 @click="skipRestOfBlock"
             >
-                Skip rest of block
+                Skip rest of group
             </button>
         </div>
     </div>

@@ -14,62 +14,63 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
-1. **Skip rest of block** — − Set trims incomplete rounds (never last); confirmed Skip rest of block deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History (#64)
-2. **Since-last-deload counts** — per-routine dashboard standards since latest finished deload; soft Deload hint at ≥ Deload Velocity (`deload_every_n`, editor + Training defaults; 0 = never); #47
-3. **Domain mail + beta forms + PWA icons** — Resend domain mailboxes; invite `MAIL_REPLY_TO_ADDRESS`; first-party `/invite-request` & `/feedback` (stored + notify invite@/feedback@); privacy drops Tally; Ko-Fi link; padded/maskable PWA icons (#56)
-4. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); `exercises:import` soft-deletes extras unless `--no-prune`
-5. **Nicer confirms** — ~~replace browser `confirm`/`alert` with in-app dialogs~~ done (`confirmDialog` + `ConfirmDialogHost`; RestStage inline skip unchanged)
-6. **"Block" naming** — ~~UI/copy only: Play/History drop “Block N” (show `Superset` when needed); Up next drops Block N; setup hints use exercise names; editor/settings leftover noun = Exercise; domain `Block` unchanged~~ done
-7. **Set x/y in exercise header (Play)** — ~~set progress in the big exercise header (and log sheet), labeled Warm-up / Working~~ done
-8. **Bump when mode** — ~~Settings “Bump when”: Any set / Last set at top weight; snapshotted on workout start; Floor kept for carry-forward; Bump = prescribed Target (no separate Progression Target / editor Bump); log sheet `Floor X. Bump @ Y`; confirm on finish + history re-eval~~ done
-9. **PWA app shell** — ~~tabbed app shell; haptics~~ done (mobile bottom tabs: Dashboard · History · Training · Settings; desktop sidebar unchanged; player haptics on Done / Log set; rest-end vibrate already shipped)
-10. **Duplicate routine** — ~~clone an existing routine as a starting point~~ done (POST duplicate; deep-copies blocks / set groups / warm-ups / dropsets / deload; opens editor as `{name} (copy)`)
-11. **Superset setup preview** — ~~show both exercises during setup~~ done (Setup Up Next lists A + B for the upcoming round)
-12. **History: group block sets** — ~~group sets by block in history UI~~ done (one section per block; working sets grouped by exercise)
-13. **PWA installable (phase 1)** — ~~manifest, Apple meta tags, service worker at `/sw.js` (root scope), iOS install banner~~ done (#23)
-14. **Progression defaults UI** — ~~Settings Achievement Floor / Progression Target + editor Floor / Bump overrides~~ done (empty override inherits user default; placeholders from Settings)
-15. **Slugs / ULIDs in routes** — ~~investigate slugs instead of IDs~~ done: [ADR-0006](adr/0006-slugs-and-ulids-in-routes.md) (routine slugs + workout ULIDs)
-16. **Rest skip confirm** — ~~inline Skip rest confirm in player~~ done (`RestStage.vue`)
-17. **Type-ahead exercise picker** — ~~separate find bar + native `<select>` (no search in dropdown)~~ done (one control: tap exercise → bottom sheet with focused search + filtered list; mobile + desktop)
-18. **Setup between warm-ups** — ~~per-step setup after warm-up steps; setup then warm-up rest; block Setup→work unchanged~~ done
-19. **Add/remove set player bugs** — ~~− Set advanced focus / left `set N of 1`; last-round − Set skipped the block~~ done (reindex after remove; keep focus on add; hide − Set on last working round)
-20. **Player layout tweaks** — ~~centralise text, clearer section separation, bigger elements; stronger set-of-x highlight~~ done
-21. **Set x/n on setup** — ~~show set progress (x of n) during setup~~ done (Up next on setup/rest: `Set x/n` from planned group count)
-22. **Complete screen full-page** — ~~log-set complete UI should cover the whole page~~ done (full-screen log sheet; keyboard overlays content so Log/Cancel stay put; finish Complete stage hides player header)
-23. **Countdown beeps** — ~~rest/timer countdown audio cues~~ done (ticks at 5…1 + long end tone; vibrate mirrors when available)
-24. **Admin nav order** — ~~push Admin to the bottom of the top-nav items~~ done (after Training in primary rail/drawer)
-25. **Remove clickable titles** — ~~titles should not navigate; use explicit buttons only~~ done (dashboard routine name is plain text; edit via icon)
-26. **Bigger edit/delete icons** — ~~increase affordance size for edit/delete controls in the UI~~ done (dashboard routine cards: `size-5` + larger hit target)
-27. **Soft-fail not-found / errors** — ~~no raw error pages for expected GET misses/forbids; redirect + flash/toast~~ done (authenticated web; guests/admin/mutations stay hard)
-28. **Finished workout history** — browse/edit finished workouts at `/history`; dashboard recent strip + nav; warm-ups read-only; working weight + reps editable; re-eval progression on latest non-deload finish (carry-forward, bumps, undo via Bump Records; ADR-0004)
-29. **Complete-then-log UX** — ~~Done on main stage opens full-page log sheet; Log set commits; Cancel aborts without server write; main stage is display-only with plate guide~~ done
-30. **Rest-end alert + leave-during-rest** — sound/vibration when rest hits zero in foreground; notification permission on first rest + background notification when tab is hidden; clock-based rest sync on visibility return
-31. **Prev set weight → next** — ~~pending-rest blocks focus race; client `lastWorkingWeightKg` + prior logged weight~~ done
-32. **Keep screen awake in Play** — ~~Screen Wake Lock while player mounted; re-request on visibility~~ done
-33. **Preview next during rest / setup** — ~~Up next card: exercise, set, weight/reps, plate stack when barbell~~ done
-34. **Plate guide visibility in Play** — ~~works for barbell/EZ; missing equipment on pre-import orphans~~ done (audit + merge original short-name catalog)
-35. **Progression on finish** — ~~carry-forward highest achieved top weight; confirm bumps when progression target hit; skip both for deload workouts~~ done
-36. **Mid-session structure edits** — ~~mutate the in-progress workout snapshot (not the routine) from the player~~ done (add/remove incomplete working sets; reindex + last-round − Set guard)
-37. **More app-like mobile behaviour** — ~~chrome polish: safe areas, player full-bleed (no AppLayout), leave confirm, overscroll off on player+editor~~ done (PWA install #5; bottom nav in #1)
-38. **User default warm-up %s and reps** — ~~prefs on the user; per-step %×reps on warm-up steps; seed into new blocks; Settings → Training~~ done
-39. **Restyle whole app to match Overload branding** — ~~zinc + lime~~ done: dark-first near-black + neon yellow primary + cyan accent (`docs/branding.md`, `resources/css/app.css`)
-40. **Find and import exercises** — ~~shared catalog JSON + `exercises:import` + seeder; editor find filter; index scoped to `forUser`~~ done (~80 lifts)
-41. **Admin panel** — ~~thin Inertia admin: exercises, muscle groups, read-only users; sidebar link for admins~~ done
-42. **Dead code audit (v1 leftovers)** — ~~JSON catalog APIs, unused MG update, starter UI packages, unused permission seeders~~ done
-43. **Strip Laravel starter-kit UI** — ~~remove obvious Breeze/starter chrome and behaviours that still read as the stock kit~~ done (branded OVRLOAD home; dead search/footer/auth variants removed)
-44. **Rebrand to OVRLOAD** — ~~rename product surfaces to **OVRLOAD**; mark/icon and related chrome around **OVR** / \*\*OVRLD~~\*\* done (`docs/branding.md`; logos, home, auth, `APP_NAME`)
-45. **Plate calculator UI** — ~~Settings for bars/plates; player shows nearest loadable stack~~ done
+1. **Add Historical Workouts** — History → Add historical; when-first (no “now” default); deload; +/− set / mark group skipped; warm-ups %×Set 1 (hint + override); progression only if latest non-deload; OK while Play in progress; UI “group” not “block” on skip actions
+2. **Skip rest of block** — − Set trims incomplete rounds (never last); confirmed Skip rest of group deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History (#64)
+3. **Since-last-deload counts** — per-routine dashboard standards since latest finished deload; soft Deload hint at ≥ Deload Velocity (`deload_every_n`, editor + Training defaults; 0 = never); #47
+4. **Domain mail + beta forms + PWA icons** — Resend domain mailboxes; invite `MAIL_REPLY_TO_ADDRESS`; first-party `/invite-request` & `/feedback` (stored + notify invite@/feedback@); privacy drops Tally; Ko-Fi link; padded/maskable PWA icons (#56)
+5. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); `exercises:import` soft-deletes extras unless `--no-prune`
+6. **Nicer confirms** — ~~replace browser `confirm`/`alert` with in-app dialogs~~ done (`confirmDialog` + `ConfirmDialogHost`; RestStage inline skip unchanged)
+7. **"Block" naming** — ~~UI/copy only: Play/History drop “Block N” (show `Superset` when needed); Up next drops Block N; setup hints use exercise names; editor/settings leftover noun = Exercise; domain `Block` unchanged~~ done
+8. **Set x/y in exercise header (Play)** — ~~set progress in the big exercise header (and log sheet), labeled Warm-up / Working~~ done
+9. **Bump when mode** — ~~Settings “Bump when”: Any set / Last set at top weight; snapshotted on workout start; Floor kept for carry-forward; Bump = prescribed Target (no separate Progression Target / editor Bump); log sheet `Floor X. Bump @ Y`; confirm on finish + history re-eval~~ done
+10. **PWA app shell** — ~~tabbed app shell; haptics~~ done (mobile bottom tabs: Dashboard · History · Training · Settings; desktop sidebar unchanged; player haptics on Done / Log set; rest-end vibrate already shipped)
+11. **Duplicate routine** — ~~clone an existing routine as a starting point~~ done (POST duplicate; deep-copies blocks / set groups / warm-ups / dropsets / deload; opens editor as `{name} (copy)`)
+12. **Superset setup preview** — ~~show both exercises during setup~~ done (Setup Up Next lists A + B for the upcoming round)
+13. **History: group block sets** — ~~group sets by block in history UI~~ done (one section per block; working sets grouped by exercise)
+14. **PWA installable (phase 1)** — ~~manifest, Apple meta tags, service worker at `/sw.js` (root scope), iOS install banner~~ done (#23)
+15. **Progression defaults UI** — ~~Settings Achievement Floor / Progression Target + editor Floor / Bump overrides~~ done (empty override inherits user default; placeholders from Settings)
+16. **Slugs / ULIDs in routes** — ~~investigate slugs instead of IDs~~ done: [ADR-0006](adr/0006-slugs-and-ulids-in-routes.md) (routine slugs + workout ULIDs)
+17. **Rest skip confirm** — ~~inline Skip rest confirm in player~~ done (`RestStage.vue`)
+18. **Type-ahead exercise picker** — ~~separate find bar + native `<select>` (no search in dropdown)~~ done (one control: tap exercise → bottom sheet with focused search + filtered list; mobile + desktop)
+19. **Setup between warm-ups** — ~~per-step setup after warm-up steps; setup then warm-up rest; block Setup→work unchanged~~ done
+20. **Add/remove set player bugs** — ~~− Set advanced focus / left `set N of 1`; last-round − Set skipped the block~~ done (reindex after remove; keep focus on add; hide − Set on last working round)
+21. **Player layout tweaks** — ~~centralise text, clearer section separation, bigger elements; stronger set-of-x highlight~~ done
+22. **Set x/n on setup** — ~~show set progress (x of n) during setup~~ done (Up next on setup/rest: `Set x/n` from planned group count)
+23. **Complete screen full-page** — ~~log-set complete UI should cover the whole page~~ done (full-screen log sheet; keyboard overlays content so Log/Cancel stay put; finish Complete stage hides player header)
+24. **Countdown beeps** — ~~rest/timer countdown audio cues~~ done (ticks at 5…1 + long end tone; vibrate mirrors when available)
+25. **Admin nav order** — ~~push Admin to the bottom of the top-nav items~~ done (after Training in primary rail/drawer)
+26. **Remove clickable titles** — ~~titles should not navigate; use explicit buttons only~~ done (dashboard routine name is plain text; edit via icon)
+27. **Bigger edit/delete icons** — ~~increase affordance size for edit/delete controls in the UI~~ done (dashboard routine cards: `size-5` + larger hit target)
+28. **Soft-fail not-found / errors** — ~~no raw error pages for expected GET misses/forbids; redirect + flash/toast~~ done (authenticated web; guests/admin/mutations stay hard)
+29. **Finished workout history** — browse/edit finished workouts at `/history`; dashboard recent strip + nav; warm-ups read-only; working weight + reps editable; re-eval progression on latest non-deload finish (carry-forward, bumps, undo via Bump Records; ADR-0004)
+30. **Complete-then-log UX** — ~~Done on main stage opens full-page log sheet; Log set commits; Cancel aborts without server write; main stage is display-only with plate guide~~ done
+31. **Rest-end alert + leave-during-rest** — sound/vibration when rest hits zero in foreground; notification permission on first rest + background notification when tab is hidden; clock-based rest sync on visibility return
+32. **Prev set weight → next** — ~~pending-rest blocks focus race; client `lastWorkingWeightKg` + prior logged weight~~ done
+33. **Keep screen awake in Play** — ~~Screen Wake Lock while player mounted; re-request on visibility~~ done
+34. **Preview next during rest / setup** — ~~Up next card: exercise, set, weight/reps, plate stack when barbell~~ done
+35. **Plate guide visibility in Play** — ~~works for barbell/EZ; missing equipment on pre-import orphans~~ done (audit + merge original short-name catalog)
+36. **Progression on finish** — ~~carry-forward highest achieved top weight; confirm bumps when progression target hit; skip both for deload workouts~~ done
+37. **Mid-session structure edits** — ~~mutate the in-progress workout snapshot (not the routine) from the player~~ done (add/remove incomplete working sets; reindex + last-round − Set guard)
+38. **More app-like mobile behaviour** — ~~chrome polish: safe areas, player full-bleed (no AppLayout), leave confirm, overscroll off on player+editor~~ done (PWA install #5; bottom nav in #1)
+39. **User default warm-up %s and reps** — ~~prefs on the user; per-step %×reps on warm-up steps; seed into new blocks; Settings → Training~~ done
+40. **Restyle whole app to match Overload branding** — ~~zinc + lime~~ done: dark-first near-black + neon yellow primary + cyan accent (`docs/branding.md`, `resources/css/app.css`)
+41. **Find and import exercises** — ~~shared catalog JSON + `exercises:import` + seeder; editor find filter; index scoped to `forUser`~~ done (~80 lifts)
+42. **Admin panel** — ~~thin Inertia admin: exercises, muscle groups, read-only users; sidebar link for admins~~ done
+43. **Dead code audit (v1 leftovers)** — ~~JSON catalog APIs, unused MG update, starter UI packages, unused permission seeders~~ done
+44. **Strip Laravel starter-kit UI** — ~~remove obvious Breeze/starter chrome and behaviours that still read as the stock kit~~ done (branded OVRLOAD home; dead search/footer/auth variants removed)
+45. **Rebrand to OVRLOAD** — ~~rename product surfaces to **OVRLOAD**; mark/icon and related chrome around **OVR** / \*\*OVRLD~~\*\* done (`docs/branding.md`; logos, home, auth, `APP_NAME`)
+46. **Plate calculator UI** — ~~Settings for bars/plates; player shows nearest loadable stack~~ done
 
 - Equipment classification: catalog `equipment` on exercises; snapshot into workouts; plate guide only for barbell / E-Z curl bar
 
-46. **Player / editor UX polish** — ~~finish/abandon in-progress; edit affordance; exercise find results; mobile editor scroll, compact warm-up, in-card search, add-block placement~~ done
-47. **Warm-up weight prefill in Play** — ~~incomplete warm-up sets should fill the weight field from `% × working` (`target_weight_kg`), not the previous logged warm-up; fix Target label `v-else` on reps~~ done
-48. **Warm-up setup steps** — ~~plan setup (press-when-done) pauses inside the warm-up flow, not only setup-after-block~~ done (`has_setup_after_warm_up`: once between last warm-up and first working)
-49. **Rest after warm-ups** — ~~make warm-up group rest first-class in editor + Play (rest after warm-up sets / before working)~~ done (editor exposes WU rest; Play already used group rest)
-50. **Clear block warm-up** — ~~one-tap remove all warm-up steps from a block in the editor~~ done
-51. **Warm-up defaults scope** — ~~Settings: seed warm-ups into every new block vs first block only~~ done
-52. **Dropsets** — ~~per working-set-slot multi-segment sets in editor + Play; update `CONTEXT.md` when shipping~~ done
-53. **Login screen on every open** — ~~authenticated users hitting `/` saw the guest home/login UI; bfcache could restore stale guest pages after sign-in~~ done (home redirect + guest-page bfcache reload)
+47. **Player / editor UX polish** — ~~finish/abandon in-progress; edit affordance; exercise find results; mobile editor scroll, compact warm-up, in-card search, add-block placement~~ done
+48. **Warm-up weight prefill in Play** — ~~incomplete warm-up sets should fill the weight field from `% × working` (`target_weight_kg`), not the previous logged warm-up; fix Target label `v-else` on reps~~ done
+49. **Warm-up setup steps** — ~~plan setup (press-when-done) pauses inside the warm-up flow, not only setup-after-block~~ done (`has_setup_after_warm_up`: once between last warm-up and first working)
+50. **Rest after warm-ups** — ~~make warm-up group rest first-class in editor + Play (rest after warm-up sets / before working)~~ done (editor exposes WU rest; Play already used group rest)
+51. **Clear block warm-up** — ~~one-tap remove all warm-up steps from a block in the editor~~ done
+52. **Warm-up defaults scope** — ~~Settings: seed warm-ups into every new block vs first block only~~ done
+53. **Dropsets** — ~~per working-set-slot multi-segment sets in editor + Play; update `CONTEXT.md` when shipping~~ done
+54. **Login screen on every open** — ~~authenticated users hitting `/` saw the guest home/login UI; bfcache could restore stale guest pages after sign-in~~ done (home redirect + guest-page bfcache reload)
 
 ## Backlog
 
@@ -82,12 +83,11 @@ Single triage list — reprioritize across buckets as needed. **Features (FAQ)**
 Public order matches `/beta-tester-faqs`.
 
 1. **Tutorial** — walkthrough for settings, routines, create/manage
-2. **Add Historical Workouts** — log a past workout without Play (date/time + weights on one screen); grill: progression re-eval, warm-ups, deload flag
-3. **Better History Edits** — warm-up edits; discarded in History; add/remove exercises and sets on a logged workout
-4. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
-5. **Choose an alternate exercise for Deload sessions** — swap lift only on deload starts
-6. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
-7. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
+2. **Better History Edits** — warm-up edits; discarded in History; add/remove exercises and sets on a logged workout
+3. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
+4. **Choose an alternate exercise for Deload sessions** — swap lift only on deload starts
+5. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
+6. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
 
 ### Parked (internal — not on public FAQ)
 

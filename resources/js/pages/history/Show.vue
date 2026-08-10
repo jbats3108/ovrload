@@ -85,8 +85,8 @@ const removeWorkout = () => deleteWorkout(props.history.workout.id, props.histor
                 <div class="divide-y divide-border">
                     <div v-for="row in rows" :key="row.key" class="px-3 py-2.5">
                         <template v-if="row.type === 'warm_up'">
-                            <p class="font-mono text-xs text-muted-foreground uppercase">Warm up</p>
-                            <ul class="mt-1.5 space-y-1.5">
+                            <p class="font-mono text-xs tracking-wide text-muted-foreground uppercase">Warm-up</p>
+                            <ul class="mt-1.5 space-y-1.5 border-l-2 border-muted pl-3">
                                 <li v-for="(group, gi) in historyWarmUpGroups(row.sets)" :key="gi" class="text-sm">
                                     <p v-if="group.exerciseName" class="font-medium text-foreground">{{ group.exerciseName }}</p>
                                     <p class="font-mono text-muted-foreground">{{ group.loads.join(' · ') }}</p>
@@ -95,11 +95,16 @@ const removeWorkout = () => deleteWorkout(props.history.workout.id, props.histor
                         </template>
 
                         <template v-else>
-                            <p v-if="showExerciseHeadings" class="mb-1.5 text-sm font-medium">{{ row.exerciseName }}</p>
-                            <ul class="space-y-2">
+                            <p class="font-mono text-xs tracking-wide text-primary uppercase">
+                                Working
+                                <span v-if="showExerciseHeadings" class="tracking-normal text-foreground normal-case">
+                                    · {{ row.exerciseName }}
+                                </span>
+                            </p>
+                            <ul class="mt-1.5 space-y-2 border-l-2 border-primary/40 pl-3">
                                 <li v-for="set in row.sets" :key="set.id">
                                     <form class="flex flex-wrap items-center gap-2" @submit.prevent="saveSet(set.id)">
-                                        <span class="w-6 shrink-0 font-mono text-xs text-muted-foreground">{{ set.set_index + 1 }}</span>
+                                        <span class="w-10 shrink-0 font-mono text-xs text-muted-foreground">Set {{ set.set_index + 1 }}</span>
                                         <label class="flex items-center gap-1 text-xs text-muted-foreground">
                                             <span class="sr-only">Reps</span>
                                             <input

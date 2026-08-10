@@ -32,10 +32,12 @@ use App\Shared\Http\Controllers\StoreInviteRequestController;
 use App\Workouts\Http\Controllers\AddWorkingSetController;
 use App\Workouts\Http\Controllers\ApplyProgressionBumpsController;
 use App\Workouts\Http\Controllers\CompleteWorkoutSetController;
+use App\Workouts\Http\Controllers\CreateHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\DeleteWorkoutHistoryController;
 use App\Workouts\Http\Controllers\DiscardWorkoutController;
 use App\Workouts\Http\Controllers\FinishWorkoutController;
 use App\Workouts\Http\Controllers\IndexWorkoutHistoryController;
+use App\Workouts\Http\Controllers\PickHistoricalWorkoutRoutineController;
 use App\Workouts\Http\Controllers\PlayWorkoutController;
 use App\Workouts\Http\Controllers\PromoteWorkoutSetToDropsetController;
 use App\Workouts\Http\Controllers\RemoveWorkingSetController;
@@ -43,6 +45,7 @@ use App\Workouts\Http\Controllers\ShowProgressionController;
 use App\Workouts\Http\Controllers\ShowWorkoutHistoryController;
 use App\Workouts\Http\Controllers\SkipProgressionController;
 use App\Workouts\Http\Controllers\SkipRestOfBlockController;
+use App\Workouts\Http\Controllers\StoreHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\StoreWorkoutController;
 use App\Workouts\Http\Controllers\UpdateWorkoutHistorySetController;
 use App\Workouts\Models\Workout;
@@ -118,6 +121,17 @@ Route::middleware('auth')->group(function (): void {
 
     Route::prefix('/history')->group(function (): void {
         Route::get('/', IndexWorkoutHistoryController::class)->name('history.index');
+
+        Route::get('/create', PickHistoricalWorkoutRoutineController::class)
+            ->name('history.create.pick');
+
+        Route::get('/create/{routine}', CreateHistoricalWorkoutController::class)
+            ->can('create', [Workout::class, 'routine'])
+            ->name('history.create');
+
+        Route::post('/create/{routine}', StoreHistoricalWorkoutController::class)
+            ->can('create', [Workout::class, 'routine'])
+            ->name('history.store');
 
         Route::get('/{workout}', ShowWorkoutHistoryController::class)
             ->can('view', 'workout')

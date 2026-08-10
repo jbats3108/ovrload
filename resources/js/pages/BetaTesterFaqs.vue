@@ -11,11 +11,6 @@ const backlogItems = [
             'A tutorial / walkthrough to help new users understand how to use OVRLOAD, what the different settings do, and how to create and manage your Routines.',
     },
     {
-        title: 'Add Historical Workouts',
-        description:
-            "Allow creating a workout that wasn't logged at the time, without needing to run through the entire Play routine. Select a date and time, and enter all the weights you lifted on one screen.",
-    },
-    {
         title: 'Better History Edits',
         description:
             'Allow editing more details of past workouts, such as warmup weights; see discarded workouts in history, even add or remove exercises and sets from a logged workout.',

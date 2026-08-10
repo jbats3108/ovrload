@@ -791,7 +791,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         }
 
         const ok = await confirmDialog({
-            title: 'Skip rest of this block?',
+            title: 'Skip rest of this group?',
             description: 'Remaining sets won’t appear in History.',
             confirmLabel: 'Skip',
         });

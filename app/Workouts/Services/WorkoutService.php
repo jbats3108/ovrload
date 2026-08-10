@@ -7,6 +7,9 @@ use App\Routines\Models\RoutineBlock;
 use App\Shared\Enums\SetGroupType;
 use App\Users\Enums\BumpWhen;
 use App\Users\Models\User;
+use App\Workouts\Data\History\StoreHistoricalBlockData;
+use App\Workouts\Data\History\StoreHistoricalSetData;
+use App\Workouts\Data\History\StoreHistoricalWorkoutData;
 use App\Workouts\Data\Progression\BumpProposalData;
 use App\Workouts\Enums\WorkoutMode;
 use App\Workouts\Enums\WorkoutStatus;
@@ -18,7 +21,9 @@ use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Models\WorkoutSetGroup;
 use App\Workouts\Models\WorkoutSetSegment;
 use App\Workouts\Models\WorkoutWarmUpStep;
+use Carbon\CarbonInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\LaravelData\DataCollection;
 
@@ -36,9 +41,9 @@ class WorkoutService
 
     public const CANNOT_REMOVE_LAST_WORKING_SET_ERROR = 'At least one working set is required';
 
-    public const NOTHING_TO_SKIP_IN_BLOCK_ERROR = 'Nothing left to skip in this block';
+    public const NOTHING_TO_SKIP_IN_BLOCK_ERROR = 'Nothing left to skip in this group';
 
-    public const WORKING_SET_GROUP_MISSING_ERROR = 'This block has no working sets';
+    public const WORKING_SET_GROUP_MISSING_ERROR = 'This group has no working sets';
 
     public const DROPSET_REQUIRES_SEGMENTS_ERROR = 'A dropset requires at least two segments';
 
@@ -51,6 +56,14 @@ class WorkoutService
     public const CANNOT_PROMOTE_SUPERSET_ERROR = 'Dropsets are not supported on supersets';
 
     public const ALREADY_A_DROPSET_ERROR = 'This set is already a dropset';
+
+    public const HISTORICAL_NO_BLOCKS_ERROR = 'Add at least one group to log a historical workout';
+
+    public const HISTORICAL_UNKNOWN_BLOCK_ERROR = 'One or more groups are not part of this routine';
+
+    public const HISTORICAL_SET_MISMATCH_ERROR = 'Logged sets must cover every working set in the kept groups';
+
+    public const HISTORICAL_FUTURE_FINISHED_AT_ERROR = 'Finished time cannot be in the future';
 
     public function __construct(
         private readonly WorkoutProgressionService $progressionService,
@@ -94,83 +107,7 @@ class WorkoutService
                     'started_at' => now(),
                 ]);
 
-                $weightFactor = $mode === WorkoutMode::Deload ? (float) $routine->deload_weight_factor : 1.0;
-                $repsFactor = $mode === WorkoutMode::Deload ? (float) $routine->deload_reps_factor : 1.0;
-
-                foreach ($routine->blocks as $routineBlock) {
-                    $workoutBlock = WorkoutBlock::create([
-                        'workout_id' => $workout->id,
-                        'position' => $routineBlock->position,
-                        'is_superset' => $routineBlock->is_superset,
-                        'has_setup_after' => $routineBlock->has_setup_after,
-                        'has_setup_after_warm_up' => $routineBlock->has_setup_after_warm_up,
-                    ]);
-
-                    foreach ($routineBlock->blockExercises as $routineBlockExercise) {
-                        WorkoutBlockExercise::create([
-                            'workout_block_id' => $workoutBlock->id,
-                            'exercise_id' => $routineBlockExercise->exercise_id,
-                            'position' => $routineBlockExercise->position,
-                            'exercise_name' => $routineBlockExercise->exercise->getName(),
-                            'equipment' => $routineBlockExercise->exercise->equipment,
-                            'working_weight_g' => (int) round($routineBlockExercise->working_weight_g * $weightFactor),
-                            'prescribed_reps' => max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor)),
-                            'achievement_floor' => $routineBlockExercise->achievement_floor_override
-                                ?? $routine->user->achievement_floor_default,
-                            'progression_target' => $routineBlockExercise->prescribed_reps,
-                        ]);
-                    }
-
-                    $workoutBlock->load('blockExercises');
-
-                    foreach ($routineBlock->setGroups as $routineSetGroup) {
-                        $workoutSetGroup = WorkoutSetGroup::create([
-                            'workout_block_id' => $workoutBlock->id,
-                            'type' => $routineSetGroup->type,
-                            'set_count' => $routineSetGroup->set_count,
-                            'rest_seconds' => $routineSetGroup->rest_seconds,
-                        ]);
-
-                        foreach ($routineSetGroup->warmUpSteps as $warmUpStep) {
-                            WorkoutWarmUpStep::create([
-                                'workout_set_group_id' => $workoutSetGroup->id,
-                                'position' => $warmUpStep->position,
-                                'percent_of_working' => $warmUpStep->percent_of_working,
-                                'reps' => $warmUpStep->reps,
-                                'has_setup_after' => $warmUpStep->has_setup_after,
-                            ]);
-                        }
-
-                        $segmentsByIndex = $routineSetGroup->dropsetSegments
-                            ->groupBy('set_index');
-
-                        for ($setIndex = 0; $setIndex < $routineSetGroup->set_count; $setIndex++) {
-                            $recipeSegments = $segmentsByIndex->get($setIndex, collect())
-                                ->sortBy('position')
-                                ->values();
-
-                            foreach ($workoutBlock->blockExercises as $workoutBlockExercise) {
-                                $workoutSet = WorkoutSet::create([
-                                    'workout_set_group_id' => $workoutSetGroup->id,
-                                    'workout_block_exercise_id' => $workoutBlockExercise->id,
-                                    'set_index' => $setIndex,
-                                ]);
-
-                                if ($recipeSegments->count() < 2) {
-                                    continue;
-                                }
-
-                                foreach ($recipeSegments as $segmentIndex => $recipeSegment) {
-                                    WorkoutSetSegment::create([
-                                        'workout_set_id' => $workoutSet->id,
-                                        'position' => $segmentIndex + 1,
-                                        'weight_g' => (int) round($recipeSegment->weight_g * $weightFactor),
-                                    ]);
-                                }
-                            }
-                        }
-                    }
-                }
+                $this->snapshotRoutineOntoWorkout($workout, $routine, $mode);
 
                 return $workout->fresh(['blocks']);
             });
@@ -182,6 +119,242 @@ class WorkoutService
     public function inProgressFor(User $user): ?Workout
     {
         return Workout::inProgressForUser($user);
+    }
+
+    /**
+     * Create a finished workout without going through Play. Does not conflict with an in-progress session.
+     *
+     * @return array{0: Workout, 1: DataCollection<int, BumpProposalData>}
+     *
+     * @throws WorkoutServiceException
+     */
+    public function createHistoricalWorkout(Routine $routine, StoreHistoricalWorkoutData $data): array
+    {
+        $routine->load([
+            'user',
+            'blocks.blockExercises.exercise',
+            'blocks.setGroups.warmUpSteps',
+            'blocks.setGroups.dropsetSegments',
+        ]);
+
+        $hasExercises = $routine->blocks->contains(
+            fn (RoutineBlock $block) => $block->blockExercises->isNotEmpty()
+        );
+
+        if (! $hasExercises) {
+            throw new WorkoutServiceException(self::ROUTINE_HAS_NO_EXERCISES_ERROR);
+        }
+
+        $finishedAt = $data->finishedAt;
+        if ($finishedAt->isFuture()) {
+            throw new WorkoutServiceException(self::HISTORICAL_FUTURE_FINISHED_AT_ERROR);
+        }
+
+        /** @var list<StoreHistoricalBlockData> $blocksPayload */
+        $blocksPayload = array_values($data->blocks->all());
+
+        if ($blocksPayload === []) {
+            throw new WorkoutServiceException(self::HISTORICAL_NO_BLOCKS_ERROR);
+        }
+
+        $routineBlocksByPosition = $routine->blocks->keyBy('position');
+        $positions = [];
+        $workingSetCountByPosition = [];
+
+        foreach ($blocksPayload as $blockData) {
+            if (! $routineBlocksByPosition->has($blockData->position)) {
+                throw new WorkoutServiceException(self::HISTORICAL_UNKNOWN_BLOCK_ERROR);
+            }
+
+            $positions[] = $blockData->position;
+            $workingSetCountByPosition[$blockData->position] = $blockData->workingSetCount;
+        }
+
+        $mode = $data->modeOrDefault();
+
+        return DB::transaction(function () use (
+            $routine,
+            $mode,
+            $finishedAt,
+            $positions,
+            $workingSetCountByPosition,
+            $blocksPayload,
+            $routineBlocksByPosition,
+        ): array {
+            $workout = Workout::create([
+                'user_id' => $routine->user_id,
+                'routine_id' => $routine->id,
+                'mode' => $mode,
+                'bump_when' => $routine->user->bump_when_default ?? BumpWhen::AnySet,
+                'status' => WorkoutStatus::Finished,
+                'started_at' => $finishedAt,
+                'finished_at' => $finishedAt,
+            ]);
+
+            $this->snapshotRoutineOntoWorkout(
+                $workout,
+                $routine,
+                $mode,
+                $positions,
+                $workingSetCountByPosition,
+            );
+
+            $workout->load([
+                'blocks.blockExercises',
+                'blocks.setGroups.sets.segments',
+            ]);
+
+            $this->applyHistoricalSetLogs($workout, $blocksPayload, $routineBlocksByPosition, $finishedAt);
+
+            $bumps = $workout->isEligibleForProgressionReEval()
+                ? $this->progressionService->applyCarryForwardAndCollectBumps($workout)
+                : BumpProposalData::collect([], DataCollection::class);
+
+            return [$workout->fresh(['blocks']), $bumps];
+        });
+    }
+
+    /**
+     * @param  list<StoreHistoricalBlockData>  $blocksPayload
+     * @param  Collection<int, RoutineBlock>  $routineBlocksByPosition
+     *
+     * @throws WorkoutServiceException
+     */
+    private function applyHistoricalSetLogs(
+        Workout $workout,
+        array $blocksPayload,
+        $routineBlocksByPosition,
+        CarbonInterface $finishedAt,
+    ): void {
+        $workoutBlocksByPosition = $workout->blocks->keyBy('position');
+
+        foreach ($blocksPayload as $blockData) {
+            /** @var WorkoutBlock $workoutBlock */
+            $workoutBlock = $workoutBlocksByPosition->get($blockData->position);
+            /** @var RoutineBlock $routineBlock */
+            $routineBlock = $routineBlocksByPosition->get($blockData->position);
+
+            $exerciseCount = $routineBlock->blockExercises->count();
+            $expectedSetRows = $blockData->workingSetCount * $exerciseCount;
+
+            /** @var list<StoreHistoricalSetData> $sets */
+            $sets = array_values($blockData->sets->all());
+
+            if (count($sets) !== $expectedSetRows) {
+                throw new WorkoutServiceException(self::HISTORICAL_SET_MISMATCH_ERROR);
+            }
+
+            $exercisesById = $workoutBlock->blockExercises->keyBy('id');
+            $workingGroup = $workoutBlock->setGroups->first(
+                fn (WorkoutSetGroup $group): bool => $group->type === SetGroupType::Working
+            );
+
+            if ($workingGroup === null) {
+                throw new WorkoutServiceException(self::WORKING_SET_GROUP_MISSING_ERROR);
+            }
+
+            $this->applyHistoricalGroupSetLogs($workingGroup, $exercisesById, $sets, $finishedAt);
+
+            $warmUpGroup = $workoutBlock->setGroups->first(
+                fn (WorkoutSetGroup $group): bool => $group->type === SetGroupType::WarmUp
+            );
+
+            /** @var list<StoreHistoricalSetData> $warmUpSets */
+            $warmUpSets = $blockData->warmUpSets !== null
+                ? array_values($blockData->warmUpSets->all())
+                : [];
+
+            if ($warmUpGroup !== null && $warmUpSets !== []) {
+                if (count($warmUpSets) !== $warmUpGroup->sets->count()) {
+                    throw new WorkoutServiceException(self::HISTORICAL_SET_MISMATCH_ERROR);
+                }
+
+                $this->applyHistoricalGroupSetLogs($warmUpGroup, $exercisesById, $warmUpSets, $finishedAt);
+            }
+        }
+    }
+
+    /**
+     * @param  Collection<int, WorkoutBlockExercise>  $exercisesById
+     * @param  list<StoreHistoricalSetData>  $sets
+     *
+     * @throws WorkoutServiceException
+     */
+    private function applyHistoricalGroupSetLogs(
+        WorkoutSetGroup $group,
+        $exercisesById,
+        array $sets,
+        CarbonInterface $finishedAt,
+    ): void {
+        $setsByKey = $group->sets->keyBy(
+            function (WorkoutSet $set) use ($exercisesById): string {
+                /** @var WorkoutBlockExercise|null $exercise */
+                $exercise = $exercisesById->get($set->workout_block_exercise_id);
+
+                return sprintf('%d:%d', $exercise?->position ?? 0, $set->set_index);
+            }
+        );
+
+        $seen = [];
+
+        foreach ($sets as $setData) {
+            $key = sprintf('%d:%d', $setData->exercisePosition, $setData->setIndex);
+
+            if (isset($seen[$key]) || ! $setsByKey->has($key)) {
+                throw new WorkoutServiceException(self::HISTORICAL_SET_MISMATCH_ERROR);
+            }
+
+            $seen[$key] = true;
+
+            /** @var WorkoutSet $workoutSet */
+            $workoutSet = $setsByKey->get($key);
+            $this->recordHistoricalSet($workoutSet, $setData, $finishedAt);
+        }
+    }
+
+    /**
+     * @throws WorkoutServiceException
+     */
+    private function recordHistoricalSet(
+        WorkoutSet $set,
+        StoreHistoricalSetData $data,
+        CarbonInterface $finishedAt,
+    ): void {
+        $segmentWeightGrams = $data->segmentWeightGrams();
+        $hasSegments = $segmentWeightGrams !== null && count($segmentWeightGrams) >= 2;
+        $isPlannedDropset = $set->isDropset();
+
+        if ($isPlannedDropset && ! $hasSegments) {
+            throw new WorkoutServiceException(self::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
+        }
+
+        if ($hasSegments) {
+            if (count($segmentWeightGrams) < 2) {
+                throw new WorkoutServiceException(self::DROPSET_REQUIRES_SEGMENTS_ERROR);
+            }
+
+            $set->replaceSegments($segmentWeightGrams);
+            $set->reps = $data->reps;
+            $set->weight_g = null;
+            $set->plate_stack = null;
+            $set->completed_at = $finishedAt;
+            $set->save();
+
+            return;
+        }
+
+        $weightGrams = $data->weightGrams();
+
+        if ($weightGrams === null) {
+            throw new WorkoutServiceException(self::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
+        }
+
+        $set->replaceSegments([]);
+        $set->reps = $data->reps;
+        $set->weight_g = $weightGrams;
+        $set->plate_stack = null;
+        $set->completed_at = $finishedAt;
+        $set->save();
     }
 
     /**
@@ -492,5 +665,121 @@ class WorkoutService
         }
 
         return $locked;
+    }
+
+    /**
+     * Snapshot routine structure onto a workout. Optional block filter and per-block working set counts
+     * support historical creates (skip blocks / +/- sets) without mutating after the fact.
+     *
+     * @param  list<int>|null  $routineBlockPositions  null = all blocks; empty not allowed by callers
+     * @param  array<int, int>  $workingSetCountByPosition  routine block position → working set_count override
+     */
+    public function snapshotRoutineOntoWorkout(
+        Workout $workout,
+        Routine $routine,
+        WorkoutMode $mode,
+        ?array $routineBlockPositions = null,
+        array $workingSetCountByPosition = [],
+    ): void {
+        $routine->loadMissing([
+            'user',
+            'blocks.blockExercises.exercise',
+            'blocks.setGroups.warmUpSteps',
+            'blocks.setGroups.dropsetSegments',
+        ]);
+
+        $weightFactor = $mode === WorkoutMode::Deload ? (float) $routine->deload_weight_factor : 1.0;
+        $repsFactor = $mode === WorkoutMode::Deload ? (float) $routine->deload_reps_factor : 1.0;
+
+        $blocks = $routine->blocks;
+        if ($routineBlockPositions !== null) {
+            $allowed = array_flip($routineBlockPositions);
+            $blocks = $blocks->filter(
+                fn (RoutineBlock $block): bool => array_key_exists($block->position, $allowed)
+            )->values();
+        }
+
+        foreach ($blocks as $routineBlock) {
+            $workoutBlock = WorkoutBlock::create([
+                'workout_id' => $workout->id,
+                'position' => $routineBlock->position,
+                'is_superset' => $routineBlock->is_superset,
+                'has_setup_after' => $routineBlock->has_setup_after,
+                'has_setup_after_warm_up' => $routineBlock->has_setup_after_warm_up,
+            ]);
+
+            foreach ($routineBlock->blockExercises as $routineBlockExercise) {
+                WorkoutBlockExercise::create([
+                    'workout_block_id' => $workoutBlock->id,
+                    'exercise_id' => $routineBlockExercise->exercise_id,
+                    'position' => $routineBlockExercise->position,
+                    'exercise_name' => $routineBlockExercise->exercise->getName(),
+                    'equipment' => $routineBlockExercise->exercise->equipment,
+                    'working_weight_g' => (int) round($routineBlockExercise->working_weight_g * $weightFactor),
+                    'prescribed_reps' => max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor)),
+                    'achievement_floor' => $routineBlockExercise->achievement_floor_override
+                        ?? $routine->user->achievement_floor_default,
+                    'progression_target' => $routineBlockExercise->prescribed_reps,
+                ]);
+            }
+
+            $workoutBlock->load('blockExercises');
+
+            foreach ($routineBlock->setGroups as $routineSetGroup) {
+                $setCount = $routineSetGroup->set_count;
+                if (
+                    $routineSetGroup->type === SetGroupType::Working
+                    && array_key_exists($routineBlock->position, $workingSetCountByPosition)
+                ) {
+                    $setCount = $workingSetCountByPosition[$routineBlock->position];
+                }
+
+                $workoutSetGroup = WorkoutSetGroup::create([
+                    'workout_block_id' => $workoutBlock->id,
+                    'type' => $routineSetGroup->type,
+                    'set_count' => $setCount,
+                    'rest_seconds' => $routineSetGroup->rest_seconds,
+                ]);
+
+                foreach ($routineSetGroup->warmUpSteps as $warmUpStep) {
+                    WorkoutWarmUpStep::create([
+                        'workout_set_group_id' => $workoutSetGroup->id,
+                        'position' => $warmUpStep->position,
+                        'percent_of_working' => $warmUpStep->percent_of_working,
+                        'reps' => $warmUpStep->reps,
+                        'has_setup_after' => $warmUpStep->has_setup_after,
+                    ]);
+                }
+
+                $segmentsByIndex = $routineSetGroup->dropsetSegments
+                    ->groupBy('set_index');
+
+                for ($setIndex = 0; $setIndex < $setCount; $setIndex++) {
+                    $recipeSegments = $segmentsByIndex->get($setIndex, collect())
+                        ->sortBy('position')
+                        ->values();
+
+                    foreach ($workoutBlock->blockExercises as $workoutBlockExercise) {
+                        $workoutSet = WorkoutSet::create([
+                            'workout_set_group_id' => $workoutSetGroup->id,
+                            'workout_block_exercise_id' => $workoutBlockExercise->id,
+                            'set_index' => $setIndex,
+                        ]);
+
+                        if ($recipeSegments->count() < 2) {
+                            continue;
+                        }
+
+                        foreach ($recipeSegments as $segmentIndex => $recipeSegment) {
+                            WorkoutSetSegment::create([
+                                'workout_set_id' => $workoutSet->id,
+                                'position' => $segmentIndex + 1,
+                                'weight_g' => (int) round($recipeSegment->weight_g * $weightFactor),
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
