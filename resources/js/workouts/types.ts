@@ -86,6 +86,53 @@ export type HistoryWorkout = {
     finished_at: string;
 };
 
+export type HistoricalCreateSegment = {
+    weight_kg: number;
+};
+
+export type HistoricalCreateSet = {
+    exercise_position: number;
+    exercise_name: string;
+    set_index: number;
+    is_dropset: boolean;
+    weight_kg: number | null;
+    reps: number;
+    segments: HistoricalCreateSegment[];
+};
+
+export type HistoricalCreateWarmUp = {
+    exercise_position: number;
+    exercise_name: string;
+    set_index: number;
+    percent_of_working: number;
+    reps: number;
+};
+
+export type HistoricalCreateExercise = {
+    position: number;
+    name: string;
+    equipment: string | null;
+    working_weight_kg: number;
+    prescribed_reps: number;
+};
+
+export type HistoricalCreateBlock = {
+    position: number;
+    is_superset: boolean;
+    exercises: HistoricalCreateExercise[];
+    working_set_count: number;
+    working_sets: HistoricalCreateSet[];
+    warm_ups: HistoricalCreateWarmUp[];
+};
+
+export type HistoricalCreateForm = {
+    routine_slug: string;
+    routine_name: string;
+    deload_weight_factor: number;
+    deload_reps_factor: number;
+    blocks: HistoricalCreateBlock[];
+};
+
 export type InProgressWorkout = {
     id: string;
     routine_name: string;

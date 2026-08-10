@@ -137,7 +137,7 @@ const unlockInput = (event: PointerEvent) => {
                     :disabled="mutating || setForm.processing"
                     @click="skipRestOfBlock"
                 >
-                    Skip rest of block
+                    Skip rest of group
                 </button>
             </div>
             <button

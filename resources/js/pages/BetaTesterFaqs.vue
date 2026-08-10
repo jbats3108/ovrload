@@ -14,6 +14,7 @@ const backlogItems = [
         title: 'Add Historical Workouts',
         description:
             "Allow creating a workout that wasn't logged at the time, without needing to run through the entire Play routine. Select a date and time, and enter all the weights you lifted on one screen.",
+        recentlyAdded: true,
     },
     {
         title: 'Better History Edits',
@@ -40,6 +41,10 @@ const backlogItems = [
             'Being able to see, and export, your data on how your strength has progressed over time, with charts and tables and spreadsheets, oh my!',
     },
 ] as const;
+
+function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
+    return 'recentlyAdded' in item && item.recentlyAdded === true;
+}
 </script>
 
 <template>
@@ -196,8 +201,18 @@ const backlogItems = [
 
                 <ol class="mt-6 list-decimal space-y-5 pl-5 text-muted-foreground">
                     <li v-for="item in backlogItems" :key="item.title" class="pl-1">
-                        <p class="font-medium text-foreground">{{ item.title }}</p>
-                        <p class="mt-1"><BrandCopy :text="item.description" /></p>
+                        <p class="font-medium text-foreground">
+                            <span :class="recentlyAdded(item) ? 'line-through decoration-muted-foreground/80' : undefined">{{ item.title }}</span>
+                            <span
+                                v-if="recentlyAdded(item)"
+                                class="ml-2 inline-block align-middle font-mono text-xs font-medium tracking-wide text-primary uppercase no-underline"
+                            >
+                                Recently added
+                            </span>
+                        </p>
+                        <p class="mt-1" :class="recentlyAdded(item) ? 'line-through decoration-muted-foreground/60' : undefined">
+                            <BrandCopy :text="item.description" />
+                        </p>
                     </li>
                 </ol>
             </section>

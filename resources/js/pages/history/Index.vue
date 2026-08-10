@@ -39,19 +39,27 @@ const removeWorkout = (workout: HistoryWorkout) => deleteWorkout(workout.id, wor
                     <h1 class="text-2xl font-semibold tracking-tight">History</h1>
                     <p class="mt-1 text-sm text-muted-foreground">Finished workouts</p>
                 </div>
-                <label class="flex flex-col gap-1 text-xs text-muted-foreground">
-                    Routine
-                    <select
-                        class="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
-                        :value="history.routine_slug ?? ''"
-                        @change="filterByRoutine(($event.target as HTMLSelectElement).value || null)"
+                <div class="flex flex-wrap items-end gap-3">
+                    <Link
+                        :href="route('history.create.pick')"
+                        class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                     >
-                        <option value="">All routines</option>
-                        <option v-for="routine in history.routine_filter_options" :key="routine.slug" :value="routine.slug">
-                            {{ routine.name }}
-                        </option>
-                    </select>
-                </label>
+                        Add historical
+                    </Link>
+                    <label class="flex flex-col gap-1 text-xs text-muted-foreground">
+                        Routine
+                        <select
+                            class="rounded border border-border bg-background px-3 py-2 text-sm text-foreground"
+                            :value="history.routine_slug ?? ''"
+                            @change="filterByRoutine(($event.target as HTMLSelectElement).value || null)"
+                        >
+                            <option value="">All routines</option>
+                            <option v-for="routine in history.routine_filter_options" :key="routine.slug" :value="routine.slug">
+                                {{ routine.name }}
+                            </option>
+                        </select>
+                    </label>
+                </div>
             </div>
 
             <ul v-if="history.workouts.length" class="divide-y divide-border rounded-xl border border-border">

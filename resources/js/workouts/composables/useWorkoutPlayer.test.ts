@@ -629,7 +629,7 @@ describe('createWorkoutPlayer', () => {
         expect(player.canSkipRestOfBlock.value).toBe(true);
         await player.skipRestOfBlock();
         expect(confirmDialog.confirmDialog).toHaveBeenCalledWith({
-            title: 'Skip rest of this block?',
+            title: 'Skip rest of this group?',
             description: 'Remaining sets won’t appear in History.',
             confirmLabel: 'Skip',
         });
