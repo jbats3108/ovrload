@@ -83,11 +83,12 @@ Single triage list — reprioritize across buckets as needed. **Features (FAQ)**
 Public order matches `/beta-tester-faqs`.
 
 1. **Tutorial** — walkthrough for settings, routines, create/manage
-2. **Better History Edits** — warm-up edits; discarded in History; add/remove exercises and sets on a logged workout
-3. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
-4. **Choose an alternate exercise for Deload sessions** — swap lift only on deload starts
-5. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
-6. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
+2. ~~**Add Historical Workouts**~~ — recently added (History → Add historical)
+3. **Better History Edits** — warm-up edits; discarded in History; add/remove exercises and sets on a logged workout
+4. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
+5. **Choose an alternate exercise for Deload sessions** — swap lift only on deload starts
+6. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
+7. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
 
 ### Parked (internal — not on public FAQ)
 
