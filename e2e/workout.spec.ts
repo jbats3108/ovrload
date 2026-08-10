@@ -33,10 +33,10 @@ async function completeCurrentSet(page: Page): Promise<void> {
 }
 
 async function skipRest(page: Page): Promise<void> {
-    await expect(page.getByRole('button', { name: 'Skip' })).toBeVisible({ timeout: 15_000 });
-    await page.getByRole('button', { name: 'Skip' }).click();
+    await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Skip', exact: true }).click();
     await expect(page.getByText('Skip rest?')).toBeVisible();
-    await page.getByRole('button', { name: 'Skip' }).click();
+    await page.getByRole('button', { name: 'Skip', exact: true }).click();
 }
 
 test.describe('workout player', () => {

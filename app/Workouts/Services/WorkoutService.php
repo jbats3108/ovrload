@@ -36,6 +36,8 @@ class WorkoutService
 
     public const CANNOT_REMOVE_LAST_WORKING_SET_ERROR = 'At least one working set is required';
 
+    public const NOTHING_TO_SKIP_IN_BLOCK_ERROR = 'Nothing left to skip in this block';
+
     public const WORKING_SET_GROUP_MISSING_ERROR = 'This block has no working sets';
 
     public const DROPSET_REQUIRES_SEGMENTS_ERROR = 'A dropset requires at least two segments';
@@ -372,6 +374,73 @@ class WorkoutService
 
             $group->set_count = max(1, $group->set_count - 1);
             $group->save();
+        });
+    }
+
+    /**
+     * Delete every incomplete set in the block (warm-up + working). Logged sets stay.
+     * Working / warm-up set_count may become 0.
+     *
+     * @throws WorkoutServiceException
+     */
+    public function skipRestOfBlock(WorkoutBlock $block): void
+    {
+        $block->loadMissing(['workout', 'setGroups.sets']);
+
+        if ($block->workout->status !== WorkoutStatus::InProgress) {
+            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
+        }
+
+        $hasIncomplete = $block->setGroups
+            ->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
+            ->contains(fn (WorkoutSet $set): bool => $set->completed_at === null);
+
+        if (! $hasIncomplete) {
+            throw new WorkoutServiceException(self::NOTHING_TO_SKIP_IN_BLOCK_ERROR);
+        }
+
+        DB::transaction(function () use ($block): void {
+            foreach ($block->setGroups as $group) {
+                $incompleteIds = $group->sets
+                    ->filter(fn (WorkoutSet $set): bool => $set->completed_at === null)
+                    ->pluck('id');
+
+                if ($incompleteIds->isNotEmpty()) {
+                    WorkoutSet::query()->whereIn('id', $incompleteIds)->delete();
+                }
+
+                $remaining = WorkoutSet::query()
+                    ->where('workout_set_group_id', $group->id)
+                    ->orderBy('set_index')
+                    ->orderBy('id')
+                    ->get();
+
+                $oldIndexes = $remaining->pluck('set_index')->unique()->sort()->values();
+                $indexMap = [];
+                foreach ($oldIndexes as $newIndex => $oldIndex) {
+                    $indexMap[(int) $oldIndex] = $newIndex;
+                }
+
+                $needsRemap = $oldIndexes->contains(fn (mixed $oldIndex, int $newIndex): bool => (int) $oldIndex !== $newIndex);
+
+                if ($needsRemap) {
+                    $offset = ((int) $oldIndexes->max()) + 1;
+
+                    foreach ($remaining as $set) {
+                        $set->set_index += $offset;
+                        $set->save();
+                    }
+
+                    foreach ($remaining as $set) {
+                        $originalIndex = $set->set_index - $offset;
+                        $set->set_index = $indexMap[$originalIndex];
+                        $set->save();
+                    }
+                }
+
+                $group->set_count = $oldIndexes->count();
+                $group->save();
+            }
         });
     }
 

@@ -2,8 +2,14 @@
 
 namespace Tests\Feature\Workouts;
 
+use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
+use App\Routines\Models\RoutineBlock;
+use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineDropsetSegment;
+use App\Routines\Models\RoutineSetGroup;
+use App\Routines\Models\RoutineWarmUpStep;
+use App\Shared\Enums\SetGroupType;
 use App\Workouts\Enums\WorkoutMode;
 use App\Workouts\Enums\WorkoutStatus;
 use App\Workouts\Exceptions\WorkoutServiceException;
@@ -219,6 +225,157 @@ class WorkoutServiceTest extends TestCase
         $this->expectExceptionMessage(WorkoutService::CANNOT_REMOVE_LAST_WORKING_SET_ERROR);
 
         $this->workoutService->removeWorkingSetRound($set);
+    }
+
+    #[Test]
+    public function it_skips_rest_of_block_keeping_logged_sets(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 3);
+        $workout = $this->workoutService->createWorkout($routine);
+        $block = $workout->blocks->first();
+        $first = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->where('set_index', 0)
+            ->firstOrFail();
+        $this->workoutService->completeSet($first, reps: 5, weightGrams: 80000);
+
+        $this->workoutService->skipRestOfBlock($block->fresh(['setGroups.sets', 'workout']));
+
+        $working = $block->fresh()->workingSetGroup;
+        $this->assertSame(1, $working->set_count);
+        $this->assertCount(1, $working->sets);
+        $this->assertNotNull($working->sets->first()->completed_at);
+    }
+
+    #[Test]
+    public function it_skips_rest_of_block_clearing_warm_ups_and_all_working(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 80000,
+            'prescribed_reps' => 6,
+        ]);
+        $warmUp = RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 2,
+            'rest_seconds' => 45,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUp->id,
+            'position' => 1,
+            'percent_of_working' => 40,
+            'reps' => 5,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUp->id,
+            'position' => 2,
+            'percent_of_working' => 60,
+            'reps' => 3,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 3,
+            'rest_seconds' => 90,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $workoutBlock = $workout->blocks->first();
+
+        $this->workoutService->skipRestOfBlock($workoutBlock->fresh(['setGroups.sets', 'workout']));
+
+        $workoutBlock->refresh()->load('setGroups.sets');
+        $this->assertSame(0, $workoutBlock->warmUpSetGroup->set_count);
+        $this->assertCount(0, $workoutBlock->warmUpSetGroup->sets);
+        $this->assertSame(0, $workoutBlock->workingSetGroup->set_count);
+        $this->assertCount(0, $workoutBlock->workingSetGroup->sets);
+    }
+
+    #[Test]
+    public function it_skips_incomplete_superset_leg_and_later_rounds(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'is_superset' => true,
+        ]);
+        $exerciseA = RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 80000,
+            'prescribed_reps' => 6,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 2,
+            'working_weight_g' => 40000,
+            'prescribed_reps' => 8,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 90,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $workoutBlock = $workout->blocks->first();
+        $setA = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('id', $workoutBlock->id))
+            ->where('set_index', 0)
+            ->whereHas('blockExercise', fn ($q) => $q->where('position', 1))
+            ->firstOrFail();
+        $this->assertSame($exerciseA->exercise_id, $setA->blockExercise->exercise_id);
+        $this->workoutService->completeSet($setA, reps: 6, weightGrams: 80000);
+
+        $this->workoutService->skipRestOfBlock($workoutBlock->fresh(['setGroups.sets', 'workout']));
+
+        $working = $workoutBlock->fresh()->workingSetGroup->load('sets.blockExercise');
+        $this->assertSame(1, $working->set_count);
+        $this->assertCount(1, $working->sets);
+        $this->assertSame(1, $working->sets->first()->blockExercise->position);
+        $this->assertNotNull($working->sets->first()->completed_at);
+    }
+
+    #[Test]
+    public function it_rejects_skip_rest_when_nothing_incomplete(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $set = $this->firstWorkingSet($workout->id);
+        $this->workoutService->completeSet($set, reps: 6, weightGrams: 80000);
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::NOTHING_TO_SKIP_IN_BLOCK_ERROR);
+
+        $this->workoutService->skipRestOfBlock($workout->blocks->first()->fresh(['setGroups.sets', 'workout']));
+    }
+
+    #[Test]
+    public function it_rejects_skip_rest_when_workout_not_in_progress(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 2);
+        $workout = $this->workoutService->createWorkout($routine);
+        $this->workoutService->finishWorkout($workout);
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::WORKOUT_NOT_IN_PROGRESS_ERROR);
+
+        $this->workoutService->skipRestOfBlock($workout->blocks->first()->fresh(['setGroups.sets', 'workout']));
     }
 
     #[Test]
