@@ -86,7 +86,7 @@ Public order matches `/beta-tester-faqs`.
 2. ~~**Add Historical Workouts**~~ — recently added (History → Add historical)
 3. **Better History Edits** — warm-up edits; discarded in History; add/remove exercises and sets on a logged workout
 4. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
-5. **Choose an alternate exercise for Deload sessions** — swap lift only on deload starts
+5. ~~**Choose an alternate exercise for Deload sessions**~~ — optional Deload Alternate (exercise + own weight) per block exercise in the editor; Deload snapshot only; Singles when alternate set; FAQ #5
 6. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
 7. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
 
