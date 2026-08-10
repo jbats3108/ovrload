@@ -6,7 +6,9 @@ import EditorDisclosure from '@/routines/components/EditorDisclosure.vue';
 import ExercisePicker from '@/routines/components/ExercisePicker.vue';
 import RoutineEditorErrors from '@/routines/components/RoutineEditorErrors.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
+import { clearDeloadAlternate, setDeloadAlternateExercise } from '@/routines/lib/blocks';
 import { optionalRepsPlaceholder, parseOptionalReps } from '@/routines/lib/optionalReps';
+import type { BlockExercise } from '@/routines/types';
 import { Link } from '@inertiajs/vue3';
 
 const {
@@ -37,6 +39,10 @@ const {
     deleteRoutine,
     mutating,
 } = useRoutineEditor();
+
+const onDeloadExercise = (exercise: BlockExercise, id: number | null) => {
+    setDeloadAlternateExercise(exercise, id);
+};
 </script>
 
 <template>
@@ -94,6 +100,37 @@ const {
                                 type="number"
                                 min="1"
                                 class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-2xl font-semibold tabular-nums outline-none focus:border-primary"
+                            />
+                        </label>
+                    </div>
+                    <div class="mt-3 rounded-xl border border-dashed border-border p-3">
+                        <div class="mb-2 flex items-center justify-between">
+                            <span class="text-xs font-medium text-muted-foreground">Deload alternate</span>
+                            <button
+                                v-if="ex.deload_exercise_id !== null"
+                                type="button"
+                                class="text-xs text-muted-foreground"
+                                @click="clearDeloadAlternate(ex)"
+                            >
+                                Clear
+                            </button>
+                        </div>
+                        <ExercisePicker :model-value="ex.deload_exercise_id" variant="mobile" @update:model-value="onDeloadExercise(ex, $event)" />
+                        <label class="mt-2 block">
+                            <span class="text-xs text-muted-foreground">Deload kg</span>
+                            <input
+                                :value="ex.deload_working_weight_kg ?? ''"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                inputmode="decimal"
+                                :disabled="ex.deload_exercise_id === null"
+                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-xl font-semibold tabular-nums outline-none focus:border-primary disabled:opacity-50"
+                                @input="
+                                    ex.deload_working_weight_kg = ($event.target as HTMLInputElement).value
+                                        ? Number(($event.target as HTMLInputElement).value)
+                                        : null
+                                "
                             />
                         </label>
                     </div>

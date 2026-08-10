@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 describe('emptyExercise', () => {
     it('uses catalog id when provided', () => {
         expect(emptyExercise(42).exercise_id).toBe(42);
+        expect(emptyExercise(42).deload_exercise_id).toBeNull();
+        expect(emptyExercise(42).deload_working_weight_kg).toBeNull();
     });
 });
 
