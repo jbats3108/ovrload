@@ -1,0 +1,16 @@
+---
+description: Build features in small stages and commit after each stage
+alwaysApply: true
+---
+
+# Atomic implementation stages
+
+When implementing a multi-step feature (after a plan or clear scope is agreed):
+
+1. **Split into stages** — each stage is one reviewable slice (e.g. migration/model, domain service, UI, tests/docs). Prefer vertical seams that leave `main`-mergeable commits over one giant diff.
+2. **Commit after each stage** — when the user has asked for commits (or this default applies), create a commit at the end of each completed stage. Follow the repo’s commit-message style; one logical change per commit.
+3. **Do not batch stages into one commit** unless the user explicitly asks for a single commit.
+4. **Tests with the behavior they prove** — prefer putting the tests that lock a stage’s behavior in that stage’s commit (or the immediately following stage if the stage is pure scaffolding with no behavior yet).
+5. **Skip only when** the change is a true one-liner / single-file fix that cannot sensibly be staged, or the user says otherwise.
+
+This is the default delivery style for this repo. Pair with branching from `main` (see `git-branch-from-main.mdc`).

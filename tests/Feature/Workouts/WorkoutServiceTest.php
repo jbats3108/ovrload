@@ -512,6 +512,83 @@ class WorkoutServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_uses_deload_alternate_exercise_and_weight_on_deload_start(): void
+    {
+        $routine = Routine::factory()->create([
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 0.5,
+        ]);
+        [, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, restSeconds: null);
+        $alternate = Exercise::factory()->create(['name' => 'Goblet Squat']);
+        $routineExercise->update([
+            'deload_exercise_id' => $alternate->id,
+            'deload_working_weight_g' => 40000,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine, WorkoutMode::Deload);
+        $exercise = $workout->blocks->first()->blockExercises->first();
+
+        $this->assertSame($alternate->id, $exercise->exercise_id);
+        $this->assertSame('Goblet Squat', $exercise->exercise_name);
+        $this->assertSame(40000, $exercise->working_weight_g);
+        $this->assertSame(3, $exercise->prescribed_reps);
+    }
+
+    #[Test]
+    public function it_ignores_deload_alternate_on_standard_start(): void
+    {
+        $routine = Routine::factory()->create();
+        [, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, restSeconds: null);
+        $primaryId = $routineExercise->exercise_id;
+        $alternate = Exercise::factory()->create();
+        $routineExercise->update([
+            'deload_exercise_id' => $alternate->id,
+            'deload_working_weight_g' => 40000,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine, WorkoutMode::Standard);
+        $exercise = $workout->blocks->first()->blockExercises->first();
+
+        $this->assertSame($primaryId, $exercise->exercise_id);
+        $this->assertSame(80000, $exercise->working_weight_g);
+    }
+
+    #[Test]
+    public function it_skips_dropset_segments_on_deload_when_alternate_is_set(): void
+    {
+        $routine = Routine::factory()->create([
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 1,
+        ]);
+        [$working, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, restSeconds: null);
+        $routineExercise->update([
+            'deload_exercise_id' => Exercise::factory()->create()->id,
+            'deload_working_weight_g' => 40000,
+        ]);
+        RoutineDropsetSegment::create([
+            'routine_set_group_id' => $working->id,
+            'set_index' => 0,
+            'position' => 1,
+            'weight_g' => 20000,
+        ]);
+        RoutineDropsetSegment::create([
+            'routine_set_group_id' => $working->id,
+            'set_index' => 0,
+            'position' => 2,
+            'weight_g' => 15000,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine, WorkoutMode::Deload);
+        $set = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->with('segments')
+            ->firstOrFail();
+
+        $this->assertFalse($set->isDropset());
+        $this->assertCount(0, $set->segments);
+    }
+
+    #[Test]
     public function it_completes_a_dropset_with_segments(): void
     {
         $routine = Routine::factory()->create();

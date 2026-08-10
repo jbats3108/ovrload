@@ -54,6 +54,10 @@ Staged full-app / domain-slice reviews use `.cursor/rules/code-review.mdc` (auth
 
 If the current branch is `main` and the chat starts implementation work, create and check out a new task branch from up-to-date `main` first. See `.cursor/rules/git-branch-from-main.mdc`.
 
+### Atomic stages + commits
+
+Default delivery for multi-step features: implement in small stages and **commit after each stage** (not one giant commit at the end). See `.cursor/rules/atomic-implementation-stages.mdc`.
+
 ===
 
 <laravel-boost-guidelines>

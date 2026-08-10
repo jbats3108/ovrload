@@ -114,6 +114,9 @@ export type HistoricalCreateExercise = {
     equipment: string | null;
     working_weight_kg: number;
     prescribed_reps: number;
+    deload_name: string | null;
+    deload_equipment: string | null;
+    deload_working_weight_kg: number | null;
 };
 
 export type HistoricalCreateBlock = {

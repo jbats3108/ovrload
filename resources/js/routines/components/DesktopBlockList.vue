@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BlockSetupOptions from '@/routines/components/BlockSetupOptions.vue';
+import DeloadAlternateFields from '@/routines/components/DeloadAlternateFields.vue';
 import DeloadSettings from '@/routines/components/DeloadSettings.vue';
 import DropsetEditor from '@/routines/components/DropsetEditor.vue';
 import ExercisePicker from '@/routines/components/ExercisePicker.vue';
@@ -55,13 +56,24 @@ const {
                                 {{ ei === 0 ? bi + 1 : '' }}
                             </td>
                             <td class="px-2 py-2">
-                                <div class="flex min-w-0 items-center gap-2" @click.stop>
-                                    <span v-if="block.is_superset" class="font-mono text-xs text-primary">{{ ei === 0 ? 'A' : 'B' }}</span>
-                                    <ExercisePicker
-                                        v-model="ex.exercise_id"
+                                <div class="flex min-w-0 flex-col gap-1" @click.stop>
+                                    <div class="flex min-w-0 items-center gap-2">
+                                        <span v-if="block.is_superset" class="font-mono text-xs text-primary">{{ ei === 0 ? 'A' : 'B' }}</span>
+                                        <ExercisePicker
+                                            v-model="ex.exercise_id"
+                                            variant="desktop"
+                                            :active="bi === active && ei === activeExerciseIndex"
+                                            @open="selectBlockExercise(bi, ei)"
+                                        />
+                                    </div>
+                                    <DeloadAlternateFields
+                                        :deload-exercise-id="ex.deload_exercise_id"
+                                        :deload-working-weight-kg="ex.deload_working_weight_kg"
+                                        :working-weight-kg="ex.working_weight_kg"
                                         variant="desktop"
-                                        :active="bi === active && ei === activeExerciseIndex"
-                                        @open="selectBlockExercise(bi, ei)"
+                                        :class="block.is_superset ? 'pl-5' : ''"
+                                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
+                                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
                                     />
                                 </div>
                             </td>

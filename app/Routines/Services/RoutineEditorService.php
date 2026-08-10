@@ -92,11 +92,17 @@ class RoutineEditorService
             /** @var SyncBlockExerciseData $exerciseData */
             Exercise::assertAvailableFor($routine->user, $exerciseData->exerciseId);
 
+            if ($exerciseData->deloadExerciseId !== null) {
+                Exercise::assertAvailableFor($routine->user, $exerciseData->deloadExerciseId);
+            }
+
             RoutineBlockExercise::create([
                 'routine_block_id' => $block->id,
                 'exercise_id' => $exerciseData->exerciseId,
                 'position' => $index + 1,
                 'working_weight_g' => $exerciseData->workingWeightGrams(),
+                'deload_exercise_id' => $exerciseData->deloadExerciseId,
+                'deload_working_weight_g' => $exerciseData->deloadWorkingWeightGrams(),
                 'prescribed_reps' => $exerciseData->prescribedReps,
                 'achievement_floor_override' => $exerciseData->achievementFloor,
                 'progression_target_override' => $exerciseData->progressionTarget,

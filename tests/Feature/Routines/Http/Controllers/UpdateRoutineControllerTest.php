@@ -135,6 +135,71 @@ class UpdateRoutineControllerTest extends TestCase
     }
 
     #[Test]
+    public function owner_can_save_deload_alternate(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $primary = Exercise::factory()->create();
+        $alternate = Exercise::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'With Deload Alternate',
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 2,
+            'blocks' => [
+                RoutineEditorPayload::block($primary->id, [
+                    'working_weight_kg' => 100,
+                    'deload_exercise_id' => $alternate->id,
+                    'deload_working_weight_kg' => 40,
+                    'working' => ['set_count' => 3, 'rest_seconds' => 180],
+                ]),
+            ],
+        ])->assertRedirect(route('dashboard'));
+
+        $row = $routine->fresh()->blocks()->first()->blockExercises()->first();
+        $this->assertSame($alternate->id, $row->deload_exercise_id);
+        $this->assertSame(40000, $row->deload_working_weight_g);
+    }
+
+    #[Test]
+    public function owner_update_rejects_deload_alternate_same_as_primary(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Bad Alternate',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'deload_exercise_id' => $exercise->id,
+                    'deload_working_weight_kg' => 40,
+                ]),
+            ],
+        ])
+            ->assertRedirect()
+            ->assertSessionHasErrors();
+    }
+
+    #[Test]
+    public function owner_update_rejects_deload_exercise_without_weight(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $primary = Exercise::factory()->create();
+        $alternate = Exercise::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Incomplete Alternate',
+            'blocks' => [
+                RoutineEditorPayload::block($primary->id, [
+                    'deload_exercise_id' => $alternate->id,
+                    'deload_working_weight_kg' => null,
+                ]),
+            ],
+        ])
+            ->assertRedirect()
+            ->assertSessionHasErrors();
+    }
+
+    #[Test]
     public function editor_validation_errors_surface_on_blocks(): void
     {
         $routine = Routine::factory()->withUser($this->user)->create();

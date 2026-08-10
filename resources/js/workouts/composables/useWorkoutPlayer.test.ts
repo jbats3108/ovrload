@@ -809,6 +809,50 @@ describe('createWorkoutPlayer', () => {
         expect(player.logProgressionHints.value).toBe('Floor 4. Bump @ 5');
     });
 
+    it('omits bump hint on deload working sets', () => {
+        const withFloor = mountPlayer({
+            mode: 'deload',
+            blocks: [
+                playerBlock({
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Squat',
+                            working_weight_kg: 50,
+                            prescribed_reps: 3,
+                            achievement_floor: 4,
+                            progression_target: 5,
+                            position: 0,
+                        },
+                    ],
+                    sets: [playerSet({ id: 1, workout_block_exercise_id: 10, group_type: 'working' })],
+                }),
+            ],
+        });
+        expect(withFloor.logProgressionHints.value).toBe('Floor 4.');
+
+        const withoutFloor = mountPlayer({
+            mode: 'deload',
+            blocks: [
+                playerBlock({
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Squat',
+                            working_weight_kg: 50,
+                            prescribed_reps: 3,
+                            achievement_floor: null,
+                            progression_target: 5,
+                            position: 0,
+                        },
+                    ],
+                    sets: [playerSet({ id: 1, workout_block_exercise_id: 10, group_type: 'working' })],
+                }),
+            ],
+        });
+        expect(withoutFloor.logProgressionHints.value).toBeNull();
+    });
+
     it('hides progression hints on warm-up and dropset log sheets', () => {
         const warmUp = mountPlayer({
             blocks: [

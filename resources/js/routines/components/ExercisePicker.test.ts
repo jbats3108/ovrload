@@ -25,6 +25,8 @@ function mountPicker() {
                                     prescribed_reps: 6,
                                     achievement_floor: null,
                                     progression_target: null,
+                                    deload_exercise_id: null,
+                                    deload_working_weight_kg: null,
                                 },
                             ],
                             working: { set_count: 3, rest_seconds: 120, dropsets: [] },

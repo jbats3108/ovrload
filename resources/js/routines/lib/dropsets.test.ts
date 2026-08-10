@@ -65,7 +65,17 @@ describe('dropsets', () => {
 
     it('defaults segments from working weight', () => {
         const b = block({
-            exercises: [{ exercise_id: 1, working_weight_kg: 100, prescribed_reps: 5, achievement_floor: null, progression_target: null }],
+            exercises: [
+                {
+                    exercise_id: 1,
+                    working_weight_kg: 100,
+                    prescribed_reps: 5,
+                    achievement_floor: null,
+                    progression_target: null,
+                    deload_exercise_id: null,
+                    deload_working_weight_kg: null,
+                },
+            ],
         });
         expect(defaultDropsetSegments(b)).toEqual([{ weight_kg: 100 }, { weight_kg: 90 }]);
     });
