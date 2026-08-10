@@ -172,7 +172,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         return block.exercises.find((exercise) => exercise.id === entry.set.workout_block_exercise_id) ?? null;
     });
 
-    /** Floor / Bump for the log sheet — working sets only. Bump is always the prescribed Target. */
+    /** Floor / Bump for the log sheet — working sets only. Bump is always the prescribed Target (omitted on deload). */
     const logProgressionHints = computed(() => {
         const entry = current.value;
         const exercise = currentExercise.value;
@@ -184,9 +184,11 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (exercise.achievement_floor != null) {
             parts.push(`Floor ${exercise.achievement_floor}.`);
         }
-        parts.push(`Bump @ ${exercise.prescribed_reps}`);
+        if (props.workout.mode !== 'deload') {
+            parts.push(`Bump @ ${exercise.prescribed_reps}`);
+        }
 
-        return parts.join(' ');
+        return parts.length > 0 ? parts.join(' ') : null;
     });
 
     const previousPlateLoad = (entry: FlatSetEntry): PlateLoadResult | null => {
