@@ -22,6 +22,7 @@ const inertia = vi.hoisted(() => {
             processing: false,
             errors: {},
             recentlySuccessful: false,
+            clearErrors: vi.fn(),
             transform(fn: (data: object) => unknown) {
                 // Keep put/post(url, options) like Inertia; stash payload for assertions.
                 lastTransformed = fn(initial);
@@ -51,6 +52,7 @@ const inertia = vi.hoisted(() => {
 vi.mock('@inertiajs/vue3', () => ({
     useForm: (keyOrInitial: string | object, maybeInitial?: object) =>
         inertia.createForm(typeof keyOrInitial === 'string' ? (maybeInitial ?? {}) : keyOrInitial),
+    useHttp: (initial: object) => inertia.createForm(initial),
     usePage: () => ({ props: inertia.pageProps }),
     router: inertia.routerMocks,
     Head: {

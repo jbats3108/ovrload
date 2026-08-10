@@ -2,7 +2,9 @@
 
 namespace App\Routines\Http\Controllers;
 
+use App\Exercises\Enums\ExerciseEquipment;
 use App\Exercises\Models\Exercise;
+use App\MuscleGroups\Models\MuscleGroup;
 use App\Routines\Data\Editor\RoutineEditorExerciseOptionData;
 use App\Routines\Data\Editor\RoutineEditorPageData;
 use App\Routines\Models\Routine;
@@ -30,6 +32,24 @@ class EditRoutineController extends Controller
 
         $payload = $page->toArray();
 
+        $muscleGroups = MuscleGroup::query()
+            ->orderBy('name')
+            ->get()
+            ->map(fn (MuscleGroup $group): array => [
+                'name' => $group->getName(),
+                'slug' => $group->getSlug(),
+            ])
+            ->values()
+            ->all();
+
+        $equipmentOptions = array_map(
+            fn (ExerciseEquipment $equipment): array => [
+                'value' => $equipment->value,
+                'label' => $equipment->label(),
+            ],
+            ExerciseEquipment::cases(),
+        );
+
         return Inertia::render('routines/Edit', [
             'routine' => Arr::except($payload, ['exercises', 'weight_unit']),
             'exercises' => Inertia::defer(fn () => Exercise::query()
@@ -41,6 +61,7 @@ class EditRoutineController extends Controller
                     id: $exercise->id,
                     name: $exercise->getName(),
                     primaryMuscleGroup: $exercise->primaryMuscleGroup->getName(),
+                    isCustom: $exercise->isCustom(),
                 ))
                 ->values()
                 ->all()),
@@ -48,6 +69,8 @@ class EditRoutineController extends Controller
             'warm_up_defaults' => $user->resolvedWarmUpStepsDefault(),
             'warm_up_defaults_scope' => ($user->warm_up_defaults_scope ?? WarmUpDefaultsScope::AllBlocks)->value,
             'achievement_floor_default' => $user->achievement_floor_default,
+            'muscle_groups' => $muscleGroups,
+            'equipment_options' => $equipmentOptions,
         ]);
     }
 }

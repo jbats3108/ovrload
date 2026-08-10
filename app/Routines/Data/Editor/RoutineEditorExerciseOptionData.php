@@ -13,5 +13,6 @@ class RoutineEditorExerciseOptionData extends Data
         public readonly int $id,
         public readonly string $name,
         public readonly string $primaryMuscleGroup,
+        public readonly bool $isCustom = false,
     ) {}
 }

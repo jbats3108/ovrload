@@ -8,6 +8,7 @@ export function exerciseOption(overrides: Partial<ExerciseOption> = {}): Exercis
         id: 1,
         name: 'Bench Press',
         primary_muscle_group: 'Chest',
+        is_custom: false,
         ...overrides,
     };
 }

@@ -12,7 +12,7 @@ import {
 import { formatRest, normalizeRestSeconds } from '@/routines/lib/formatRest';
 import { deleteRoutine as deleteRoutineMutation, duplicateRoutine as duplicateRoutineMutation } from '@/routines/lib/routineMutations';
 import { addWarmUpStep, clearWarmUp, removeWarmUpStep, sanitizeWarmUpStepsForSave, setWarmUpText, warmUpText } from '@/routines/lib/warmUp';
-import type { Block, ExerciseOption, RoutinePayload, WarmUpStep } from '@/routines/types';
+import type { Block, EquipmentOption, ExerciseOption, MuscleGroupOption, RoutinePayload, WarmUpStep } from '@/routines/types';
 import type { WarmUpDefaultsScope } from '@/settings/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
 import { useForm } from '@inertiajs/vue3';
@@ -26,6 +26,8 @@ export type EditRoutineProps = {
     warm_up_defaults_scope?: WarmUpDefaultsScope;
     achievement_floor_default?: number | null;
     progression_target_default?: number | null;
+    muscle_groups?: MuscleGroupOption[];
+    equipment_options?: EquipmentOption[];
 };
 
 export type RoutineEditor = ReturnType<typeof createRoutineEditor>;
@@ -33,7 +35,21 @@ export type RoutineEditor = ReturnType<typeof createRoutineEditor>;
 export const routineEditorKey: InjectionKey<RoutineEditor> = Symbol('routineEditor');
 
 export function createRoutineEditor(props: EditRoutineProps) {
-    const catalog = computed(() => props.exercises ?? []);
+    const catalogExtras = ref<ExerciseOption[]>([]);
+    const catalog = computed(() => {
+        const base = props.exercises ?? [];
+        const seen = new Set(base.map((exercise) => exercise.id));
+        return [...base, ...catalogExtras.value.filter((exercise) => !seen.has(exercise.id))];
+    });
+    const muscleGroups = computed(() => props.muscle_groups ?? []);
+    const equipmentOptions = computed(() => props.equipment_options ?? []);
+
+    const addToCatalog = (exercise: ExerciseOption) => {
+        if (catalog.value.some((item) => item.id === exercise.id)) {
+            return;
+        }
+        catalogExtras.value = [...catalogExtras.value, exercise];
+    };
 
     const defaultWarmUpSteps = (): WarmUpStep[] =>
         (props.warm_up_defaults?.length ? props.warm_up_defaults : []).map((s) => ({
@@ -234,6 +250,9 @@ export function createRoutineEditor(props: EditRoutineProps) {
     return {
         form,
         catalog,
+        muscleGroups,
+        equipmentOptions,
+        addToCatalog,
         active,
         activeExerciseIndex,
         warmUpExpanded,
