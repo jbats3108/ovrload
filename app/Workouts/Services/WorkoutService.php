@@ -77,6 +77,7 @@ class WorkoutService
         $routine->load([
             'user',
             'blocks.blockExercises.exercise',
+            'blocks.blockExercises.deloadExercise',
             'blocks.setGroups.warmUpSteps',
             'blocks.setGroups.dropsetSegments',
         ]);
@@ -133,6 +134,7 @@ class WorkoutService
         $routine->load([
             'user',
             'blocks.blockExercises.exercise',
+            'blocks.blockExercises.deloadExercise',
             'blocks.setGroups.warmUpSteps',
             'blocks.setGroups.dropsetSegments',
         ]);
@@ -684,6 +686,7 @@ class WorkoutService
         $routine->loadMissing([
             'user',
             'blocks.blockExercises.exercise',
+            'blocks.blockExercises.deloadExercise',
             'blocks.setGroups.warmUpSteps',
             'blocks.setGroups.dropsetSegments',
         ]);
@@ -710,19 +713,35 @@ class WorkoutService
                 'has_setup_after_warm_up' => $isDeload ? false : $routineBlock->has_setup_after_warm_up,
             ]);
 
+            /** @var array<int, true> $skipDropsetsByWorkoutExerciseId */
+            $skipDropsetsByWorkoutExerciseId = [];
+
             foreach ($routineBlock->blockExercises as $routineBlockExercise) {
-                WorkoutBlockExercise::create([
+                $useAlternate = $isDeload && $routineBlockExercise->hasDeloadAlternate();
+                $sourceExercise = $useAlternate
+                    ? $routineBlockExercise->deloadExercise
+                    : $routineBlockExercise->exercise;
+                // Alternate weight is already the deload load — do not apply the recipe weight factor.
+                $workingWeightG = $useAlternate
+                    ? (int) $routineBlockExercise->deload_working_weight_g
+                    : (int) round($routineBlockExercise->working_weight_g * $weightFactor);
+
+                $workoutBlockExercise = WorkoutBlockExercise::create([
                     'workout_block_id' => $workoutBlock->id,
-                    'exercise_id' => $routineBlockExercise->exercise_id,
+                    'exercise_id' => $sourceExercise->id,
                     'position' => $routineBlockExercise->position,
-                    'exercise_name' => $routineBlockExercise->exercise->getName(),
-                    'equipment' => $routineBlockExercise->exercise->equipment,
-                    'working_weight_g' => (int) round($routineBlockExercise->working_weight_g * $weightFactor),
+                    'exercise_name' => $sourceExercise->getName(),
+                    'equipment' => $sourceExercise->equipment,
+                    'working_weight_g' => $workingWeightG,
                     'prescribed_reps' => max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor)),
                     'achievement_floor' => $routineBlockExercise->achievement_floor_override
                         ?? $routine->user->achievement_floor_default,
                     'progression_target' => $routineBlockExercise->prescribed_reps,
                 ]);
+
+                if ($useAlternate) {
+                    $skipDropsetsByWorkoutExerciseId[$workoutBlockExercise->id] = true;
+                }
             }
 
             $workoutBlock->load('blockExercises');
@@ -772,7 +791,10 @@ class WorkoutService
                             'set_index' => $setIndex,
                         ]);
 
-                        if ($recipeSegments->count() < 2) {
+                        if (
+                            $recipeSegments->count() < 2
+                            || isset($skipDropsetsByWorkoutExerciseId[$workoutBlockExercise->id])
+                        ) {
                             continue;
                         }
 

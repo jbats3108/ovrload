@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BlockSetupOptions from '@/routines/components/BlockSetupOptions.vue';
+import DeloadAlternateFields from '@/routines/components/DeloadAlternateFields.vue';
 import DeloadSettings from '@/routines/components/DeloadSettings.vue';
 import DropsetEditor from '@/routines/components/DropsetEditor.vue';
 import EditorDisclosure from '@/routines/components/EditorDisclosure.vue';
@@ -97,6 +98,14 @@ const {
                             />
                         </label>
                     </div>
+                    <DeloadAlternateFields
+                        :deload-exercise-id="ex.deload_exercise_id"
+                        :deload-working-weight-kg="ex.deload_working_weight_kg"
+                        :working-weight-kg="ex.working_weight_kg"
+                        variant="mobile"
+                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
+                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
+                    />
                 </div>
 
                 <div class="grid grid-cols-2 gap-2 border-t border-border pt-3">

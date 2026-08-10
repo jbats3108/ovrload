@@ -83,6 +83,10 @@ _Avoid_: Deload schedule, deload cadence (as a calendar), deload frequency (as w
 A way to start a workout that applies the routine’s deload recipe to the snapshot. Omits warm-up Set Groups (and warm-up setup) from the snapshot — deload working weights are already light. Deload workouts do not carry-forward or bump the routine’s usual working weights.
 _Avoid_: Easy mode, recovery mode, normal mode (use **standard**)
 
+**Deload Alternate**:
+Optional replacement **Exercise** plus its own **Working Weight** on a routine block exercise, used only when starting (or historically logging) in **Deload Mode**. That working weight is used as-is (the **Deload Recipe** weight factor does not apply). Prescribed reps still come from the primary via the recipe’s reps factor. When set, that exercise’s Deload snapshot is **Singles** only (no **Dropset** segments).
+_Avoid_: Swap exercise, deload substitute, recovery lift
+
 ## Pauses
 
 **Rest**:

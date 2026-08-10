@@ -15,5 +15,7 @@ class RoutineEditorBlockExerciseData extends Data
         public readonly int $prescribedReps,
         public readonly ?int $achievementFloor = null,
         public readonly ?int $progressionTarget = null,
+        public readonly ?int $deloadExerciseId = null,
+        public readonly ?float $deloadWorkingWeightKg = null,
     ) {}
 }

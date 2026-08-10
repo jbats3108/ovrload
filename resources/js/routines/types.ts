@@ -14,6 +14,8 @@ export type BlockExercise = {
     prescribed_reps: number;
     achievement_floor: number | null;
     progression_target: number | null;
+    deload_exercise_id: number | null;
+    deload_working_weight_kg: number | null;
 };
 
 export type DropsetSegment = {

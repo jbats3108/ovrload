@@ -78,6 +78,10 @@ class RoutineEditorPageData extends Data
                         prescribedReps: $row->prescribed_reps,
                         achievementFloor: $row->achievement_floor_override,
                         progressionTarget: $row->progression_target_override,
+                        deloadExerciseId: $row->deload_exercise_id,
+                        deloadWorkingWeightKg: $row->deload_working_weight_g !== null
+                            ? Weight::gramsToKg($row->deload_working_weight_g)
+                            : null,
                     )),
                     DataCollection::class,
                 ),

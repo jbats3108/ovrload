@@ -29,6 +29,7 @@ class HistoricalCreatePageData extends Data
     {
         $routine->loadMissing([
             'blocks.blockExercises.exercise',
+            'blocks.blockExercises.deloadExercise',
             'blocks.setGroups.dropsetSegments',
             'blocks.setGroups.warmUpSteps',
         ]);

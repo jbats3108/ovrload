@@ -7,7 +7,25 @@ export function emptyExercise(firstCatalogId: number | null = null): BlockExerci
         prescribed_reps: 6,
         achievement_floor: null,
         progression_target: null,
+        deload_exercise_id: null,
+        deload_working_weight_kg: null,
     };
+}
+
+export function clearDeloadAlternate(exercise: BlockExercise): void {
+    exercise.deload_exercise_id = null;
+    exercise.deload_working_weight_kg = null;
+}
+
+export function setDeloadAlternateExercise(exercise: BlockExercise, exerciseId: number | null): void {
+    exercise.deload_exercise_id = exerciseId;
+    if (exerciseId === null) {
+        exercise.deload_working_weight_kg = null;
+        return;
+    }
+    if (exercise.deload_working_weight_kg === null) {
+        exercise.deload_working_weight_kg = exercise.working_weight_kg;
+    }
 }
 
 export function emptyBlock(
@@ -62,6 +80,12 @@ export function normalizeBlock(raw: Block): Block {
     return {
         ...raw,
         has_setup_after_warm_up: Boolean(raw.has_setup_after_warm_up) && steps.length > 0,
+        exercises: (raw.exercises ?? []).map((exercise) => ({
+            ...emptyExercise(),
+            ...exercise,
+            deload_exercise_id: exercise.deload_exercise_id ?? null,
+            deload_working_weight_kg: exercise.deload_exercise_id != null ? (exercise.deload_working_weight_kg ?? null) : null,
+        })),
         working: {
             set_count: raw.working?.set_count ?? 3,
             rest_seconds: raw.working?.rest_seconds ?? 120,

@@ -28,7 +28,9 @@ const backlogItems = [
     },
     {
         title: 'Choose an alternate exercise for Deload sessions',
-        description: "Allow users to select a 'swap' exercise in a routine that only appears when doing a 'Deload' version of the routine.",
+        description:
+            'Pick an optional Deload Alternate (different exercise + its own working weight) on each routine exercise. It only appears on Deload starts; dropsets become singles for that exercise when an alternate is set.',
+        recentlyAdded: true,
     },
     {
         title: 'Gym dumbbell / rack inventory',

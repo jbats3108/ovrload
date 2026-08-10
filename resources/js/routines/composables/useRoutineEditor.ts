@@ -176,6 +176,8 @@ export function createRoutineEditor(props: EditRoutineProps) {
                         ...exercise,
                         achievement_floor: normalizeOptionalReps(exercise.achievement_floor),
                         progression_target: null,
+                        deload_exercise_id: exercise.deload_exercise_id,
+                        deload_working_weight_kg: exercise.deload_exercise_id != null ? exercise.deload_working_weight_kg : null,
                     })),
                     warm_up: {
                         set_count: warmUpSteps.length,
