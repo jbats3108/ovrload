@@ -17,16 +17,26 @@ class HistoricalCreateExerciseData extends Data
         public readonly ?string $equipment,
         public readonly float $workingWeightKg,
         public readonly int $prescribedReps,
+        public readonly ?string $deloadName = null,
+        public readonly ?string $deloadEquipment = null,
+        public readonly ?float $deloadWorkingWeightKg = null,
     ) {}
 
     public static function fromRoutineBlockExercise(RoutineBlockExercise $exercise): self
     {
+        $hasAlternate = $exercise->hasDeloadAlternate() && $exercise->deloadExercise !== null;
+
         return new self(
             position: $exercise->position,
             name: $exercise->exercise->getName(),
             equipment: $exercise->exercise->equipment?->value,
             workingWeightKg: Weight::gramsToKg($exercise->working_weight_g),
             prescribedReps: $exercise->prescribed_reps,
+            deloadName: $hasAlternate ? $exercise->deloadExercise->getName() : null,
+            deloadEquipment: $hasAlternate ? $exercise->deloadExercise->equipment?->value : null,
+            deloadWorkingWeightKg: $hasAlternate
+                ? Weight::gramsToKg((int) $exercise->deload_working_weight_g)
+                : null,
         );
     }
 }

@@ -72,11 +72,11 @@ export function buildDraftBlocks(blocks: HistoricalCreateBlock[], deload: boolea
     const r = deload ? repsFactor : 1;
 
     return blocks.map((block) => {
-        const sets = block.working_sets.map((set) => scaleSet(set, w, r));
+        const sets = block.working_sets.map((set) => scaleSet(set, block, deload, w, r));
         const draft: DraftBlock = {
             position: block.position,
             is_superset: block.is_superset,
-            exercise_names: block.exercises.map((exercise) => exercise.name),
+            exercise_names: block.exercises.map((exercise) => (deload && exercise.deload_name ? exercise.deload_name : exercise.name)),
             working_set_count: block.working_set_count,
             sets,
             warm_ups: [],
@@ -90,7 +90,22 @@ export function buildDraftBlocks(blocks: HistoricalCreateBlock[], deload: boolea
     });
 }
 
-function scaleSet(set: HistoricalCreateSet, weightFactor: number, repsFactor: number): DraftSet {
+function scaleSet(set: HistoricalCreateSet, block: HistoricalCreateBlock, deload: boolean, weightFactor: number, repsFactor: number): DraftSet {
+    const exercise = block.exercises.find((row) => row.position === set.exercise_position);
+    const useAlternate = deload && exercise != null && exercise.deload_name != null && exercise.deload_working_weight_kg != null;
+
+    if (useAlternate) {
+        return {
+            exercise_position: set.exercise_position,
+            exercise_name: exercise.deload_name,
+            set_index: set.set_index,
+            is_dropset: false,
+            weight_kg: scaleWeight(exercise.deload_working_weight_kg, weightFactor),
+            reps: scaleReps(set.reps, repsFactor),
+            segments: [],
+        };
+    }
+
     return {
         exercise_position: set.exercise_position,
         exercise_name: set.exercise_name,
