@@ -6,6 +6,17 @@ export type ExerciseOption = {
     id: number;
     name: string;
     primary_muscle_group: string;
+    is_custom?: boolean;
+};
+
+export type MuscleGroupOption = {
+    name: string;
+    slug: string;
+};
+
+export type EquipmentOption = {
+    value: string;
+    label: string;
 };
 
 export type BlockExercise = {

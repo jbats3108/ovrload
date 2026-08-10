@@ -102,7 +102,7 @@ Public order matches `/beta-tester-faqs`.
 - **Flaky-network drafts** — best-effort offline/queue for player logging
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
 - **Bump between sets** — auto / config / ask whether to bump mid-block (not only on finish)
-- **Custom user exercises** — allow personal lifts without proliferating near-duplicates across users
+- ~~**Custom user exercises**~~ — private per-user customs via ExercisePicker; shared catalog stays admin/import-only
 
 ### Polish & mobile integration
 

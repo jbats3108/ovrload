@@ -10,6 +10,7 @@ use App\Admin\Http\Controllers\ShowAdminController;
 use App\Admin\Http\Controllers\StoreAdminInviteController;
 use App\Dashboard\Http\Controllers\ShowDashboardController;
 use App\Exercises\Http\Controllers\DeleteExerciseController;
+use App\Exercises\Http\Controllers\StoreCustomExerciseController;
 use App\Exercises\Http\Controllers\StoreExerciseController;
 use App\Exercises\Models\Exercise;
 use App\MuscleGroups\Http\Controllers\DeleteMuscleGroupController;
@@ -75,6 +76,11 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/create', StoreExerciseController::class)
             ->can('create', Exercise::class)
             ->name('exercises.store');
+
+        Route::post('/custom', StoreCustomExerciseController::class)
+            ->middleware('throttle:30,1')
+            ->can('createCustom', Exercise::class)
+            ->name('exercises.custom.store');
 
         Route::delete('/{exercise}', DeleteExerciseController::class)
             ->can('delete', 'exercise')

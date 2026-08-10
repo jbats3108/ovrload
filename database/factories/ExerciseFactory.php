@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Exercises\Enums\ExerciseEquipment;
 use App\Exercises\Models\Exercise;
 use App\MuscleGroups\Models\MuscleGroup;
+use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 
@@ -39,6 +40,20 @@ class ExerciseFactory extends Factory
     {
         return $this->state(fn (): array => [
             'equipment' => ExerciseEquipment::Dumbbell,
+        ]);
+    }
+
+    public function custom(?User $user = null): static
+    {
+        return $this->state(fn (): array => [
+            'user_id' => $user?->id ?? User::factory(),
+        ]);
+    }
+
+    public function shared(): static
+    {
+        return $this->state(fn (): array => [
+            'user_id' => null,
         ]);
     }
 }

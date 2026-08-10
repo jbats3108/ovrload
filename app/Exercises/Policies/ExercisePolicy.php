@@ -12,11 +12,20 @@ class ExercisePolicy
 
     public function delete(User $user, Exercise $exercise): bool
     {
-        return $user->isAdmin() && $exercise->isShared();
+        if ($exercise->isShared()) {
+            return $user->isAdmin();
+        }
+
+        return $exercise->user_id === $user->id;
     }
 
     public function create(User $user): bool
     {
         return $user->isAdmin();
+    }
+
+    public function createCustom(User $user): bool
+    {
+        return true;
     }
 }
