@@ -92,9 +92,8 @@ export function buildDraftBlocks(blocks: HistoricalCreateBlock[], deload: boolea
 
 function scaleSet(set: HistoricalCreateSet, block: HistoricalCreateBlock, deload: boolean, weightFactor: number, repsFactor: number): DraftSet {
     const exercise = block.exercises.find((row) => row.position === set.exercise_position);
-    const useAlternate = deload && exercise != null && exercise.deload_name != null && exercise.deload_working_weight_kg != null;
 
-    if (useAlternate) {
+    if (deload && exercise != null && exercise.deload_name != null && exercise.deload_working_weight_kg != null) {
         return {
             exercise_position: set.exercise_position,
             exercise_name: exercise.deload_name,
