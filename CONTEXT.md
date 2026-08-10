@@ -80,7 +80,7 @@ How many finished standard workouts on this routine before the dashboard soft-su
 _Avoid_: Deload schedule, deload cadence (as a calendar), deload frequency (as weeks)
 
 **Deload Mode**:
-A way to start a workout that applies the routine’s deload recipe to the snapshot. Deload workouts do not carry-forward or bump the routine’s usual working weights.
+A way to start a workout that applies the routine’s deload recipe to the snapshot. Omits warm-up Set Groups (and warm-up setup) from the snapshot — deload working weights are already light. Deload workouts do not carry-forward or bump the routine’s usual working weights.
 _Avoid_: Easy mode, recovery mode, normal mode (use **standard**)
 
 ## Pauses

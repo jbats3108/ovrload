@@ -122,6 +122,61 @@ class WorkoutServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_omits_warm_ups_when_starting_in_deload_mode(): void
+    {
+        $routine = Routine::factory()->create([
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 1,
+        ]);
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'has_setup_after_warm_up' => true,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 80000,
+            'prescribed_reps' => 6,
+        ]);
+        $warmUp = RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 2,
+            'rest_seconds' => 45,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUp->id,
+            'position' => 1,
+            'percent_of_working' => 40,
+            'reps' => 5,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUp->id,
+            'position' => 2,
+            'percent_of_working' => 60,
+            'reps' => 3,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 90,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine, WorkoutMode::Deload);
+        $workoutBlock = $workout->blocks->first()->load('setGroups');
+
+        $this->assertFalse($workoutBlock->has_setup_after_warm_up);
+        $this->assertNull($workoutBlock->setGroups->first(
+            fn ($group): bool => $group->type === SetGroupType::WarmUp
+        ));
+        $this->assertCount(1, $workoutBlock->setGroups);
+        $this->assertSame(SetGroupType::Working, $workoutBlock->setGroups->first()->type);
+    }
+
+    #[Test]
     public function it_rejects_a_second_in_progress_workout_for_the_same_user(): void
     {
         $routine = Routine::factory()->create();

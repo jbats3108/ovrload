@@ -688,8 +688,9 @@ class WorkoutService
             'blocks.setGroups.dropsetSegments',
         ]);
 
-        $weightFactor = $mode === WorkoutMode::Deload ? (float) $routine->deload_weight_factor : 1.0;
-        $repsFactor = $mode === WorkoutMode::Deload ? (float) $routine->deload_reps_factor : 1.0;
+        $isDeload = $mode === WorkoutMode::Deload;
+        $weightFactor = $isDeload ? (float) $routine->deload_weight_factor : 1.0;
+        $repsFactor = $isDeload ? (float) $routine->deload_reps_factor : 1.0;
 
         $blocks = $routine->blocks;
         if ($routineBlockPositions !== null) {
@@ -705,7 +706,8 @@ class WorkoutService
                 'position' => $routineBlock->position,
                 'is_superset' => $routineBlock->is_superset,
                 'has_setup_after' => $routineBlock->has_setup_after,
-                'has_setup_after_warm_up' => $routineBlock->has_setup_after_warm_up,
+                // Deload omits warm-ups; setup-after-warm-up would never fire.
+                'has_setup_after_warm_up' => $isDeload ? false : $routineBlock->has_setup_after_warm_up,
             ]);
 
             foreach ($routineBlock->blockExercises as $routineBlockExercise) {
@@ -726,6 +728,10 @@ class WorkoutService
             $workoutBlock->load('blockExercises');
 
             foreach ($routineBlock->setGroups as $routineSetGroup) {
+                if ($isDeload && $routineSetGroup->type === SetGroupType::WarmUp) {
+                    continue;
+                }
+
                 $setCount = $routineSetGroup->set_count;
                 if (
                     $routineSetGroup->type === SetGroupType::Working

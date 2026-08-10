@@ -93,6 +93,26 @@ describe('historicalCreate', () => {
         expect(block!.warm_ups[0]?.weight_kg).toBe(48);
     });
 
+    it('omits warm-ups when building a deload draft', () => {
+        const withWarmUps: HistoricalCreateBlock[] = [
+            {
+                ...sampleBlocks[0]!,
+                warm_ups: [
+                    {
+                        exercise_position: 1,
+                        exercise_name: 'Squat',
+                        set_index: 0,
+                        percent_of_working: 40,
+                        reps: 5,
+                    },
+                ],
+            },
+        ];
+        const [block] = buildDraftBlocks(withWarmUps, true, 0.5, 1);
+        expect(block!.warm_ups).toEqual([]);
+        expect(block!.sets[0]?.weight_kg).toBe(50);
+    });
+
     it('detects future finished-at values', () => {
         expect(isFinishedAtInFuture('2099-01-01T12:00')).toBe(true);
         expect(isFinishedAtInFuture('2020-01-01T12:00')).toBe(false);
