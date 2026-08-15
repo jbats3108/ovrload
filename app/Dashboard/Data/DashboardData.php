@@ -41,7 +41,7 @@ final class DashboardData extends Data
             ->with('routine')
             ->finished()
             ->orderByDesc('finished_at')
-            ->limit(5)
+            ->limit(3)
             ->get()
             ->map(fn (Workout $workout): HistoryWorkoutItemData => HistoryWorkoutItemData::fromWorkout($workout));
 
