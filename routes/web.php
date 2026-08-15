@@ -28,6 +28,7 @@ use App\Shared\Http\Controllers\ShowFeedbackController;
 use App\Shared\Http\Controllers\ShowHomeController;
 use App\Shared\Http\Controllers\ShowInviteRequestController;
 use App\Shared\Http\Controllers\ShowPrivacyController;
+use App\Shared\Http\Controllers\ShowTutorialController;
 use App\Shared\Http\Controllers\StoreFeedbackController;
 use App\Shared\Http\Controllers\StoreInviteRequestController;
 use App\Workouts\Http\Controllers\AddWorkingSetController;
@@ -67,6 +68,8 @@ Route::post('feedback', StoreFeedbackController::class)
     ->name('feedback.store');
 
 Route::get('privacy', ShowPrivacyController::class)->name('privacy');
+
+Route::get('tutorial', ShowTutorialController::class)->name('tutorial');
 
 Route::middleware('auth')->group(function (): void {
 

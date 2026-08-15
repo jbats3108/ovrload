@@ -85,7 +85,7 @@ const removeWorkout = (workout: HistoryWorkout) => deleteWorkout(workout.id, wor
                     </button>
                 </li>
             </ul>
-            <p v-else class="text-sm text-muted-foreground">No finished workouts yet.</p>
+            <p v-else class="text-sm text-muted-foreground">History fills after you finish (or add) your first logged workout.</p>
         </div>
     </AppLayout>
 </template>
