@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BrandName from '@/components/BrandName.vue';
 import PublicSiteHeader from '@/components/PublicSiteHeader.vue';
+import TutorialShot from '@/components/TutorialShot.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -59,6 +60,11 @@ const toc = [
                     Dashboard cards start a workout, open the editor, duplicate, or delete. If a session is already in progress, finish or abandon it
                     before you start another.
                 </p>
+                <TutorialShot
+                    name="oriented"
+                    alt="Dashboard with routines, Start and Deload, and navigation"
+                    caption="Dashboard: routines, Start / Deload, and (on a phone) the bottom tabs."
+                />
                 <p v-if="isSignedIn">
                     <Link :href="route('dashboard')" class="font-medium text-primary underline-offset-2 hover:underline">Open your dashboard</Link>
                 </p>
@@ -77,6 +83,11 @@ const toc = [
                     session’s heaviest weight. Deload defaults and your bar/plate inventory live here too; the plate guide in Play uses that
                     inventory.
                 </p>
+                <TutorialShot
+                    name="training"
+                    alt="Training settings for warm-ups, progression, and deload defaults"
+                    caption="Training: warm-up ladder, Floor, Bump when, and deload defaults that seed new routines."
+                />
                 <p v-if="isSignedIn">
                     <Link :href="route('training.edit')" class="font-medium text-primary underline-offset-2 hover:underline">Open Training</Link>
                 </p>
@@ -94,6 +105,11 @@ const toc = [
                     the working sets, after warm-ups, or both. For a <strong class="text-foreground">superset</strong>, you pair two exercises in one
                     block — Play will flip between them each round. Use the superset controls in the editor to add or split that pair.
                 </p>
+                <TutorialShot
+                    name="editor"
+                    alt="Routine editor with exercises, setup options, and deload alternate"
+                    caption="Editor: working weight, Target reps, Setup, Superset, and Deload Alternate per lift."
+                />
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>
                 </p>
@@ -115,6 +131,11 @@ const toc = [
                     <strong class="text-foreground">Bump @</strong> (your Target reps). Hitting Target at working weight is what unlocks a bump — not
                     the Floor.
                 </p>
+                <TutorialShot
+                    name="play"
+                    alt="Play screen showing a warm-up set, plate guide, and Done"
+                    caption="Play: set progress, Target, plate guide, Done to open the log sheet."
+                />
             </section>
 
             <section id="bump" class="mt-12 scroll-mt-20 space-y-3">
@@ -166,6 +187,11 @@ const toc = [
                     offer bumps again, or let you undo a bump you already confirmed. Add a historical workout if you trained without the phone.
                     Dashboard shows a short strip of recent finishes.
                 </p>
+                <TutorialShot
+                    name="afterward"
+                    alt="History list of finished workouts"
+                    caption="History: finished sessions. Add historical if you trained without the phone."
+                />
                 <p v-if="isSignedIn" class="flex flex-wrap gap-x-4 gap-y-2">
                     <Link :href="route('history.index')" class="font-medium text-primary underline-offset-2 hover:underline">Open History</Link>
                     <Link :href="route('dashboard')" class="font-medium text-primary underline-offset-2 hover:underline">Back to Dashboard</Link>

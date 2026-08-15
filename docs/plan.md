@@ -8,15 +8,16 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
-- **Tutorial** — public `/tutorial` walkthrough (page first; in-app tour later)
+-
 
 ## Shipped (recent)
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
-1. **Custom user exercises** — private per-user customs from routine ExercisePicker; shared catalog stays admin/import-only
-2. **Choose an alternate exercise for Deload sessions** — optional Deload Alternate (exercise + own weight) per block exercise; Deload snapshot only; Singles when alternate set
-3. **Laravel Sail local stack** — Dockerised local app (PHP/MySQL/Redis/Mailpit/queue/Vite); `npm run sail:up` LAN phone access; host `composer run dev` fallback (#63)
+1. **Tutorial** — public `/tutorial` walkthrough (page first; in-app tour later); FAQ “How do I learn the app?”; Training / empty Dashboard / History entry points; device-matched screenshots
+2. **Custom user exercises** — private per-user customs from routine ExercisePicker; shared catalog stays admin/import-only
+3. **Choose an alternate exercise for Deload sessions** — optional Deload Alternate (exercise + own weight) per block exercise; Deload snapshot only; Singles when alternate set
+4. **Laravel Sail local stack** — Dockerised local app (PHP/MySQL/Redis/Mailpit/queue/Vite); `npm run sail:up` LAN phone access; host `composer run dev` fallback (#63)
 4. **Add Historical Workouts** — History → Add historical; when-first (no “now” default); deload; +/− set / mark group skipped; warm-ups %×Set 1 (hint + override); progression only if latest non-deload; OK while Play in progress; UI “group” not “block” on skip actions
 5. **Skip rest of block** — − Set trims incomplete rounds (never last); confirmed Skip rest of group deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History (#64)
 6. **Since-last-deload counts** — per-routine dashboard standards since latest finished deload; soft Deload hint at ≥ Deload Velocity (`deload_every_n`, editor + Training defaults; 0 = never); #47
@@ -105,6 +106,7 @@ Public order matches `/beta-tester-faqs`.
 - **Flaky-network drafts** — best-effort offline/queue for player logging
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
 - **Bump between sets** — auto / config / ask whether to bump mid-block (not only on finish)
+- **In-app product tour** — after the public `/tutorial` page; own grill
 - **Shorter rest on deload** — maybe not worth the effort
 - **Account switcher**
 - **Welcome email** — tutorial is a prerequisite
