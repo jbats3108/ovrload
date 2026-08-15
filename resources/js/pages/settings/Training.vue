@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { gramsToKg } from '@/lib/plateCalculator';
 import type { PlateProfile, WarmUpDefaultsScope, WarmUpStep } from '@/settings/types';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps<{
     warm_up_steps_default: WarmUpStep[];
@@ -99,6 +99,11 @@ const savePlates = () => {
         <Head title="Training" />
 
         <div class="mx-auto w-full max-w-xl space-y-10 px-4 py-6">
+            <p class="text-sm text-muted-foreground">
+                <Link :href="route('tutorial')" class="font-medium text-primary underline-offset-2 hover:underline">Read the tutorial</Link>
+                for how these defaults feed into routines and Play.
+            </p>
+
             <section class="space-y-6">
                 <HeadingSmall
                     title="Warm-up defaults"

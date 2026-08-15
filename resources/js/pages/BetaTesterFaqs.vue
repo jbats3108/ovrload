@@ -6,11 +6,6 @@ import { Head, Link } from '@inertiajs/vue3';
 
 const backlogItems = [
     {
-        title: 'Tutorial',
-        description:
-            'A tutorial / walkthrough to help new users understand how to use OVRLOAD, what the different settings do, and how to create and manage your Routines.',
-    },
-    {
         title: 'Add Historical Workouts',
         description:
             "Allow creating a workout that wasn't logged at the time, without needing to run through the entire Play routine. Select a date and time, and enter all the weights you lifted on one screen.",
@@ -168,6 +163,17 @@ function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
                                 Ko-Fi page
                             </a>
                             where you can donate to the upkeep of <BrandName />.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="border-t border-border pt-6">
+                    <h2 class="text-lg font-semibold">How do I learn the app?</h2>
+                    <div class="mt-2 space-y-3 text-muted-foreground">
+                        <p>
+                            Read the
+                            <Link :href="route('tutorial')" class="font-medium text-primary underline-offset-2 hover:underline">tutorial</Link>
+                            — settings, routines, Play, and what happens after you finish. Launched 15 August 2026.
                         </p>
                     </div>
                 </article>

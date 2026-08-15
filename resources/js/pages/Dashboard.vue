@@ -179,7 +179,11 @@ const formatFinishedAt = formatDate;
                     @delete="deleteRoutine(routine)"
                 />
             </div>
-            <p v-if="!props.data.routines.length" class="text-sm text-muted-foreground">No routines yet. Tap Create to start one.</p>
+            <p v-if="!props.data.routines.length" class="text-sm text-muted-foreground">
+                No routines yet.
+                <Link :href="route('tutorial')" class="font-medium text-primary underline-offset-2 hover:underline">Read the tutorial</Link>, then tap
+                Create to start one.
+            </p>
         </div>
     </AppLayout>
 </template>

@@ -8,7 +8,7 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
--
+- **Tutorial** — public `/tutorial` walkthrough (page first; in-app tour later)
 
 ## Shipped (recent)
 
@@ -85,14 +85,13 @@ Single triage list — reprioritize across buckets as needed. **Features (FAQ)**
 
 Public order matches `/beta-tester-faqs`.
 
-1. **Tutorial** — walkthrough for settings, routines, create/manage
-2. ~~**Add Historical Workouts**~~ — recently added (History → Add historical)
-3. ~~**Custom user exercises**~~ — recently added (private customs from routine ExercisePicker; shared catalog stays admin/import-only)
-4. **Better History Edits** — warm-up edits; discarded in History; add/remove exercises and sets on a logged workout
-5. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
-6. ~~**Choose an alternate exercise for Deload sessions**~~ — recently added (optional Deload Alternate + own weight per block exercise; Deload snapshot only; Singles when alternate set)
-7. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
-8. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
+1. ~~**Add Historical Workouts**~~ — recently added (History → Add historical)
+2. ~~**Custom user exercises**~~ — recently added (private customs from routine ExercisePicker; shared catalog stays admin/import-only)
+3. **Better History Edits** — warm-up edits; discarded in History; add/remove exercises and sets on a logged workout
+4. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
+5. ~~**Choose an alternate exercise for Deload sessions**~~ — recently added (optional Deload Alternate + own weight per block exercise; Deload snapshot only; Singles when alternate set)
+6. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
+7. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
 
 ### Parked (internal — not on public FAQ)
 
@@ -106,10 +105,13 @@ Public order matches `/beta-tester-faqs`.
 - **Flaky-network drafts** — best-effort offline/queue for player logging
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
 - **Bump between sets** — auto / config / ask whether to bump mid-block (not only on finish)
+- **Shorter rest on deload** — maybe not worth the effort
+- **Account switcher**
+- **Welcome email** — tutorial is a prerequisite
 
 ### Polish & mobile integration
 
--
+- **Fewer dashboard history items** — show 3 recent, not 5
 
 ### Bugfixes
 
