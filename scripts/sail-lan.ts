@@ -1,54 +1,20 @@
 /**
- * Point Sail Vite at a phone-reachable LAN IP (or clear it for PC-only HMR).
- * Does not rewrite APP_URL — UseRequestRootUrl follows the browser Host.
+ * Switch an already-running Sail stack to phone-reachable LAN Vite HMR (or back to laptop-only).
  *
  * Usage (host, not inside Sail):
- *   node --experimental-strip-types scripts/sail-lan.ts
- *   node --experimental-strip-types scripts/sail-lan.ts --localhost
+ *   npm run sail:lan
+ *   npm run sail:localhost
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { detectLanIpv4 } from '../vite/detectLanHost.ts';
+import { applyLanDevEnv, applyLaptopDevEnv, readAppPort, readEnvValue } from './sail-env.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const envPath = resolve(root, '.env');
 const toLocalhost = process.argv.includes('--localhost');
 const dryRun = process.argv.includes('--dry-run');
-
-function readAppPort(env: string): string {
-    const match = env.match(/^APP_PORT=(.*)$/m);
-
-    return (match?.[1] ?? '8000').trim() || '8000';
-}
-
-function readEnvValue(env: string, key: string): string | null {
-    const match = env.match(new RegExp(`^${key}=(.*)$`, 'm'));
-    const value = match?.[1]?.trim();
-
-    return value ? value : null;
-}
-
-function upsertEnv(content: string, key: string, value: string): string {
-    const line = `${key}=${value}`;
-    const pattern = new RegExp(`^#?\\s*${key}=.*$`, 'm');
-
-    if (pattern.test(content)) {
-        return content.replace(pattern, line);
-    }
-
-    return `${content.trimEnd()}\n${line}\n`;
-}
-
-function commentEnv(content: string, key: string): string {
-    const pattern = new RegExp(`^#?\\s*${key}=.*$`, 'm');
-
-    if (pattern.test(content)) {
-        return content.replace(pattern, `# ${key}=`);
-    }
-
-    return content;
-}
 
 function restartSailServices(): void {
     if (dryRun) {
@@ -81,11 +47,11 @@ let env = readFileSync(envPath, 'utf8');
 const appPort = readAppPort(env);
 
 if (toLocalhost) {
-    env = commentEnv(env, 'VITE_DEV_HOST');
+    env = applyLaptopDevEnv(env);
     if (!dryRun) {
         writeFileSync(envPath, env);
     }
-    console.log(`Sail Vite → localhost HMR (PC-only). App still at http://localhost:${appPort}`);
+    console.log(`Sail (laptop): http://localhost:${appPort}`);
     restartSailServices();
     process.exit(0);
 }
@@ -97,10 +63,10 @@ if (!lanHost) {
     process.exit(1);
 }
 
-env = upsertEnv(env, 'VITE_DEV_HOST', lanHost);
+env = applyLanDevEnv(env, lanHost);
 if (!dryRun) {
     writeFileSync(envPath, env);
 }
 
-console.log(`Sail: phone → http://${lanHost}:${appPort} · PC → http://localhost:${appPort}`);
+console.log(`Sail (LAN): phone → http://${lanHost}:${appPort} · PC → http://localhost:${appPort}`);
 restartSailServices();

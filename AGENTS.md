@@ -5,11 +5,11 @@
 This is **OVRLOAD** (repo: the-workout-planner): a Laravel 13 (PHP 8.5) backend with an Inertia + Vue 3 + TypeScript frontend bundled by Vite. Local development runs via **Laravel Sail** (Docker): PHP app, MySQL, Redis, Mailpit, queue worker, and Vite.
 
 ### Running the app (development)
-- Primary: `npm run sail:up` (detects Wi‑Fi/ethernet IP for Vite, then `sail up -d`). App http://localhost:8000 **and** phone `http://<lan-ip>:8000` on the same Wi‑Fi; Vite HMR http://localhost:5173 / `http://<lan-ip>:5173`; Mailpit UI http://localhost:8025 (SMTP `mailpit:1025` inside the network).
+- Primary: `npm run sail:up` — laptop-first Sail (`sail up -d --wait`, localhost Vite HMR). App http://localhost:8000; Vite HMR http://localhost:5173; Mailpit http://localhost:8025.
 - First-time: copy `.env.example` → `.env` if needed, `php artisan key:generate`, then `./vendor/bin/sail build`, `npm run sail:up`, `./vendor/bin/sail npm install` (if `node_modules` missing), `./vendor/bin/sail artisan migrate --seed`.
 - Artisan / Composer / npm inside Sail: `./vendor/bin/sail artisan …`, `./vendor/bin/sail composer …`, `./vendor/bin/sail npm …`. Optional shell alias: `alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'`.
-- Phone / LAN: built into `npm run sail:up` (sets `VITE_DEV_HOST`; Laravel follows the browser Host via `UseRequestRootUrl`). If your IP changes after Sail is already up: `npm run sail:lan`. PC-only Vite HMR: `npm run sail:localhost`. Override: `VITE_DEV_HOST=192.168.x.x npm run sail:up`.
-- Raw `./vendor/bin/sail up -d` skips LAN injection — phone Vite/HMR will break unless `VITE_DEV_HOST` is already in `.env`.
+- Phone / LAN (opt-in): `npm run sail:up -- --lan` or `npm run sail:lan` when Sail is already up (sets `VITE_DEV_HOST`; Laravel follows browser Host via `UseRequestRootUrl`). Back to laptop-only: `npm run sail:localhost`.
+- Prefer `npm run sail:up` over raw `./vendor/bin/sail up -d` — it normalises `.env`, waits for healthy MySQL/Redis, and restarts Vite so `public/hot` matches.
 - Host fallback (no Docker app stack): `composer run dev` / `dev:lan` — prints a Sail preference notice; uses host PHP + Vite. Point `.env` at SQLite / `127.0.0.1` Redis/mail as needed (see comments in `.env.example`).
 - Without Vite running, the app expects a production build (`npm run build` / `sail npm run build`, output in `public/build/`).
 - **Linux Sail gotchas:** (1) Docker Desktop: `docker context use default` if containers fail to start. (2) Permission errors on `storage/` / `bootstrap/cache`: set `SUPERVISOR_PHP_USER=root` in `.env`. (3) Free host ports 8000 / 3306 / 6379 / 5173 / 1025 / 8025; remove old ad-hoc `ovrload-mailpit` container if present. (4) Do not run Compose as root — Sail maps `WWWUSER`/`WWWGROUP` from your UID/GID. (5) Phone access needs host firewall allowing :8000 and :5173 on the LAN.

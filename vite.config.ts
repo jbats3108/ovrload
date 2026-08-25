@@ -61,8 +61,8 @@ export default defineConfig(({ mode, isSsrBuild }) => {
     const sail = process.env.LARAVEL_SAIL === '1' || env.LARAVEL_SAIL === '1';
     const ddevUrl = env.DDEV_PRIMARY_URL || null;
     const lanDev = env.LAN_DEV === '1' || env.LAN_DEV === 'true';
-    // Phone / LAN: `npm run sail:up` sets VITE_DEV_HOST on the host (containers cannot see Wi‑Fi IPs).
-    // Optional override: VITE_DEV_HOST=192.168.x.x when detection is wrong.
+    // Phone / LAN (opt-in): `npm run sail:up -- --lan` or `npm run sail:lan` sets VITE_DEV_HOST.
+    // Laptop default: no VITE_DEV_HOST → localhost HMR inside Sail.
     const lanHost = process.env.VITE_DEV_HOST || env.VITE_DEV_HOST || (lanDev ? detectLanIpv4() : null);
 
     // DDEV: DDEV_PRIMARY_URL is set automatically.
