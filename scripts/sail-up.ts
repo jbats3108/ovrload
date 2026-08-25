@@ -1,45 +1,22 @@
 /**
- * Inject host LAN IP into .env for Sail Vite/HMR, then `sail up`.
- *
- * Phone + PC both work after this — Vite advertises the LAN IP; Laravel
- * uses the request Host for URLs (see UseRequestRootUrl).
+ * Start Sail for laptop-first local dev (localhost Vite HMR, no LAN IP churn).
  *
  * Usage (host):
- *   node --experimental-strip-types scripts/sail-up.ts
- *   node --experimental-strip-types scripts/sail-up.ts -- --build
+ *   npm run sail:up              # PC at http://localhost:8000
+ *   npm run sail:up -- --lan     # also inject fresh LAN IP for phone
+ *   npm run sail:up -- --build
  */
-import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { detectLanIpv4 } from '../vite/detectLanHost.ts';
+import { recreateSailDevServices, runSail, waitForHttp } from './sail-cli.ts';
+import { applyLanDevEnv, applyLaptopDevEnv, readAppPort, resolveLanHost } from './sail-env.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const envPath = resolve(root, '.env');
-const sailArgs = process.argv.includes('--') ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(2).filter((a) => a !== '--');
-
-function readEnvValue(env: string, key: string): string | null {
-    const match = env.match(new RegExp(`^${key}=(.*)$`, 'm'));
-    const value = match?.[1]?.trim();
-
-    return value ? value : null;
-}
-
-function upsertEnv(content: string, key: string, value: string): string {
-    const line = `${key}=${value}`;
-    const pattern = new RegExp(`^#?\\s*${key}=.*$`, 'm');
-
-    if (pattern.test(content)) {
-        return content.replace(pattern, line);
-    }
-
-    return `${content.trimEnd()}\n${line}\n`;
-}
-
-function readAppPort(env: string): string {
-    const match = env.match(/^APP_PORT=(.*)$/m);
-
-    return (match?.[1] ?? '8000').trim() || '8000';
-}
+const rawArgs = process.argv.includes('--') ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv.slice(2).filter((a) => a !== '--');
+const useLan = rawArgs.includes('--lan');
+const sailArgs = rawArgs.filter((a) => a !== '--lan');
 
 if (!existsSync(envPath)) {
     console.error('Missing .env — copy .env.example first.');
@@ -48,22 +25,49 @@ if (!existsSync(envPath)) {
 
 let env = readFileSync(envPath, 'utf8');
 const appPort = readAppPort(env);
-const lanHost = process.env.VITE_DEV_HOST?.trim() || readEnvValue(env, 'VITE_DEV_HOST') || detectLanIpv4();
+let lanHost: string | null = null;
 
-if (lanHost) {
-    env = upsertEnv(env, 'VITE_DEV_HOST', lanHost);
+if (useLan) {
+    lanHost = resolveLanHost(process.env.VITE_DEV_HOST, detectLanIpv4());
+
+    if (!lanHost) {
+        console.error('No LAN IPv4 found. Set VITE_DEV_HOST=192.168.x.x or run without --lan.');
+        process.exit(1);
+    }
+
+    env = applyLanDevEnv(env, lanHost);
     writeFileSync(envPath, env);
-    console.log(`Sail: phone → http://${lanHost}:${appPort} · PC → http://localhost:${appPort}`);
+    console.log(`Sail (LAN): phone → http://${lanHost}:${appPort} · PC → http://localhost:${appPort}`);
 } else {
-    console.warn('No LAN IPv4 found — phone access may fail. Set VITE_DEV_HOST=192.168.x.x');
+    env = applyLaptopDevEnv(env);
+    writeFileSync(envPath, env);
+    console.log(`Sail (laptop): http://localhost:${appPort}`);
 }
 
-const sail = resolve(root, 'vendor/bin/sail');
-if (!existsSync(sail)) {
-    console.error('Missing vendor/bin/sail — run composer install.');
+const status = runSail(['up', '-d', '--wait', ...sailArgs]);
+
+if (status !== 0) {
+    process.exit(status);
+}
+
+// Force-recreate Vite so public/hot matches the mode we just wrote to .env.
+if (recreateSailDevServices(['vite']) !== 0) {
     process.exit(1);
 }
 
-const upArgs = ['up', '-d', ...sailArgs];
-const result = spawnSync(sail, upArgs, { cwd: root, stdio: 'inherit', env: process.env });
-process.exit(result.status ?? 1);
+const appUrl = `http://localhost:${appPort}`;
+
+if (waitForHttp(appUrl)) {
+    if (lanHost) {
+        const viteOk = waitForHttp(`http://${lanHost}:5173`, 20, 500);
+        console.log(
+            viteOk ? `Ready: phone http://${lanHost}:${appPort} · PC ${appUrl}` : `Ready: ${appUrl} (LAN Vite probe failed — check :5173 firewall)`,
+        );
+    } else {
+        console.log(`Ready: ${appUrl}`);
+    }
+} else {
+    console.warn(`Stack is up but ${appUrl} did not respond yet — check: ./vendor/bin/sail ps`);
+}
+
+process.exit(0);

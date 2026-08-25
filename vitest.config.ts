@@ -12,7 +12,7 @@ export default defineConfig({
     test: {
         environment: 'happy-dom',
         setupFiles: ['resources/js/test/setup.ts'],
-        include: ['resources/js/**/*.test.ts', 'vite/**/*.test.ts'],
+        include: ['resources/js/**/*.test.ts', 'vite/**/*.test.ts', 'scripts/**/*.test.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'lcov'],

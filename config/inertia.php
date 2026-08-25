@@ -21,7 +21,9 @@ return [
 
     'ssr' => [
 
-        'enabled' => (bool) env('INERTIA_SSR_ENABLED', true),
+        // Sail + LAN Vite: hot file is the phone IP; Laravel cannot reach it and waits ~10s
+        // on each SSR attempt. Disable by default under Sail; override with INERTIA_SSR_ENABLED.
+        'enabled' => (bool) env('INERTIA_SSR_ENABLED', ! env('LARAVEL_SAIL')),
 
         'runtime' => env('INERTIA_SSR_RUNTIME', 'node'),
 

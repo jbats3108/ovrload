@@ -122,9 +122,9 @@
         ]
     },
     "scripts-descriptions": {
-        "sail:up": "Detect LAN IP for Vite, then ./vendor/bin/sail up -d (phone + PC).",
-        "sail:lan": "Re-detect LAN IP for Sail Vite/HMR and restart vite/app (Sail already up).",
-        "sail:localhost": "Clear VITE_DEV_HOST so Sail Vite HMR is PC-only (localhost).",
+        "sail:up": "Laptop-first Sail up (localhost Vite; use npm run sail:up -- --lan for phone).",
+        "sail:lan": "Opt-in LAN Vite HMR; always re-detects Wi‑Fi IP (Sail already up).",
+        "sail:localhost": "Clear VITE_DEV_HOST and reset APP_URL to localhost (Sail already up).",
         "lint": "Fix PHP code style with Pint.",
         "lint:check": "Check PHP code style with Pint (no writes).",
         "analyse": "Run PHPStan / Larastan static analysis.",

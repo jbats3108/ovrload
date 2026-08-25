@@ -1,76 +1,24 @@
 /**
- * Point Sail Vite at a phone-reachable LAN IP (or clear it for PC-only HMR).
- * Does not rewrite APP_URL — UseRequestRootUrl follows the browser Host.
+ * Switch an already-running Sail stack to phone-reachable LAN Vite HMR (or back to laptop-only).
+ *
+ * Always re-detects the LAN IP (unless VITE_DEV_HOST is set in the shell) so stale
+ * Wi‑Fi addresses do not break phone Vite/HMR.
  *
  * Usage (host, not inside Sail):
- *   node --experimental-strip-types scripts/sail-lan.ts
- *   node --experimental-strip-types scripts/sail-lan.ts --localhost
+ *   npm run sail:lan
+ *   npm run sail:localhost
+ *   VITE_DEV_HOST=192.168.x.x npm run sail:lan
  */
-import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { detectLanIpv4 } from '../vite/detectLanHost.ts';
+import { recreateSailDevServices, waitForHttp } from './sail-cli.ts';
+import { applyLanDevEnv, applyLaptopDevEnv, readAppPort, resolveLanHost } from './sail-env.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const envPath = resolve(root, '.env');
 const toLocalhost = process.argv.includes('--localhost');
 const dryRun = process.argv.includes('--dry-run');
-
-function readAppPort(env: string): string {
-    const match = env.match(/^APP_PORT=(.*)$/m);
-
-    return (match?.[1] ?? '8000').trim() || '8000';
-}
-
-function readEnvValue(env: string, key: string): string | null {
-    const match = env.match(new RegExp(`^${key}=(.*)$`, 'm'));
-    const value = match?.[1]?.trim();
-
-    return value ? value : null;
-}
-
-function upsertEnv(content: string, key: string, value: string): string {
-    const line = `${key}=${value}`;
-    const pattern = new RegExp(`^#?\\s*${key}=.*$`, 'm');
-
-    if (pattern.test(content)) {
-        return content.replace(pattern, line);
-    }
-
-    return `${content.trimEnd()}\n${line}\n`;
-}
-
-function commentEnv(content: string, key: string): string {
-    const pattern = new RegExp(`^#?\\s*${key}=.*$`, 'm');
-
-    if (pattern.test(content)) {
-        return content.replace(pattern, `# ${key}=`);
-    }
-
-    return content;
-}
-
-function restartSailServices(): void {
-    if (dryRun) {
-        return;
-    }
-
-    const sail = existsSync(resolve(root, 'vendor/bin/sail')) ? resolve(root, 'vendor/bin/sail') : null;
-
-    if (!sail) {
-        return;
-    }
-
-    const result = spawnSync(sail, ['restart', 'vite', 'laravel.test'], {
-        cwd: root,
-        stdio: 'inherit',
-        env: process.env,
-    });
-
-    if (result.status !== 0) {
-        console.error('Sail restart skipped or failed — run: npm run sail:up');
-    }
-}
 
 if (!existsSync(envPath)) {
     console.error('Missing .env — copy .env.example first.');
@@ -81,26 +29,51 @@ let env = readFileSync(envPath, 'utf8');
 const appPort = readAppPort(env);
 
 if (toLocalhost) {
-    env = commentEnv(env, 'VITE_DEV_HOST');
+    env = applyLaptopDevEnv(env);
     if (!dryRun) {
         writeFileSync(envPath, env);
+        console.log(`Sail (laptop): http://localhost:${appPort}`);
+        if (recreateSailDevServices() !== 0) {
+            process.exit(1);
+        }
+        if (waitForHttp(`http://localhost:${appPort}`)) {
+            console.log(`Ready: http://localhost:${appPort}`);
+        }
+    } else {
+        console.log(`[dry-run] would set laptop mode → http://localhost:${appPort}`);
     }
-    console.log(`Sail Vite → localhost HMR (PC-only). App still at http://localhost:${appPort}`);
-    restartSailServices();
     process.exit(0);
 }
 
-const lanHost = process.env.VITE_DEV_HOST?.trim() || readEnvValue(env, 'VITE_DEV_HOST') || detectLanIpv4();
+const lanHost = resolveLanHost(process.env.VITE_DEV_HOST, detectLanIpv4());
 
 if (!lanHost) {
     console.error('No LAN IPv4 found. Set VITE_DEV_HOST=192.168.x.x and re-run.');
     process.exit(1);
 }
 
-env = upsertEnv(env, 'VITE_DEV_HOST', lanHost);
+env = applyLanDevEnv(env, lanHost);
 if (!dryRun) {
     writeFileSync(envPath, env);
-}
+    console.log(`Sail (LAN): phone → http://${lanHost}:${appPort} · PC → http://localhost:${appPort}`);
+    if (recreateSailDevServices() !== 0) {
+        process.exit(1);
+    }
 
-console.log(`Sail: phone → http://${lanHost}:${appPort} · PC → http://localhost:${appPort}`);
-restartSailServices();
+    const appOk = waitForHttp(`http://localhost:${appPort}`);
+    const viteOk = waitForHttp(`http://${lanHost}:5173`, 20, 500);
+
+    if (appOk && viteOk) {
+        console.log(`Ready: phone http://${lanHost}:${appPort} · Vite http://${lanHost}:5173`);
+    } else {
+        console.warn('Stack recreated but probes failed — check firewall for :8000 and :5173, then ./vendor/bin/sail ps');
+        if (!appOk) {
+            console.warn(`  app not ready: http://localhost:${appPort}`);
+        }
+        if (!viteOk) {
+            console.warn(`  Vite not reachable on LAN: http://${lanHost}:5173`);
+        }
+    }
+} else {
+    console.log(`[dry-run] would set VITE_DEV_HOST=${lanHost}`);
+}
