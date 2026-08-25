@@ -9,6 +9,7 @@ const page = usePage();
 const isSignedIn = computed(() => Boolean(page.props.auth.user));
 
 const toc = [
+    { href: '#install', label: 'Install on your phone' },
     { href: '#oriented', label: 'Get oriented' },
     { href: '#training', label: 'Training settings' },
     { href: '#editor', label: 'Create a routine' },
@@ -47,6 +48,33 @@ const toc = [
                     </li>
                 </ul>
             </nav>
+
+            <section id="install" class="mt-12 scroll-mt-20 space-y-3">
+                <h2 class="text-2xl font-bold tracking-tight">Install on your phone</h2>
+                <p class="text-muted-foreground">
+                    <BrandName /> installs from the browser — no App Store or Play Store. Add it to your home screen for a full-screen icon, quieter
+                    browser chrome, and a better gym session.
+                </p>
+                <ul class="list-disc space-y-4 pl-5 text-muted-foreground">
+                    <li>
+                        <span class="font-medium text-foreground">iPhone / iPad (Safari)</span>
+                        <p class="mt-1">
+                            Open the site in Safari, tap Share, then <span class="font-medium text-foreground">Add to Home Screen</span>. On iOS
+                            Safari you may also see an install tip near the bottom of the app until you dismiss it.
+                        </p>
+                    </li>
+                    <li>
+                        <span class="font-medium text-foreground">Android (Chrome)</span>
+                        <p class="mt-1">
+                            Open the site in Chrome, tap the menu (⋮), then <span class="font-medium text-foreground">Install app</span> or
+                            <span class="font-medium text-foreground">Add to Home screen</span>.
+                        </p>
+                    </li>
+                </ul>
+                <p class="text-muted-foreground">
+                    After install, open <BrandName /> from the home-screen icon rather than a browser tab when you train.
+                </p>
+            </section>
 
             <section id="oriented" class="mt-12 scroll-mt-20 space-y-3">
                 <h2 class="text-2xl font-bold tracking-tight">Get oriented</h2>

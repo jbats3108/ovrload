@@ -179,6 +179,39 @@ function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
                 </article>
 
                 <article class="border-t border-border pt-6">
+                    <h2 class="text-lg font-semibold">How do I install the app on my phone?</h2>
+                    <div class="mt-2 space-y-3 text-muted-foreground">
+                        <p>
+                            <BrandName /> is a progressive web app — open it in your phone browser, then add it to your home screen for a full-screen
+                            icon (no App Store / Play Store).
+                        </p>
+                        <ul class="list-disc space-y-4 pl-5">
+                            <li>
+                                <span class="font-medium text-foreground">iPhone / iPad (Safari)</span>
+                                <p class="mt-1">
+                                    Tap Share, then <span class="font-medium text-foreground">Add to Home Screen</span>. If you dismissed the in-app
+                                    tip, those steps still work anytime.
+                                </p>
+                            </li>
+                            <li>
+                                <span class="font-medium text-foreground">Android (Chrome)</span>
+                                <p class="mt-1">
+                                    Open the browser menu (⋮), then choose <span class="font-medium text-foreground">Install app</span> or
+                                    <span class="font-medium text-foreground">Add to Home screen</span>.
+                                </p>
+                            </li>
+                        </ul>
+                        <p>
+                            More detail is in the
+                            <Link :href="`${route('tutorial')}#install`" class="font-medium text-primary underline-offset-2 hover:underline">
+                                tutorial
+                            </Link>
+                            .
+                        </p>
+                    </div>
+                </article>
+
+                <article class="border-t border-border pt-6">
                     <h2 class="text-lg font-semibold">Is my data safe?</h2>
                     <div class="mt-2 space-y-3 text-muted-foreground">
                         <p>
