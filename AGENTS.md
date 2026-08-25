@@ -8,7 +8,7 @@ This is **OVRLOAD** (repo: the-workout-planner): a Laravel 13 (PHP 8.5) backend 
 - Primary: `npm run sail:up` — laptop-first Sail (`sail up -d --wait`, localhost Vite HMR). App http://localhost:8000; Vite HMR http://localhost:5173; Mailpit http://localhost:8025.
 - First-time: copy `.env.example` → `.env` if needed, `php artisan key:generate`, then `./vendor/bin/sail build`, `npm run sail:up`, `./vendor/bin/sail npm install` (if `node_modules` missing), `./vendor/bin/sail artisan migrate --seed`.
 - Artisan / Composer / npm inside Sail: `./vendor/bin/sail artisan …`, `./vendor/bin/sail composer …`, `./vendor/bin/sail npm …`. Optional shell alias: `alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'`.
-- Phone / LAN (opt-in): `npm run sail:up -- --lan` or `npm run sail:lan` when Sail is already up (sets `VITE_DEV_HOST`; Laravel follows browser Host via `UseRequestRootUrl`). Back to laptop-only: `npm run sail:localhost`.
+- Phone / LAN (opt-in): `npm run sail:up -- --lan` or `npm run sail:lan` when Sail is already up (re-detects LAN IP into `VITE_DEV_HOST`; Laravel follows browser Host via `UseRequestRootUrl`). Back to laptop-only: `npm run sail:localhost`. Override: `VITE_DEV_HOST=192.168.x.x npm run sail:lan`.
 - Prefer `npm run sail:up` over raw `./vendor/bin/sail up -d` — it normalises `.env`, waits for healthy MySQL/Redis, and restarts Vite so `public/hot` matches.
 - Host fallback (no Docker app stack): `composer run dev` / `dev:lan` — prints a Sail preference notice; uses host PHP + Vite. Point `.env` at SQLite / `127.0.0.1` Redis/mail as needed (see comments in `.env.example`).
 - Without Vite running, the app expects a production build (`npm run build` / `sail npm run build`, output in `public/build/`).

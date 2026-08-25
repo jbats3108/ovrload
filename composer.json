@@ -123,7 +123,7 @@
     },
     "scripts-descriptions": {
         "sail:up": "Laptop-first Sail up (localhost Vite; use npm run sail:up -- --lan for phone).",
-        "sail:lan": "Opt-in LAN Vite HMR for phone testing (Sail already up).",
+        "sail:lan": "Opt-in LAN Vite HMR; always re-detects Wi‑Fi IP (Sail already up).",
         "sail:localhost": "Clear VITE_DEV_HOST and reset APP_URL to localhost (Sail already up).",
         "lint": "Fix PHP code style with Pint.",
         "lint:check": "Check PHP code style with Pint (no writes).",

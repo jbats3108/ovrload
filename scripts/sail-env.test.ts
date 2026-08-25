@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyLanDevEnv, applyLaptopDevEnv, commentEnv, readAppPort, readEnvValue, upsertEnv } from './sail-env';
+import { applyLanDevEnv, applyLaptopDevEnv, commentEnv, readAppPort, readEnvValue, resolveLanHost, upsertEnv } from './sail-env';
 
 describe('sail-env', () => {
     it('reads and upserts env values', () => {
@@ -19,12 +19,20 @@ describe('sail-env', () => {
         expect(next).toContain('APP_URL=http://localhost:8000');
     });
 
-    it('injects LAN host without touching APP_URL', () => {
-        const env = '# VITE_DEV_HOST=\nAPP_URL=http://localhost:8000\n';
+    it('injects LAN host and keeps APP_URL on localhost', () => {
+        const env = 'VITE_DEV_HOST=192.168.0.1\nAPP_URL=http://192.168.0.1:8000\nAPP_PORT=8000\n';
         const next = applyLanDevEnv(env, '192.168.0.50');
 
         expect(next).toContain('VITE_DEV_HOST=192.168.0.50');
         expect(next).toContain('APP_URL=http://localhost:8000');
+        expect(next).not.toContain('APP_URL=http://192.168.0.1:8000');
+    });
+
+    it('prefers process override over detection and ignores stale .env values', () => {
+        expect(resolveLanHost('10.0.0.9', '192.168.0.104')).toBe('10.0.0.9');
+        expect(resolveLanHost(undefined, '192.168.0.104')).toBe('192.168.0.104');
+        expect(resolveLanHost('  ', '192.168.0.104')).toBe('192.168.0.104');
+        expect(resolveLanHost(undefined, null)).toBeNull();
     });
 
     it('comments missing keys harmlessly', () => {

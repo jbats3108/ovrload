@@ -36,6 +36,21 @@ export function readAppPort(env: string): string {
     return (match?.[1] ?? '8000').trim() || '8000';
 }
 
+/**
+ * Pick a LAN host for phone Vite HMR.
+ * Prefer an explicit process override; otherwise use a fresh OS detect.
+ * Never reuse a stale VITE_DEV_HOST from .env — Wi‑Fi IPs change often.
+ */
+export function resolveLanHost(processOverride: string | null | undefined, detected: string | null): string | null {
+    const override = processOverride?.trim();
+
+    if (override) {
+        return override;
+    }
+
+    return detected;
+}
+
 /** PC-only dev: localhost APP_URL and no LAN Vite host (avoids stale IPs + SSR timeouts). */
 export function applyLaptopDevEnv(env: string): string {
     const port = readAppPort(env);
@@ -44,7 +59,13 @@ export function applyLaptopDevEnv(env: string): string {
     return upsertEnv(next, 'APP_URL', `http://localhost:${port}`);
 }
 
-/** Phone + PC: inject LAN IP for Vite HMR. APP_URL unchanged — UseRequestRootUrl follows browser Host. */
+/**
+ * Phone + PC: inject LAN IP for Vite HMR.
+ * Keep APP_URL on localhost — UseRequestRootUrl follows the browser Host on each request.
+ */
 export function applyLanDevEnv(env: string, lanHost: string): string {
-    return upsertEnv(env, 'VITE_DEV_HOST', lanHost);
+    const port = readAppPort(env);
+    const withHost = upsertEnv(env, 'VITE_DEV_HOST', lanHost);
+
+    return upsertEnv(withHost, 'APP_URL', `http://localhost:${port}`);
 }

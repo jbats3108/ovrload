@@ -74,6 +74,8 @@ export default defineConfig(({ mode, isSsrBuild }) => {
               host: '0.0.0.0',
               port: 5173,
               strictPort: true,
+              // Phone + Docker service DNS may hit Vite with Host != origin hostname.
+              allowedHosts: true,
               origin: `http://${publicHost}:5173`,
               hmr: {
                   host: publicHost,
@@ -87,6 +89,7 @@ export default defineConfig(({ mode, isSsrBuild }) => {
                 host: '0.0.0.0',
                 port: 5173,
                 strictPort: true,
+                allowedHosts: true,
                 hmr: {
                     host: 'localhost',
                 },
