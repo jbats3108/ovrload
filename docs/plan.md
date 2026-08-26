@@ -127,6 +127,7 @@ Public order matches `/beta-tester-faqs`.
 
 ### Code quality & security
 
+- **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface
 - **Find N+1 queries (Sentry)** — triage / fix N+1s flagged in Sentry
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Settings export/delete + invite cascade done
 
