@@ -1,4 +1,5 @@
 import { gramsToKg, type PlateLoadResult } from '@/lib/plateCalculator';
+import type { EquipmentOption, ExerciseOption, MuscleGroupOption } from '@/routines/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
 import { hapticConfirm, hapticTap } from '@/shared/lib/haptics';
 import { findFirstIncompleteFocus, flattenPlayerSets, setupKey, type FlatSetEntry } from '@/workouts/lib/focus';
@@ -31,6 +32,9 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch, type Injectio
 export type PlayWorkoutProps = {
     workout: WorkoutPayload;
     plate_profile: PlateProfile;
+    exercises?: ExerciseOption[];
+    muscle_groups?: MuscleGroupOption[];
+    equipment_options?: EquipmentOption[];
 };
 
 export type WorkoutPlayer = ReturnType<typeof createWorkoutPlayer>;
@@ -50,6 +54,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const stageWeightOverrideKg = ref<number | null>(null);
     const stagePlateLoadOverrides = ref<Record<number, PlateLoadResult>>({});
     const logPlateLoadDraft = ref<PlateLoadResult | null>(null);
+    const exerciseCatalog = computed(() => props.exercises ?? []);
+    const muscleGroups = computed(() => props.muscle_groups ?? []);
+    const equipmentOptions = computed(() => props.equipment_options ?? []);
 
     let restTimer: ReturnType<typeof setInterval> | null = null;
     let restEndsAt = 0;
@@ -176,7 +183,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const logProgressionHints = computed(() => {
         const entry = current.value;
         const exercise = currentExercise.value;
-        if (!entry || !exercise || entry.set.group_type !== 'working' || entry.set.is_dropset) {
+        if (!entry || !exercise || currentBlock.value?.is_ad_hoc || entry.set.group_type !== 'working' || entry.set.is_dropset) {
             return null;
         }
 
@@ -754,6 +761,88 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
     const canSkipRestOfBlock = computed(() => skipRestOfBlockTarget.value !== null);
 
+    const focusOnLastAdHocBlock = (): void => {
+        let blockIndex = -1;
+
+        for (let index = props.workout.blocks.length - 1; index >= 0; index--) {
+            if (props.workout.blocks[index]?.is_ad_hoc) {
+                blockIndex = index;
+                break;
+            }
+        }
+
+        const block = props.workout.blocks[blockIndex];
+        const nextSet = block?.sets.find((set) => !set.completed);
+
+        if (!block || !nextSet) {
+            focus.value = firstIncomplete();
+            return;
+        }
+
+        clearRest();
+        pendingRestSeconds.value = 0;
+        focus.value = { kind: 'set', blockIndex, setId: nextSet.id };
+    };
+
+    const addAdHocExercise = (exerciseId: number | null): void => {
+        if (mutating.value || exerciseId === null || props.workout.status !== 'in_progress') {
+            return;
+        }
+
+        mutating.value = true;
+        router.post(
+            route('workouts.ad-hoc-exercises.store', props.workout.id),
+            { exercise_id: exerciseId },
+            {
+                preserveScroll: true,
+                only: ['workout'],
+                onSuccess: () => {
+                    focusOnLastAdHocBlock();
+                },
+                onFinish: () => {
+                    mutating.value = false;
+                },
+            },
+        );
+    };
+
+    const canRemoveAdHocBlock = computed(() => {
+        const block = currentBlock.value;
+
+        return props.workout.status === 'in_progress' && block !== null && block.is_ad_hoc && block.sets.every((set) => !set.completed);
+    });
+
+    const removeAdHocBlock = async (): Promise<void> => {
+        const block = currentBlock.value;
+        if (mutating.value || !block || !canRemoveAdHocBlock.value) {
+            return;
+        }
+
+        const ok = await confirmDialog({
+            title: 'Remove extra exercise?',
+            description: 'This removes the exercise from this workout only.',
+            confirmLabel: 'Remove',
+            variant: 'destructive',
+        });
+        if (!ok || mutating.value || currentBlock.value?.id !== block.id) {
+            return;
+        }
+
+        mutating.value = true;
+        router.delete(route('workouts.ad-hoc-blocks.destroy', [props.workout.id, block.id]), {
+            preserveScroll: true,
+            only: ['workout'],
+            onSuccess: () => {
+                clearRest();
+                pendingRestSeconds.value = 0;
+                focus.value = firstIncomplete();
+            },
+            onFinish: () => {
+                mutating.value = false;
+            },
+        });
+    };
+
     const addWorkingSet = () => {
         if (mutating.value || !current.value) {
             return;
@@ -925,6 +1014,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     return {
         workout: computed(() => props.workout),
         plateProfile: computed(() => props.plate_profile),
+        exerciseCatalog,
+        muscleGroups,
+        equipmentOptions,
         focus,
         current,
         currentBlock,
@@ -945,6 +1037,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         canAddWorkingSet,
         canRemoveWorkingSet,
         canSkipRestOfBlock,
+        canRemoveAdHocBlock,
         plateLoad,
         stagePlateLoad,
         stageWeightKg,
@@ -966,6 +1059,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         leaveWorkout,
         addWorkingSet,
         removeWorkingSet,
+        addAdHocExercise,
+        removeAdHocBlock,
         skipRestOfBlock,
         applyNearestLoad,
         applyStageNearestLoad,

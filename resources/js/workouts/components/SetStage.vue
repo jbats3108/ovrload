@@ -10,6 +10,7 @@ const {
     canPromoteToDropset,
     canAddWorkingSet,
     canRemoveWorkingSet,
+    canRemoveAdHocBlock,
     canSkipRestOfBlock,
     openLogSheet,
     cancelLogSheet,
@@ -19,6 +20,7 @@ const {
     promoteToDropset,
     addWorkingSet,
     removeWorkingSet,
+    removeAdHocBlock,
     skipRestOfBlock,
     applyNearestLoad,
     applyStageNearestLoad,
@@ -98,9 +100,18 @@ const unlockInput = (event: PointerEvent) => {
 
         <div class="mt-6 flex w-full flex-col gap-3 pb-4">
             <div
-                v-if="canPromoteToDropset || canAddWorkingSet || canRemoveWorkingSet || canSkipRestOfBlock"
+                v-if="canPromoteToDropset || canAddWorkingSet || canRemoveWorkingSet || canRemoveAdHocBlock || canSkipRestOfBlock"
                 class="flex flex-wrap items-center justify-center gap-3"
             >
+                <button
+                    v-if="canRemoveAdHocBlock"
+                    type="button"
+                    class="rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                    :disabled="mutating || setForm.processing"
+                    @click="removeAdHocBlock"
+                >
+                    Remove exercise
+                </button>
                 <button
                     v-if="canAddWorkingSet"
                     type="button"

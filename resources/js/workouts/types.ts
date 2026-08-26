@@ -41,6 +41,7 @@ export type PlayerBlock = {
     id: number;
     position: number;
     is_superset: boolean;
+    is_ad_hoc: boolean;
     has_setup_after: boolean;
     has_setup_after_warm_up: boolean;
     exercises: PlayerBlockExercise[];
