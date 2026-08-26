@@ -1,27 +1,7 @@
 <script setup lang="ts">
-import ExercisePicker from '@/routines/components/ExercisePicker.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
-import { ref } from 'vue';
 
-const {
-    workout,
-    progressLabel,
-    finishWorkout,
-    abandonWorkout,
-    leaveWorkout,
-    mutating,
-    exerciseCatalog,
-    muscleGroups,
-    equipmentOptions,
-    addAdHocExercise,
-} = useWorkoutPlayer();
-
-const adHocExerciseId = ref<number | null>(null);
-
-const selectAdHocExercise = (exerciseId: number | null): void => {
-    adHocExerciseId.value = null;
-    addAdHocExercise(exerciseId);
-};
+const { workout, progressLabel, finishWorkout, abandonWorkout, leaveWorkout, mutating } = useWorkoutPlayer();
 </script>
 
 <template>
@@ -32,17 +12,6 @@ const selectAdHocExercise = (exerciseId: number | null): void => {
         </div>
         <div class="flex shrink-0 items-center gap-2">
             <div class="font-mono text-sm text-muted-foreground">{{ progressLabel }}</div>
-            <ExercisePicker
-                v-if="workout.status === 'in_progress'"
-                :model-value="adHocExerciseId"
-                :catalog="exerciseCatalog"
-                :muscle-groups="muscleGroups"
-                :equipment-options="equipmentOptions"
-                variant="compact"
-                trigger-label="+ Exercise"
-                :disabled="mutating"
-                @update:model-value="selectAdHocExercise"
-            />
             <button
                 v-if="workout.status === 'in_progress'"
                 type="button"

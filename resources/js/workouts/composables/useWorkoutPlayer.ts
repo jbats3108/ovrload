@@ -761,29 +761,6 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
     const canSkipRestOfBlock = computed(() => skipRestOfBlockTarget.value !== null);
 
-    const focusOnLastAdHocBlock = (): void => {
-        let blockIndex = -1;
-
-        for (let index = props.workout.blocks.length - 1; index >= 0; index--) {
-            if (props.workout.blocks[index]?.is_ad_hoc) {
-                blockIndex = index;
-                break;
-            }
-        }
-
-        const block = props.workout.blocks[blockIndex];
-        const nextSet = block?.sets.find((set) => !set.completed);
-
-        if (!block || !nextSet) {
-            focus.value = firstIncomplete();
-            return;
-        }
-
-        clearRest();
-        pendingRestSeconds.value = 0;
-        focus.value = { kind: 'set', blockIndex, setId: nextSet.id };
-    };
-
     const addAdHocExercise = (exerciseId: number | null): void => {
         if (mutating.value || exerciseId === null || props.workout.status !== 'in_progress') {
             return;
@@ -796,9 +773,6 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             {
                 preserveScroll: true,
                 only: ['workout'],
-                onSuccess: () => {
-                    focusOnLastAdHocBlock();
-                },
                 onFinish: () => {
                     mutating.value = false;
                 },

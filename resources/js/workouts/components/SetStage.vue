@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import ExercisePicker from '@/routines/components/ExercisePicker.vue';
 import LogSetSheet from '@/workouts/components/LogSetSheet.vue';
 import PlateGuideCard from '@/workouts/components/PlateGuideCard.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
 import { plannedSetCount } from '@/workouts/lib/sets';
+import { ref } from 'vue';
 
 const {
     stageWeightKg,
@@ -34,6 +36,10 @@ const {
     plateLoad,
     stagePlateLoad,
     workout,
+    exerciseCatalog,
+    muscleGroups,
+    equipmentOptions,
+    addAdHocExercise,
     current,
     setForm,
     mutating,
@@ -42,6 +48,13 @@ const {
     logProgressionHints,
     supersetNext,
 } = useWorkoutPlayer();
+
+const adHocExerciseId = ref<number | null>(null);
+
+const selectAdHocExercise = (exerciseId: number | null): void => {
+    adHocExerciseId.value = null;
+    addAdHocExercise(exerciseId);
+};
 
 const unlockInput = (event: PointerEvent) => {
     const input = event.currentTarget;
@@ -99,57 +112,69 @@ const unlockInput = (event: PointerEvent) => {
         </div>
 
         <div class="mt-6 flex w-full flex-col gap-3 pb-4">
-            <div
-                v-if="canPromoteToDropset || canAddWorkingSet || canRemoveWorkingSet || canRemoveAdHocBlock || canSkipRestOfBlock"
-                class="flex flex-wrap items-center justify-center gap-3"
-            >
-                <button
-                    v-if="canRemoveAdHocBlock"
-                    type="button"
-                    class="rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                    :disabled="mutating || setForm.processing"
-                    @click="removeAdHocBlock"
-                >
-                    Remove exercise
-                </button>
-                <button
-                    v-if="canAddWorkingSet"
-                    type="button"
-                    class="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
-                    :disabled="mutating || setForm.processing"
-                    @click="addWorkingSet"
-                >
-                    <span class="text-xl leading-none font-semibold">+</span>
-                    Set
-                </button>
-                <button
-                    v-if="canPromoteToDropset"
-                    type="button"
-                    class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                    :disabled="mutating || setForm.processing"
-                    @click="promoteToDropset"
-                >
-                    Promote to dropset
-                </button>
-                <button
-                    v-if="canRemoveWorkingSet"
-                    type="button"
-                    class="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                    :disabled="mutating || setForm.processing"
-                    @click="removeWorkingSet"
-                >
-                    <span class="text-xl leading-none font-semibold">−</span>
-                    Set
-                </button>
-                <button
-                    v-if="canSkipRestOfBlock"
-                    type="button"
-                    class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
-                    :disabled="mutating || setForm.processing"
-                    @click="skipRestOfBlock"
-                >
-                    Skip rest of group
-                </button>
+            <div class="flex w-full flex-col gap-3">
+                <div v-if="canPromoteToDropset || canAddWorkingSet || canRemoveWorkingSet" class="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                        v-if="canAddWorkingSet"
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+                        :disabled="mutating || setForm.processing"
+                        @click="addWorkingSet"
+                    >
+                        <span class="text-xl leading-none font-semibold">+</span>
+                        Set
+                    </button>
+                    <button
+                        v-if="canPromoteToDropset"
+                        type="button"
+                        class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+                        :disabled="mutating || setForm.processing"
+                        @click="promoteToDropset"
+                    >
+                        Promote to dropset
+                    </button>
+                    <button
+                        v-if="canRemoveWorkingSet"
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                        :disabled="mutating || setForm.processing"
+                        @click="removeWorkingSet"
+                    >
+                        <span class="text-xl leading-none font-semibold">−</span>
+                        Set
+                    </button>
+                </div>
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                        v-if="canSkipRestOfBlock"
+                        type="button"
+                        class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                        :disabled="mutating || setForm.processing"
+                        @click="skipRestOfBlock"
+                    >
+                        Skip rest of group
+                    </button>
+                    <ExercisePicker
+                        v-if="workout.status === 'in_progress'"
+                        :model-value="adHocExerciseId"
+                        :catalog="exerciseCatalog"
+                        :muscle-groups="muscleGroups"
+                        :equipment-options="equipmentOptions"
+                        variant="action"
+                        trigger-label="Add exercise to workout"
+                        :disabled="mutating || setForm.processing"
+                        @update:model-value="selectAdHocExercise"
+                    />
+                    <button
+                        v-if="canRemoveAdHocBlock"
+                        type="button"
+                        class="rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                        :disabled="mutating || setForm.processing"
+                        @click="removeAdHocBlock"
+                    >
+                        Remove exercise
+                    </button>
+                </div>
             </div>
             <button
                 type="button"

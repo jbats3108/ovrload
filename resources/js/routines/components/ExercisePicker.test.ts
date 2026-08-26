@@ -113,4 +113,35 @@ describe('ExercisePicker', () => {
         expect(document.body.textContent).toContain('New custom exercise');
         expect(document.body.querySelector('input[maxlength="255"]')).not.toBeNull();
     });
+
+    it('works from the player with explicit catalog props and action styling', async () => {
+        const exerciseId = ref<number | null>(null);
+        const wrapper = mount(ExercisePicker, {
+            attachTo: document.body,
+            props: {
+                modelValue: exerciseId.value,
+                catalog: [exerciseOption({ id: 2, name: 'Row', primary_muscle_group: 'Back' })],
+                muscleGroups: [],
+                equipmentOptions: [],
+                variant: 'action',
+                triggerLabel: 'Add exercise to workout',
+                'onUpdate:modelValue': (id: number | null) => {
+                    exerciseId.value = id;
+                },
+            },
+        });
+
+        const trigger = wrapper.get('button[aria-haspopup="dialog"]');
+        expect(trigger.text()).toContain('Add exercise to workout');
+        expect(trigger.classes()).toContain('bg-primary/10');
+
+        await trigger.trigger('click');
+        await nextTick();
+        const matches = Array.from(document.body.querySelectorAll('button')).filter((button) => button.textContent?.includes('Row'));
+        const match = matches[matches.length - 1];
+        match?.click();
+        await nextTick();
+
+        expect(exerciseId.value).toBe(2);
+    });
 });

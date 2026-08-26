@@ -593,7 +593,6 @@ describe('createWorkoutPlayer', () => {
             expect.objectContaining({
                 preserveScroll: true,
                 only: ['workout'],
-                onSuccess: expect.any(Function),
                 onFinish: expect.any(Function),
             }),
         );

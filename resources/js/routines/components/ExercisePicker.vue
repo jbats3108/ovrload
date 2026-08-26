@@ -14,7 +14,7 @@ const props = withDefaults(
     defineProps<{
         /** Highlight when this slot is the editor’s active selection. */
         active?: boolean;
-        variant?: 'mobile' | 'desktop' | 'compact';
+        variant?: 'mobile' | 'desktop' | 'compact' | 'action';
         catalog?: ExerciseOption[];
         muscleGroups?: MuscleGroupOption[];
         equipmentOptions?: EquipmentOption[];
@@ -161,9 +161,11 @@ const submitCreate = () => {
             :class="[
                 props.variant === 'mobile'
                     ? 'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-base'
-                    : props.variant === 'compact'
-                      ? 'rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground'
-                      : 'w-44 rounded border border-border bg-card px-2 py-1 text-sm',
+                    : props.variant === 'action'
+                      ? 'inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20'
+                      : props.variant === 'compact'
+                        ? 'rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        : 'w-44 rounded border border-border bg-card px-2 py-1 text-sm',
                 props.active ? 'border-primary' : '',
             ]"
             :disabled="props.disabled || (!catalog.length && !muscleGroups.length)"
