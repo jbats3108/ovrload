@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useZiggyRoute } from '@/shared/composables/useZiggyRoute';
-import { isPathActive, isSettingsActive, primaryNavItems, settingsNavItems } from '@/shared/lib/appNav';
+import { accountNavItems, isPathActive, preferencesNavItems, primaryNavItems } from '@/shared/lib/appNav';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Dumbbell, History, LayoutGrid, LogOut, Palette, Settings, Shield, UserRound } from 'lucide-vue-next';
+import { History, LayoutGrid, LogOut, Palette, Shield, SlidersHorizontal, UserRound } from 'lucide-vue-next';
 import { computed, type Component } from 'vue';
 
 const props = withDefaults(
@@ -25,8 +25,6 @@ const labeled = computed(() => props.variant === 'drawer');
 const logoutForm = useForm({});
 
 const isActive = (match: string) => isPathActive(path.value, match);
-
-const settingsActive = computed(() => isSettingsActive(path.value));
 
 const itemClass = (active: boolean) =>
     [
@@ -52,13 +50,16 @@ const logout = () => {
 const primaryIcons: Record<string, Component> = {
     '/dashboard': LayoutGrid,
     '/history': History,
-    '/settings/training': Dumbbell,
     '/admin': Shield,
 };
 
-const settingsIcons: Record<string, Component> = {
-    '/settings/profile': UserRound,
+const preferenceIcons: Record<string, Component> = {
+    '/settings/training': SlidersHorizontal,
     '/settings/appearance': Palette,
+};
+
+const accountIcons: Record<string, Component> = {
+    '/settings/profile': UserRound,
 };
 
 type NavLink = { href: string; label: string; icon: Component; match: string };
@@ -70,10 +71,17 @@ const primaryLinks = computed((): NavLink[] =>
     })),
 );
 
-const settingsLinks = computed((): NavLink[] =>
-    settingsNavItems(route).map((link) => ({
+const preferenceLinks = computed((): NavLink[] =>
+    preferencesNavItems(route).map((link) => ({
         ...link,
-        icon: settingsIcons[link.match],
+        icon: preferenceIcons[link.match],
+    })),
+);
+
+const accountLinks = computed((): NavLink[] =>
+    accountNavItems(route).map((link) => ({
+        ...link,
+        icon: accountIcons[link.match],
     })),
 );
 </script>
@@ -109,31 +117,36 @@ const settingsLinks = computed((): NavLink[] =>
 
     <div class="flex flex-col gap-1.5" :class="labeled ? 'items-stretch' : 'items-center'">
         <template v-if="labeled">
-            <p class="mb-1 px-3 text-xs tracking-[0.15em] text-muted-foreground uppercase">Settings</p>
-            <Link
-                v-for="link in settingsLinks"
-                :key="link.match"
-                :href="link.href"
-                :class="itemClass(isActive(link.match))"
-                :aria-label="link.label"
-                prefetch
-                @click="onNavigate"
-            >
-                <component :is="link.icon" :class="iconClass" />
-                <span>{{ link.label }}</span>
-            </Link>
+            <p class="mb-1 px-3 text-xs tracking-[0.15em] text-muted-foreground uppercase">Preferences</p>
         </template>
-
         <Link
-            v-else
-            :href="route('profile.edit')"
-            :class="itemClass(settingsActive)"
-            aria-label="Settings"
-            title="Settings"
+            v-for="link in preferenceLinks"
+            :key="link.match"
+            :href="link.href"
+            :class="itemClass(isActive(link.match))"
+            :aria-label="link.label"
+            :title="labeled ? undefined : link.label"
             prefetch
             @click="onNavigate"
         >
-            <Settings :class="iconClass" />
+            <component :is="link.icon" :class="iconClass" />
+            <span v-if="labeled">{{ link.label }}</span>
+        </Link>
+        <template v-if="labeled">
+            <p class="mt-3 mb-1 px-3 text-xs tracking-[0.15em] text-muted-foreground uppercase">Account</p>
+        </template>
+        <Link
+            v-for="link in accountLinks"
+            :key="link.match"
+            :href="link.href"
+            :class="itemClass(isActive(link.match))"
+            :aria-label="link.label"
+            :title="labeled ? undefined : link.label"
+            prefetch
+            @click="onNavigate"
+        >
+            <component :is="link.icon" :class="iconClass" />
+            <span v-if="labeled">{{ link.label }}</span>
         </Link>
 
         <button

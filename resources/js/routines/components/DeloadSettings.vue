@@ -18,13 +18,13 @@ const summary = computed(() => formatDeloadSummary(form.deload_weight_factor, fo
 <template>
     <section v-if="variant === 'desktop'" class="border-t border-border bg-card/40 px-4 py-3">
         <h3 class="text-sm font-medium">Deload</h3>
-        <p class="mt-1 max-w-3xl text-xs text-muted-foreground">Overrides for this routine. Defaults live in Settings → Training.</p>
+        <p class="mt-1 max-w-3xl text-xs text-muted-foreground">Overrides for this routine. Defaults live in Preferences.</p>
         <DeloadMultiplierFields variant="desktop" />
     </section>
 
     <EditorDisclosure v-else :expanded="deloadExpanded" label="Deload" :summary="summary" @toggle="toggleDeloadExpanded">
         <template #label> Deload <span class="text-muted-foreground/80">(this routine)</span> </template>
-        <p class="text-xs text-muted-foreground">Overrides for this routine. Defaults: Settings → Training.</p>
+        <p class="text-xs text-muted-foreground">Overrides for this routine. Defaults: Preferences.</p>
         <DeloadMultiplierFields variant="mobile" />
     </EditorDisclosure>
 </template>
