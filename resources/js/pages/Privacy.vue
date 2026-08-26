@@ -236,12 +236,12 @@ import { Head } from '@inertiajs/vue3';
                     <p>Depending on where you live (UK / EEA and similar), you can:</p>
                     <ul class="list-disc space-y-2 pl-5">
                         <li>
-                            <span class="text-foreground">Access / export</span> — download a copy of your data from Settings → Profile, or email
+                            <span class="text-foreground">Access / export</span> — download a copy of your data from Account, or email
                             <a class="text-primary underline-offset-2 hover:underline" href="mailto:admin@ovr-load.co.uk">admin@ovr-load.co.uk</a>
                         </li>
-                        <li><span class="text-foreground">Rectify</span> — update name/email and prefs in Settings</li>
+                        <li><span class="text-foreground">Rectify</span> — update name/email in Account and training preferences in Preferences</li>
                         <li>
-                            <span class="text-foreground">Erase</span> — delete your account in Settings (password required); for a form submission
+                            <span class="text-foreground">Erase</span> — delete your account in Account (password required); for a form submission
                             without an account, email us
                         </li>
                         <li><span class="text-foreground">Restrict or object</span> — email us and we will consider the request for this beta</li>

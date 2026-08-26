@@ -179,7 +179,7 @@ function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
                         <p>
                             Read the
                             <Link :href="route('tutorial')" class="font-medium text-primary underline-offset-2 hover:underline">tutorial</Link>
-                            — settings, routines, Play, and what happens after you finish. Launched 15 August 2026.
+                            — Preferences, Account, routines, Play, and what happens after you finish. Launched 15 August 2026.
                         </p>
                     </div>
                 </article>

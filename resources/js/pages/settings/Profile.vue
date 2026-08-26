@@ -73,7 +73,7 @@ const updatePassword = () => {
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Profile settings" />
 
-        <SettingsLayout>
+        <SettingsLayout section="Account">
             <div class="flex flex-col space-y-6">
                 <HeadingSmall title="Profile information" description="Update your name and email address" />
 

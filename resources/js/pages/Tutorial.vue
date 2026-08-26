@@ -11,7 +11,7 @@ const isSignedIn = computed(() => Boolean(page.props.auth.user));
 const toc = [
     { href: '#install', label: 'Install on your phone' },
     { href: '#oriented', label: 'Get oriented' },
-    { href: '#training', label: 'Training settings' },
+    { href: '#training', label: 'Training preferences' },
     { href: '#editor', label: 'Create a routine' },
     { href: '#play', label: 'Play a workout' },
     { href: '#bump', label: 'Bumps' },
@@ -80,9 +80,11 @@ const toc = [
                 <h2 class="text-2xl font-bold tracking-tight">Get oriented</h2>
                 <p class="text-muted-foreground">
                     After you log in, the app is a few tabs: <strong class="text-foreground">Dashboard</strong> (your routines),
-                    <strong class="text-foreground">History</strong> (finished sessions), <strong class="text-foreground">Training</strong> (defaults
-                    that seed new routines), and <strong class="text-foreground">Settings</strong> (account). On a phone those live in the bottom bar;
-                    on a wider screen they sit in the sidebar.
+                    <strong class="text-foreground">History</strong> (finished sessions),
+                    <strong class="text-foreground">Preferences</strong> (training and appearance),
+                    <strong class="text-foreground">Account</strong> (profile and password), and, for admins,
+                    <strong class="text-foreground">Admin</strong>. On a phone those live in the bottom bar; on a wider screen they sit in the
+                    sidebar.
                 </p>
                 <p class="text-muted-foreground">
                     Dashboard cards start a workout, open the editor, duplicate, or delete. If a session is already in progress, finish or abandon it
@@ -99,10 +101,10 @@ const toc = [
             </section>
 
             <section id="training" class="mt-12 scroll-mt-20 space-y-3">
-                <h2 class="text-2xl font-bold tracking-tight">Set your Training defaults</h2>
+                <h2 class="text-2xl font-bold tracking-tight">Set your training preferences</h2>
                 <p class="text-muted-foreground">
-                    Open Training before you build a lot of routines. Warm-up steps (% of working weight × reps) seed into new exercises. You choose
-                    whether that ladder applies to every new exercise or only the first one.
+                    Open <strong class="text-foreground">Preferences</strong> before you build a lot of routines. Warm-up steps (% of working weight ×
+                    reps) seed into new exercises. You choose whether that ladder applies to every new exercise or only the first one.
                 </p>
                 <p class="text-muted-foreground">
                     <strong class="text-foreground">Default Target reps</strong> seeds the Target field on new routine exercises and on Play
@@ -118,11 +120,11 @@ const toc = [
                 </p>
                 <TutorialShot
                     name="training"
-                    alt="Training settings for warm-ups, progression, and deload defaults"
-                    caption="Training: warm-up ladder, Default Target reps, Floor, Bump when, and deload defaults that seed new routines."
+                    alt="Training preferences for warm-ups, progression, and deload defaults"
+                    caption="Preferences: warm-up ladder, Default Target reps, Floor, Bump when, and deload defaults that seed new routines."
                 />
                 <p v-if="isSignedIn">
-                    <Link :href="route('training.edit')" class="font-medium text-primary underline-offset-2 hover:underline">Open Training</Link>
+                    <Link :href="route('training.edit')" class="font-medium text-primary underline-offset-2 hover:underline">Open Preferences</Link>
                 </p>
             </section>
 
@@ -164,8 +166,8 @@ const toc = [
                 <p class="text-muted-foreground">
                     Need an extra lift? Tap <strong class="text-foreground">Add exercise to workout</strong> in the action row. Choose a catalog or
                     private custom exercise and it is appended as a single, three-set block on this workout only. It does not change the routine or
-                    offer progression; its Target reps come from your Training <strong class="text-foreground">Default Target reps</strong>. You can
-                    remove the new block before logging a set.
+                    offer progression; its Target reps come from your Preferences <strong class="text-foreground">Default Target reps</strong>. You
+                    can remove the new block before logging a set.
                 </p>
                 <p class="text-muted-foreground">
                     On the log sheet you will see <strong class="text-foreground">Floor</strong> and
@@ -208,7 +210,7 @@ const toc = [
                     Warm-ups are omitted; the working weights are already light.
                 </p>
                 <p class="text-muted-foreground">
-                    Training holds the defaults new routines copy. Each routine can then set its own factors and
+                    Preferences holds the defaults new routines copy. Each routine can then set its own factors and
                     <strong class="text-foreground">Deload Velocity</strong> — how many finished standard sessions on that routine before Dashboard
                     softly hints at a Deload. Set velocity to 0 to never hint (handy for rare or one-off routines). The hint is not a calendar and it
                     does not start the session for you.
@@ -244,7 +246,7 @@ const toc = [
                 <ul class="space-y-4 text-muted-foreground">
                     <li>
                         <p class="font-medium text-foreground">Plate guide</p>
-                        <p class="mt-1">For barbell and EZ-bar lifts, Play shows the nearest loadable stack from your Training plate profile.</p>
+                        <p class="mt-1">For barbell and EZ-bar lifts, Play shows the nearest loadable stack from your Preferences plate profile.</p>
                     </li>
                     <li>
                         <p class="font-medium text-foreground">Supersets</p>
@@ -267,7 +269,7 @@ const toc = [
                     </li>
                     <li>
                         <p class="font-medium text-foreground">Data export</p>
-                        <p class="mt-1">Settings → data export lets you download or delete your account data when you need a copy or a way out.</p>
+                        <p class="mt-1">Account lets you download or delete your account data when you need a copy or a way out.</p>
                     </li>
                 </ul>
             </section>
@@ -287,7 +289,7 @@ const toc = [
                             :href="route('training.edit')"
                             class="inline-flex rounded-md border border-primary px-6 py-3 text-sm font-semibold text-primary transition-opacity hover:opacity-90"
                         >
-                            Training
+                            Preferences
                         </Link>
                         <Link
                             :href="route('routines.create')"

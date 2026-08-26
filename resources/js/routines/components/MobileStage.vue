@@ -160,7 +160,7 @@ const {
                                 />
                             </label>
                         </div>
-                        <p class="text-xs text-muted-foreground">Empty inherits Settings → Training. Bump is always the exercise Target (reps).</p>
+                        <p class="text-xs text-muted-foreground">Empty inherits Preferences. Bump is always the exercise Target (reps).</p>
                     </div>
                 </EditorDisclosure>
 

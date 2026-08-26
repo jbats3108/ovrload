@@ -1,4 +1,12 @@
-import { isPathActive, isSettingsActive, primaryNavItems, settingsNavItems } from '@/shared/lib/appNav';
+import {
+    accountNavItems,
+    isAccountActive,
+    isPathActive,
+    isPreferencesActive,
+    mobileNavItems,
+    preferencesNavItems,
+    primaryNavItems,
+} from '@/shared/lib/appNav';
 import { describe, expect, it } from 'vitest';
 
 const route = (name: string) => `/${name}`;
@@ -11,34 +19,57 @@ describe('isPathActive', () => {
     });
 });
 
-describe('isSettingsActive', () => {
-    it('matches profile and appearance settings paths', () => {
-        expect(isSettingsActive('/settings/profile')).toBe(true);
-        expect(isSettingsActive('/settings/appearance')).toBe(true);
-        expect(isSettingsActive('/settings/training')).toBe(false);
+describe('isPreferencesActive', () => {
+    it('matches training and appearance preference paths', () => {
+        expect(isPreferencesActive('/settings/training')).toBe(true);
+        expect(isPreferencesActive('/settings/training/plates')).toBe(true);
+        expect(isPreferencesActive('/settings/appearance')).toBe(true);
+        expect(isPreferencesActive('/settings/profile')).toBe(false);
+    });
+});
+
+describe('isAccountActive', () => {
+    it('matches account paths without matching preferences', () => {
+        expect(isAccountActive('/settings/profile')).toBe(true);
+        expect(isAccountActive('/settings/profile/password')).toBe(true);
+        expect(isAccountActive('/settings/appearance')).toBe(false);
     });
 });
 
 describe('primaryNavItems', () => {
     it('includes admin link when user is admin', () => {
         const links = primaryNavItems(route, { isAdmin: true });
-        expect(links.map((link) => link.label)).toEqual(['Dashboard', 'History', 'Training', 'Admin']);
+        expect(links.map((link) => link.label)).toEqual(['Dashboard', 'History', 'Admin']);
     });
 
     it('omits admin link for non-admin users', () => {
         const links = primaryNavItems(route, { isAdmin: false });
-        expect(links.map((link) => link.label)).toEqual(['Dashboard', 'History', 'Training']);
+        expect(links.map((link) => link.label)).toEqual(['Dashboard', 'History']);
     });
 });
 
-describe('settingsNavItems', () => {
-    it('includes admin link when requested', () => {
-        const links = settingsNavItems(route, { isAdmin: true });
-        expect(links.map((link) => link.label)).toEqual(['Profile', 'Appearance', 'Admin']);
+describe('preferencesNavItems', () => {
+    it('returns the preference links', () => {
+        const links = preferencesNavItems(route);
+        expect(links.map((link) => link.label)).toEqual(['Training', 'Appearance']);
+    });
+});
+
+describe('accountNavItems', () => {
+    it('returns the account links', () => {
+        const links = accountNavItems(route);
+        expect(links.map((link) => link.label)).toEqual(['Profile']);
+    });
+});
+
+describe('mobileNavItems', () => {
+    it('places admin last for admins', () => {
+        const links = mobileNavItems(route, { isAdmin: true });
+        expect(links.map((link) => link.label)).toEqual(['Dashboard', 'History', 'Preferences', 'Account', 'Admin']);
     });
 
-    it('returns profile and appearance by default', () => {
-        const links = settingsNavItems(route);
-        expect(links.map((link) => link.label)).toEqual(['Profile', 'Appearance']);
+    it('returns four tabs for regular users', () => {
+        const links = mobileNavItems(route, { isAdmin: false });
+        expect(links.map((link) => link.label)).toEqual(['Dashboard', 'History', 'Preferences', 'Account']);
     });
 });

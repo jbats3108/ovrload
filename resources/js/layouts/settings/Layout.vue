@@ -3,16 +3,23 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useZiggyRoute } from '@/shared/composables/useZiggyRoute';
-import { isPathActive, settingsNavItems } from '@/shared/lib/appNav';
+import { accountNavItems, isPathActive, preferencesNavItems } from '@/shared/lib/appNav';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
+interface Props {
+    section: 'Preferences' | 'Account';
+}
+
+const props = defineProps<Props>();
 const page = usePage();
 const route = useZiggyRoute();
-const isAdmin = computed(() => Boolean(page.props.auth.user?.is_admin));
 const logoutForm = useForm({});
 
-const sidebarNavItems = computed(() => settingsNavItems(route, { isAdmin: isAdmin.value }));
+const sectionNavItems = computed(() => (props.section === 'Preferences' ? preferencesNavItems(route) : accountNavItems(route)));
+const sectionDescription = computed(() =>
+    props.section === 'Preferences' ? 'Customize how workouts and the app work' : 'Manage your profile, password, and account data',
+);
 
 const currentPath = computed(() => page.url.split('?')[0]);
 
@@ -27,13 +34,13 @@ const logout = () => {
 
 <template>
     <div class="px-4 py-6">
-        <Heading title="Settings" description="Manage your profile and account settings" />
+        <Heading :title="props.section" :description="sectionDescription" />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
                 <nav class="flex flex-col gap-1">
                     <Button
-                        v-for="item in sidebarNavItems"
+                        v-for="item in sectionNavItems"
                         :key="item.href"
                         variant="ghost"
                         :class="['w-full justify-start', { 'bg-muted': isPathActive(currentPath, item.match) }]"
@@ -44,6 +51,7 @@ const logout = () => {
                         </Link>
                     </Button>
                     <Button
+                        v-if="props.section === 'Account'"
                         type="button"
                         variant="ghost"
                         class="w-full justify-start text-muted-foreground"

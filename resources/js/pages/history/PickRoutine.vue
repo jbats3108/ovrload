@@ -30,7 +30,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     </Link>
                 </li>
             </ul>
-            <p v-else class="text-sm text-muted-foreground">No routines yet. Create one under Training first.</p>
+            <p v-else class="text-sm text-muted-foreground">No routines yet. Create one from Dashboard first.</p>
         </div>
     </AppLayout>
 </template>
