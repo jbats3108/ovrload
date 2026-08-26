@@ -2,6 +2,7 @@
 
 namespace App\Workouts\Services;
 
+use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Shared\Enums\SetGroupType;
@@ -56,6 +57,12 @@ class WorkoutService
     public const CANNOT_PROMOTE_SUPERSET_ERROR = 'Dropsets are not supported on supersets';
 
     public const ALREADY_A_DROPSET_ERROR = 'This set is already a dropset';
+
+    public const AD_HOC_EXERCISE_NOT_AVAILABLE_ERROR = 'This exercise is not available to you';
+
+    public const AD_HOC_BLOCK_ONLY_ERROR = 'Only ad-hoc blocks can be removed this way';
+
+    public const AD_HOC_BLOCK_HAS_LOGGED_SETS_ERROR = 'An ad-hoc block with logged sets cannot be removed';
 
     public const HISTORICAL_NO_BLOCKS_ERROR = 'Add at least one group to log a historical workout';
 
@@ -505,6 +512,115 @@ class WorkoutService
             $workingGroup->save();
 
             return $block->fresh(['blockExercises', 'setGroups.sets']);
+        });
+    }
+
+    /**
+     * Append a single-exercise block to the in-progress workout snapshot.
+     *
+     * @throws WorkoutServiceException
+     */
+    public function addAdHocExercise(Workout $workout, int $exerciseId): WorkoutBlock
+    {
+        return DB::transaction(function () use ($workout, $exerciseId): WorkoutBlock {
+            $locked = $this->lockInProgressWorkout($workout);
+            $locked->load(['user', 'blocks.blockExercises']);
+
+            $exercise = Exercise::query()
+                ->forUser($locked->user)
+                ->whereKey($exerciseId)
+                ->first();
+
+            if ($exercise === null) {
+                throw new WorkoutServiceException(self::AD_HOC_EXERCISE_NOT_AVAILABLE_ERROR);
+            }
+
+            $previousBlock = $locked->blocks->sortByDesc('position')->first();
+            $previousExercise = $previousBlock?->blockExercises->sortBy('position')->first();
+            $position = ((int) ($previousBlock?->position ?? 0)) + 1;
+            $targetReps = max(1, (int) ($previousExercise?->prescribed_reps ?? 6));
+
+            $adHocBlock = WorkoutBlock::create([
+                'workout_id' => $locked->id,
+                'position' => $position,
+                'is_superset' => false,
+                'is_ad_hoc' => true,
+                'has_setup_after' => false,
+                'has_setup_after_warm_up' => false,
+            ]);
+
+            $adHocExercise = WorkoutBlockExercise::create([
+                'workout_block_id' => $adHocBlock->id,
+                'exercise_id' => $exercise->id,
+                'position' => 1,
+                'exercise_name' => $exercise->getName(),
+                'equipment' => $exercise->equipment,
+                'working_weight_g' => 0,
+                'prescribed_reps' => $targetReps,
+                'achievement_floor' => null,
+                'progression_target' => null,
+            ]);
+
+            $workingGroup = WorkoutSetGroup::create([
+                'workout_block_id' => $adHocBlock->id,
+                'type' => SetGroupType::Working,
+                'set_count' => 3,
+                'rest_seconds' => 120,
+            ]);
+
+            for ($setIndex = 0; $setIndex < 3; $setIndex++) {
+                WorkoutSet::create([
+                    'workout_set_group_id' => $workingGroup->id,
+                    'workout_block_exercise_id' => $adHocExercise->id,
+                    'set_index' => $setIndex,
+                ]);
+            }
+
+            return $adHocBlock->fresh(['blockExercises', 'setGroups.sets']);
+        });
+    }
+
+    /**
+     * Remove an empty ad-hoc block from an in-progress workout snapshot.
+     *
+     * @throws WorkoutServiceException
+     */
+    public function removeAdHocBlock(WorkoutBlock $block): void
+    {
+        $block->loadMissing(['workout', 'setGroups.sets']);
+
+        if ($block->workout->status !== WorkoutStatus::InProgress) {
+            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
+        }
+
+        if (! $block->is_ad_hoc) {
+            throw new WorkoutServiceException(self::AD_HOC_BLOCK_ONLY_ERROR);
+        }
+
+        if ($block->setGroups->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
+            ->contains(fn (WorkoutSet $set): bool => $set->completed_at !== null)) {
+            throw new WorkoutServiceException(self::AD_HOC_BLOCK_HAS_LOGGED_SETS_ERROR);
+        }
+
+        DB::transaction(function () use ($block): void {
+            $locked = $this->lockInProgressWorkout($block->workout);
+            $lockedBlock = WorkoutBlock::query()
+                ->whereKey($block->id)
+                ->where('workout_id', $locked->id)
+                ->with('setGroups.sets')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $lockedBlock->is_ad_hoc) {
+                throw new WorkoutServiceException(self::AD_HOC_BLOCK_ONLY_ERROR);
+            }
+
+            if ($lockedBlock->setGroups->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
+                ->contains(fn (WorkoutSet $set): bool => $set->completed_at !== null)) {
+                throw new WorkoutServiceException(self::AD_HOC_BLOCK_HAS_LOGGED_SETS_ERROR);
+            }
+
+            $lockedBlock->delete();
         });
     }
 

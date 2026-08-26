@@ -53,6 +53,10 @@ class WorkoutProgressionService
         $exerciseNamesByRoutineId = [];
 
         foreach ($workout->blocks as $workoutBlock) {
+            if ($workoutBlock->is_ad_hoc) {
+                continue;
+            }
+
             $routineBlock = $workout->routine->blocks->firstWhere('position', $workoutBlock->position);
 
             if ($routineBlock === null) {
