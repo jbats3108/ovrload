@@ -105,6 +105,11 @@ const toc = [
                     whether that ladder applies to every new exercise or only the first one.
                 </p>
                 <p class="text-muted-foreground">
+                    <strong class="text-foreground">Default Target reps</strong> seeds the Target field on new routine exercises and on Play
+                    <strong class="text-foreground"> Add exercise</strong> blocks (default 6 until you change it). Per-exercise Target in the editor
+                    still wins once you set it.
+                </p>
+                <p class="text-muted-foreground">
                     <strong class="text-foreground">Achievement Floor</strong> is the minimum reps for a logged set’s weight to count as achieved
                     (used when carry-forward raises the routine to your heaviest real top set). <strong class="text-foreground">Bump when</strong> is
                     which set has to hit Target reps before the app offers a bump — any working set at the working weight, or only the last set at the
@@ -114,7 +119,7 @@ const toc = [
                 <TutorialShot
                     name="training"
                     alt="Training settings for warm-ups, progression, and deload defaults"
-                    caption="Training: warm-up ladder, Floor, Bump when, and deload defaults that seed new routines."
+                    caption="Training: warm-up ladder, Default Target reps, Floor, Bump when, and deload defaults that seed new routines."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('training.edit')" class="font-medium text-primary underline-offset-2 hover:underline">Open Training</Link>
@@ -159,7 +164,8 @@ const toc = [
                 <p class="text-muted-foreground">
                     Need an extra lift? Tap <strong class="text-foreground">Add exercise to workout</strong> in the action row. Choose a catalog or
                     private custom exercise and it is appended as a single, three-set block on this workout only. It does not change the routine or
-                    offer progression; its first target reps match the previous exercise. You can remove the new block before logging a set.
+                    offer progression; its Target reps come from your Training <strong class="text-foreground">Default Target reps</strong>. You can
+                    remove the new block before logging a set.
                 </p>
                 <p class="text-muted-foreground">
                     On the log sheet you will see <strong class="text-foreground">Floor</strong> and
