@@ -598,6 +598,48 @@ describe('createWorkoutPlayer', () => {
         );
     });
 
+    it('keeps the current focus when an ad-hoc block is added', async () => {
+        const props = reactive({
+            workout: workoutPayload({
+                blocks: [
+                    playerBlock({
+                        id: 5,
+                        sets: [playerSet({ id: 1, completed: false })],
+                    }),
+                ],
+            }),
+            plate_profile: plateProfile(),
+        });
+        let player!: ReturnType<typeof createWorkoutPlayer>;
+
+        mount(
+            defineComponent({
+                setup() {
+                    player = createWorkoutPlayer(props);
+                    return () => h('div');
+                },
+            }),
+        );
+
+        player.addAdHocExercise(42);
+        props.workout = workoutPayload({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    sets: [playerSet({ id: 1, completed: false })],
+                }),
+                playerBlock({
+                    id: 6,
+                    is_ad_hoc: true,
+                    sets: [playerSet({ id: 4, completed: false })],
+                }),
+            ],
+        });
+        await nextTick();
+
+        expect(player.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 1 });
+    });
+
     it('allows removing an empty ad-hoc exercise block', async () => {
         const player = mountPlayer({
             blocks: [playerBlock({ is_ad_hoc: true })],
