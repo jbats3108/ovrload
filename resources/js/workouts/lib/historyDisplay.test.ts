@@ -35,6 +35,7 @@ describe('historyBlockTitle', () => {
             id: 1,
             position: 1,
             is_superset: false,
+            is_ad_hoc: false,
             has_setup_after: false,
             has_setup_after_warm_up: false,
             exercises: [
@@ -51,6 +52,7 @@ describe('historyBlockTitle', () => {
             id: 2,
             position: 2,
             is_superset: true,
+            is_ad_hoc: false,
             has_setup_after: false,
             has_setup_after_warm_up: false,
             exercises: [
