@@ -113,4 +113,26 @@ class WorkoutSetTest extends TestCase
         $this->assertTrue($workoutSet->fresh()->isDropset());
         $this->assertTrue($workoutSet->fresh()->load('segments')->isDropset());
     }
+
+    #[Test]
+    public function it_clears_all_segments(): void
+    {
+        $workoutSet = WorkoutSet::factory()->create();
+
+        WorkoutSetSegment::create([
+            'workout_set_id' => $workoutSet->id,
+            'position' => 1,
+            'weight_g' => 80000,
+        ]);
+        WorkoutSetSegment::create([
+            'workout_set_id' => $workoutSet->id,
+            'position' => 2,
+            'weight_g' => 60000,
+        ]);
+
+        $workoutSet->clearSegments();
+
+        $this->assertCount(0, $workoutSet->fresh()->segments);
+        $this->assertFalse($workoutSet->fresh()->isDropset());
+    }
 }

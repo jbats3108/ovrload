@@ -58,6 +58,12 @@ class WorkoutService
 
     public const ALREADY_A_DROPSET_ERROR = 'This set is already a dropset';
 
+    public const CANNOT_DEMOTE_COMPLETED_SET_ERROR = 'Completed sets cannot be demoted from a dropset';
+
+    public const CANNOT_DEMOTE_WARM_UP_ERROR = 'Only working sets can be demoted from a dropset';
+
+    public const NOT_A_DROPSET_ERROR = 'This set is not a dropset';
+
     public const AD_HOC_EXERCISE_NOT_AVAILABLE_ERROR = 'This exercise is not available to you';
 
     public const AD_HOC_BLOCK_ONLY_ERROR = 'Only ad-hoc blocks can be removed this way';
@@ -475,6 +481,39 @@ class WorkoutService
 
         return DB::transaction(function () use ($set, $segmentWeightGrams): WorkoutSet {
             $set->replaceSegments($segmentWeightGrams);
+
+            return $set->fresh(['segments']);
+        });
+    }
+
+    /**
+     * @throws WorkoutServiceException
+     */
+    public function demoteFromDropset(WorkoutSet $set): WorkoutSet
+    {
+        $set->loadMissing(['setGroup.block.workout']);
+        $set->load('segments');
+
+        $workout = $set->setGroup->block->workout;
+
+        if ($workout->status !== WorkoutStatus::InProgress) {
+            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
+        }
+
+        if ($set->completed_at !== null) {
+            throw new WorkoutServiceException(self::CANNOT_DEMOTE_COMPLETED_SET_ERROR);
+        }
+
+        if ($set->setGroup->type !== SetGroupType::Working) {
+            throw new WorkoutServiceException(self::CANNOT_DEMOTE_WARM_UP_ERROR);
+        }
+
+        if (! $set->isDropset()) {
+            throw new WorkoutServiceException(self::NOT_A_DROPSET_ERROR);
+        }
+
+        return DB::transaction(function () use ($set): WorkoutSet {
+            $set->clearSegments();
 
             return $set->fresh(['segments']);
         });

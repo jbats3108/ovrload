@@ -416,4 +416,30 @@ class PlayWorkoutControllerTest extends TestCase
         $this->assertTrue($set->isDropset());
         $this->assertSame([80000, 60000], $set->segments->pluck('weight_g')->all());
     }
+
+    #[Test]
+    public function it_demotes_a_dropset_via_http(): void
+    {
+        $workout = $this->createPlayableWorkout();
+        $set = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->firstOrFail();
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.sets.promote-dropset', ['workout' => $workout, 'set' => $set]), [
+                'segments' => [
+                    ['weight_kg' => 80],
+                    ['weight_kg' => 60],
+                ],
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.sets.demote-dropset', ['workout' => $workout, 'set' => $set]))
+            ->assertRedirect();
+
+        $set->refresh()->load('segments');
+        $this->assertFalse($set->isDropset());
+        $this->assertCount(0, $set->segments);
+    }
 }
