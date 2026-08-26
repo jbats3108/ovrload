@@ -10,6 +10,7 @@ const {
     stageWeightKg,
     stageDropsetWeights,
     canPromoteToDropset,
+    canDemoteFromDropset,
     canAddWorkingSet,
     canRemoveWorkingSet,
     canRemoveAdHocBlock,
@@ -20,6 +21,7 @@ const {
     addDropSegment,
     removeDropSegment,
     promoteToDropset,
+    demoteFromDropset,
     addWorkingSet,
     removeWorkingSet,
     removeAdHocBlock,
@@ -113,7 +115,10 @@ const unlockInput = (event: PointerEvent) => {
 
         <div class="mt-6 flex w-full flex-col gap-3 pb-4">
             <div class="flex w-full flex-col gap-3">
-                <div v-if="canPromoteToDropset || canAddWorkingSet || canRemoveWorkingSet" class="flex flex-wrap items-center justify-center gap-3">
+                <div
+                    v-if="canPromoteToDropset || canDemoteFromDropset || canAddWorkingSet || canRemoveWorkingSet"
+                    class="flex flex-wrap items-center justify-center gap-3"
+                >
                     <button
                         v-if="canAddWorkingSet"
                         type="button"
@@ -132,6 +137,15 @@ const unlockInput = (event: PointerEvent) => {
                         @click="promoteToDropset"
                     >
                         Promote to dropset
+                    </button>
+                    <button
+                        v-if="canDemoteFromDropset"
+                        type="button"
+                        class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+                        :disabled="mutating || setForm.processing"
+                        @click="demoteFromDropset"
+                    >
+                        Demote to single
                     </button>
                     <button
                         v-if="canRemoveWorkingSet"

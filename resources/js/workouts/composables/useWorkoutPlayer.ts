@@ -516,6 +516,15 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             !current.value.block.is_superset,
     );
 
+    const canDemoteFromDropset = computed(
+        () =>
+            props.workout.status === 'in_progress' &&
+            current.value !== null &&
+            current.value.set.group_type === 'working' &&
+            !current.value.set.completed &&
+            current.value.set.is_dropset,
+    );
+
     const promoteToDropset = () => {
         if (mutating.value || !current.value || !canPromoteToDropset.value) {
             return;
@@ -525,6 +534,25 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         router.post(
             route('workouts.sets.promote-dropset', { workout: props.workout.id, set: entry.set.id }),
             { segments: defaultPromoteSegments(workingWeightForSet(entry)) },
+            {
+                preserveScroll: true,
+                only: ['workout'],
+                onFinish: () => {
+                    mutating.value = false;
+                },
+            },
+        );
+    };
+
+    const demoteFromDropset = () => {
+        if (mutating.value || !current.value || !canDemoteFromDropset.value) {
+            return;
+        }
+        const entry = current.value;
+        mutating.value = true;
+        router.post(
+            route('workouts.sets.demote-dropset', { workout: props.workout.id, set: entry.set.id }),
+            {},
             {
                 preserveScroll: true,
                 only: ['workout'],
@@ -1008,6 +1036,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         setupSupersetPair,
         supersetNext,
         canPromoteToDropset,
+        canDemoteFromDropset,
         canAddWorkingSet,
         canRemoveWorkingSet,
         canSkipRestOfBlock,
@@ -1026,6 +1055,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         addDropSegment,
         removeDropSegment,
         promoteToDropset,
+        demoteFromDropset,
         skipRest,
         acknowledgeSetup,
         finishWorkout,

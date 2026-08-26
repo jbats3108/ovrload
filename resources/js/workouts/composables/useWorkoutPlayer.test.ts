@@ -520,6 +520,7 @@ describe('createWorkoutPlayer', () => {
     it('exposes canPromoteToDropset for working sets', () => {
         const player = mountPlayer();
         expect(player.canPromoteToDropset.value).toBe(true);
+        expect(player.canDemoteFromDropset.value).toBe(false);
     });
 
     it('promotes working set to dropset', () => {
@@ -528,6 +529,52 @@ describe('createWorkoutPlayer', () => {
         expect(inertiaMocks().routerMocks.post).toHaveBeenCalledWith(
             '/workouts.sets.promote-dropset',
             expect.objectContaining({ segments: expect.any(Array) }),
+            expect.objectContaining({ preserveScroll: true, only: ['workout'] }),
+        );
+    });
+
+    it('exposes canDemoteFromDropset for incomplete dropsets', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    sets: [
+                        playerSet({
+                            is_dropset: true,
+                            segments: [
+                                { position: 1, weight_kg: 100 },
+                                { position: 2, weight_kg: 80 },
+                            ],
+                        }),
+                    ],
+                }),
+            ],
+        });
+
+        expect(player.canDemoteFromDropset.value).toBe(true);
+        expect(player.canPromoteToDropset.value).toBe(false);
+    });
+
+    it('demotes dropset to single', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    sets: [
+                        playerSet({
+                            is_dropset: true,
+                            segments: [
+                                { position: 1, weight_kg: 100 },
+                                { position: 2, weight_kg: 80 },
+                            ],
+                        }),
+                    ],
+                }),
+            ],
+        });
+
+        player.demoteFromDropset();
+        expect(inertiaMocks().routerMocks.post).toHaveBeenCalledWith(
+            '/workouts.sets.demote-dropset',
+            {},
             expect.objectContaining({ preserveScroll: true, only: ['workout'] }),
         );
     });
