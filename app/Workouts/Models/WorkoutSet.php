@@ -87,6 +87,11 @@ class WorkoutSet extends Model
         }
     }
 
+    public function clearSegments(): void
+    {
+        $this->segments()->delete();
+    }
+
     public function recordReps(int $reps): void
     {
         $this->reps = $reps;

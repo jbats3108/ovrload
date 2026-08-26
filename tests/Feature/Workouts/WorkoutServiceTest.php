@@ -638,4 +638,40 @@ class WorkoutServiceTest extends TestCase
         $this->assertTrue($set->isDropset());
         $this->assertSame([20000, 15000], $set->segments->pluck('weight_g')->all());
     }
+
+    #[Test]
+    public function it_demotes_a_dropset_to_a_single(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $set = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->firstOrFail();
+
+        $this->workoutService->promoteToDropset($set, [20000, 15000]);
+        $this->assertTrue($set->fresh()->load('segments')->isDropset());
+
+        $this->workoutService->demoteFromDropset($set);
+
+        $set->refresh()->load('segments');
+        $this->assertFalse($set->isDropset());
+        $this->assertCount(0, $set->segments);
+    }
+
+    #[Test]
+    public function it_rejects_demoting_a_set_that_is_not_a_dropset(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $set = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->firstOrFail();
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::NOT_A_DROPSET_ERROR);
+
+        $this->workoutService->demoteFromDropset($set);
+    }
 }

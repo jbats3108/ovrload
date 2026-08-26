@@ -37,6 +37,7 @@ use App\Workouts\Http\Controllers\ApplyProgressionBumpsController;
 use App\Workouts\Http\Controllers\CompleteWorkoutSetController;
 use App\Workouts\Http\Controllers\CreateHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\DeleteWorkoutHistoryController;
+use App\Workouts\Http\Controllers\DemoteWorkoutSetFromDropsetController;
 use App\Workouts\Http\Controllers\DiscardWorkoutController;
 use App\Workouts\Http\Controllers\FinishWorkoutController;
 use App\Workouts\Http\Controllers\IndexWorkoutHistoryController;
@@ -173,6 +174,10 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/{workout}/sets/{set}/promote-dropset', PromoteWorkoutSetToDropsetController::class)
             ->can('update', 'workout')
             ->name('workouts.sets.promote-dropset');
+
+        Route::post('/{workout}/sets/{set}/demote-dropset', DemoteWorkoutSetFromDropsetController::class)
+            ->can('update', 'workout')
+            ->name('workouts.sets.demote-dropset');
 
         Route::post('/{workout}/blocks/{block}/working-sets', AddWorkingSetController::class)
             ->can('update', 'workout')
