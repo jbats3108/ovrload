@@ -54,12 +54,38 @@ class AdHocExerciseControllerTest extends TestCase
         $this->assertFalse($adHocBlock->is_superset);
         $this->assertSame($exercise->id, $adHocExercise?->exercise_id);
         $this->assertSame(0, $adHocExercise?->working_weight_g);
-        $this->assertSame(8, $adHocExercise?->prescribed_reps);
+        $this->assertSame(6, $adHocExercise?->prescribed_reps);
         $this->assertNull($adHocExercise?->progression_target);
         $this->assertSame(3, $workingGroup?->set_count);
         $this->assertSame(120, $workingGroup?->rest_seconds);
         $this->assertCount(3, $workingGroup?->sets);
         $this->assertCount(2, $workout->blocks);
+    }
+
+    #[Test]
+    public function ad_hoc_exercise_uses_training_default_target_reps_not_previous_block(): void
+    {
+        $this->user->update(['progression_target_default' => 10]);
+        $workout = $this->createPlayableWorkout(
+            setCount: 1,
+            loadBlocks: true,
+            prescribedReps: 8,
+        );
+        $exercise = Exercise::factory()->shared()->create(['name' => 'Face Pull']);
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.ad-hoc-exercises.store', $workout), [
+                'exercise_id' => $exercise->id,
+            ])
+            ->assertRedirect();
+
+        $adHocExercise = $workout->fresh(['blocks.blockExercises'])
+            ->blocks
+            ->firstWhere('is_ad_hoc', true)
+            ?->blockExercises
+            ->first();
+
+        $this->assertSame(10, $adHocExercise?->prescribed_reps);
     }
 
     #[Test]

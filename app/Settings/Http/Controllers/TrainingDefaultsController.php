@@ -25,6 +25,7 @@ class TrainingDefaultsController extends Controller
             'warm_up_defaults_scope' => ($user->warm_up_defaults_scope ?? WarmUpDefaultsScope::AllBlocks)->value,
             'using_app_fallback' => $user->warm_up_steps_default === null,
             'achievement_floor_default' => $user->achievement_floor_default,
+            'progression_target_default' => $user->resolvedDefaultTargetReps(),
             'bump_when_default' => ($user->bump_when_default ?? BumpWhen::AnySet)->value,
             'deload_weight_factor_default' => (float) $user->deload_weight_factor_default,
             'deload_reps_factor_default' => (float) $user->deload_reps_factor_default,
@@ -51,6 +52,7 @@ class TrainingDefaultsController extends Controller
         $user->warm_up_steps_default = $steps;
         $user->warm_up_defaults_scope = $data->warmUpDefaultsScope;
         $user->achievement_floor_default = $data->achievementFloorDefault;
+        $user->progression_target_default = $data->progressionTargetDefault;
         $user->bump_when_default = $data->bumpWhenDefault;
         $user->deload_weight_factor_default = $data->deloadWeightFactorDefault;
         $user->deload_reps_factor_default = $data->deloadRepsFactorDefault;

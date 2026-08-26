@@ -1,10 +1,10 @@
 import type { Block, BlockExercise, WarmUpStep } from '@/routines/types';
 
-export function emptyExercise(firstCatalogId: number | null = null): BlockExercise {
+export function emptyExercise(firstCatalogId: number | null = null, prescribedReps = 6): BlockExercise {
     return {
         exercise_id: firstCatalogId,
         working_weight_kg: 60,
-        prescribed_reps: 6,
+        prescribed_reps: prescribedReps,
         achievement_floor: null,
         progression_target: null,
         deload_exercise_id: null,
@@ -34,15 +34,18 @@ export function emptyBlock(
         seedWarmUp?: boolean;
         warmUpDefaults?: WarmUpStep[];
         firstCatalogId?: number | null;
+        prescribedReps?: number;
     } = {},
 ): Block {
-    const { superset = false, seedWarmUp = true, warmUpDefaults = [], firstCatalogId = null } = options;
+    const { superset = false, seedWarmUp = true, warmUpDefaults = [], firstCatalogId = null, prescribedReps = 6 } = options;
     const steps = seedWarmUp ? warmUpDefaults.map((s) => ({ percent: s.percent, reps: s.reps, has_setup_after: false })) : [];
     return {
         is_superset: superset,
         has_setup_after: false,
         has_setup_after_warm_up: false,
-        exercises: superset ? [emptyExercise(firstCatalogId), emptyExercise(firstCatalogId)] : [emptyExercise(firstCatalogId)],
+        exercises: superset
+            ? [emptyExercise(firstCatalogId, prescribedReps), emptyExercise(firstCatalogId, prescribedReps)]
+            : [emptyExercise(firstCatalogId, prescribedReps)],
         working: { set_count: 3, rest_seconds: 120, dropsets: [] },
         warm_up: { set_count: steps.length, rest_seconds: 60, steps },
     };
@@ -99,10 +102,10 @@ export function normalizeBlock(raw: Block): Block {
     };
 }
 
-export function toggleSuperset(block: Block, firstCatalogId: number | null = null): void {
+export function toggleSuperset(block: Block, firstCatalogId: number | null = null, prescribedReps = 6): void {
     block.is_superset = !block.is_superset;
     if (block.is_superset && block.exercises.length < 2) {
-        block.exercises.push(emptyExercise(firstCatalogId));
+        block.exercises.push(emptyExercise(firstCatalogId, prescribedReps));
     }
     if (!block.is_superset && block.exercises.length > 1) {
         block.exercises = [block.exercises[0]];

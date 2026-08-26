@@ -12,6 +12,7 @@ const props = defineProps<{
     warm_up_defaults_scope: WarmUpDefaultsScope;
     using_app_fallback: boolean;
     achievement_floor_default: number | null;
+    progression_target_default: number;
     bump_when_default: 'any_set' | 'last_at_top_weight';
     deload_weight_factor_default: number;
     deload_reps_factor_default: number;
@@ -30,6 +31,7 @@ const form = useForm({
     warm_up_steps_default: props.warm_up_steps_default.map((s) => ({ ...s })),
     warm_up_defaults_scope: props.warm_up_defaults_scope,
     achievement_floor_default: props.achievement_floor_default,
+    progression_target_default: props.progression_target_default,
     bump_when_default: props.bump_when_default,
     deload_weight_factor_default: props.deload_weight_factor_default,
     deload_reps_factor_default: props.deload_reps_factor_default,
@@ -198,6 +200,23 @@ const savePlates = () => {
                                 @input="setOptionalReps('achievement_floor_default', ($event.target as HTMLInputElement).value)"
                             />
                             <InputError :message="form.errors.achievement_floor_default" />
+                        </label>
+
+                        <label class="flex flex-col gap-1 text-sm text-muted-foreground">
+                            Default Target reps
+                            <span class="text-xs text-muted-foreground/80">
+                                Seeded into new routine exercises and Play “Add exercise” blocks. Per-exercise Target in the editor still wins once
+                                set.
+                            </span>
+                            <input
+                                v-model.number="form.progression_target_default"
+                                type="number"
+                                min="1"
+                                max="100"
+                                class="mt-1 w-28 rounded border border-border bg-card px-3 py-2 font-mono text-foreground"
+                                required
+                            />
+                            <InputError :message="form.errors.progression_target_default" />
                         </label>
 
                         <fieldset class="space-y-2">

@@ -32,11 +32,11 @@ class TrainingDefaultsTest extends TestCase
             ->where('using_app_fallback', true)
             ->where('warm_up_defaults_scope', 'all_blocks')
             ->where('achievement_floor_default', null)
+            ->where('progression_target_default', 6)
             ->where('bump_when_default', 'any_set')
             ->where('deload_weight_factor_default', 0.5)
             ->where('deload_reps_factor_default', 2)
             ->where('deload_every_n_default', 3)
-            ->missing('progression_target_default')
             ->has('warm_up_steps_default', 3)
             ->has('plate_profile'));
     }
@@ -89,6 +89,38 @@ class TrainingDefaultsTest extends TestCase
 
         $this->user->refresh();
         $this->assertSame(1, $this->user->achievement_floor_default);
+    }
+
+    #[Test]
+    public function it_saves_progression_target_default(): void
+    {
+        $response = $this->actingAs($this->user)->put(route('training.update'), [
+            'warm_up_steps_default' => [
+                ['percent' => 40, 'reps' => 5],
+            ],
+            'warm_up_defaults_scope' => 'all_blocks',
+            'progression_target_default' => 8,
+            'bump_when_default' => 'any_set',
+        ]);
+
+        $response->assertRedirect(route('training.edit'));
+
+        $this->user->refresh();
+        $this->assertSame(8, $this->user->progression_target_default);
+        $this->assertSame(8, $this->user->resolvedDefaultTargetReps());
+    }
+
+    #[Test]
+    public function it_rejects_out_of_range_progression_target_default(): void
+    {
+        $this->actingAs($this->user)->put(route('training.update'), [
+            'warm_up_steps_default' => [
+                ['percent' => 40, 'reps' => 5],
+            ],
+            'warm_up_defaults_scope' => 'all_blocks',
+            'progression_target_default' => 0,
+            'bump_when_default' => 'any_set',
+        ])->assertSessionHasErrors('progression_target_default');
     }
 
     #[Test]

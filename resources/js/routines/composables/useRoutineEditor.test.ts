@@ -39,6 +39,13 @@ describe('createRoutineEditor', () => {
         expect(editor.form.blocks).toHaveLength(1);
         expect(editor.active.value).toBe(0);
         expect(editor.form.blocks[0].warm_up.steps).toHaveLength(1);
+        expect(editor.form.blocks[0].exercises[0].prescribed_reps).toBe(6);
+    });
+
+    it('seeds new blocks with training default target reps', () => {
+        const editor = mountEditor({ progression_target_default: 10 });
+        editor.addBlock(false);
+        expect(editor.form.blocks[0].exercises[0].prescribed_reps).toBe(10);
     });
 
     it('keeps dropsets collapsed by default and resets when changing blocks', async () => {
@@ -143,7 +150,7 @@ describe('createRoutineEditor', () => {
         });
         expect(editor.progressionExpanded.value).toBe(false);
         expect(editor.achievementFloorDefault.value).toBe(1);
-        expect(editor.progressionTargetDefault.value).toBeNull();
+        expect(editor.progressionTargetDefault.value).toBe(6);
         editor.toggleProgressionExpanded();
         expect(editor.progressionExpanded.value).toBe(true);
         editor.active.value = 1;
