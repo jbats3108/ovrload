@@ -65,6 +65,23 @@ class WorkoutProgressionServiceTest extends TestCase
     }
 
     #[Test]
+    public function finish_ignores_work_logged_in_an_ad_hoc_block_for_progression(): void
+    {
+        [$routine, $routineExercise] = $this->seedRoutine(workingWeightG: 80000, prescribedReps: 6, achievementFloor: 4);
+        $workout = $this->workoutService->createWorkout($routine);
+        $exercise = Exercise::factory()->shared()->create();
+        $adHocBlock = $this->workoutService->addAdHocExercise($workout, $exercise->id);
+        $workingGroup = $adHocBlock->setGroups->firstWhere('type', SetGroupType::Working);
+        $adHocSet = $workingGroup->sets->first();
+
+        $this->workoutService->completeSet($adHocSet, reps: 6, weightGrams: 80000);
+        $bumps = $this->workoutService->finishWorkout($workout);
+
+        $this->assertCount(0, $bumps);
+        $this->assertSame(80000, $routineExercise->fresh()->working_weight_g);
+    }
+
+    #[Test]
     public function finish_does_not_offer_bump_when_only_floor_reps_are_hit(): void
     {
         [$routine] = $this->seedRoutine(workingWeightG: 20000, prescribedReps: 6, achievementFloor: 4);

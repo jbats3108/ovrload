@@ -582,6 +582,111 @@ describe('createWorkoutPlayer', () => {
         );
     });
 
+    it('adds an ad-hoc exercise to the workout snapshot', () => {
+        const player = mountPlayer();
+
+        player.addAdHocExercise(42);
+
+        expect(inertiaMocks().routerMocks.post).toHaveBeenCalledWith(
+            '/workouts.ad-hoc-exercises.store',
+            { exercise_id: 42 },
+            expect.objectContaining({
+                preserveScroll: true,
+                only: ['workout'],
+                onFinish: expect.any(Function),
+            }),
+        );
+    });
+
+    it('keeps the current focus when an ad-hoc block is added', async () => {
+        const props = reactive({
+            workout: workoutPayload({
+                blocks: [
+                    playerBlock({
+                        id: 5,
+                        sets: [playerSet({ id: 1, completed: false })],
+                    }),
+                ],
+            }),
+            plate_profile: plateProfile(),
+        });
+        let player!: ReturnType<typeof createWorkoutPlayer>;
+
+        mount(
+            defineComponent({
+                setup() {
+                    player = createWorkoutPlayer(props);
+                    return () => h('div');
+                },
+            }),
+        );
+
+        player.addAdHocExercise(42);
+        props.workout = workoutPayload({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    sets: [playerSet({ id: 1, completed: false })],
+                }),
+                playerBlock({
+                    id: 6,
+                    is_ad_hoc: true,
+                    sets: [playerSet({ id: 4, completed: false })],
+                }),
+            ],
+        });
+        await nextTick();
+
+        expect(player.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 1 });
+    });
+
+    it('allows removing an empty ad-hoc exercise block', async () => {
+        const player = mountPlayer({
+            blocks: [playerBlock({ is_ad_hoc: true })],
+        });
+
+        expect(player.canRemoveAdHocBlock.value).toBe(true);
+
+        await player.removeAdHocBlock();
+
+        expect(confirmDialog.confirmDialog).toHaveBeenCalledWith({
+            title: 'Remove extra exercise?',
+            description: 'This removes the exercise from this workout only.',
+            confirmLabel: 'Remove',
+            variant: 'destructive',
+        });
+        expect(inertiaMocks().routerMocks.delete).toHaveBeenCalledWith(
+            '/workouts.ad-hoc-blocks.destroy',
+            expect.objectContaining({
+                preserveScroll: true,
+                only: ['workout'],
+                onSuccess: expect.any(Function),
+                onFinish: expect.any(Function),
+            }),
+        );
+    });
+
+    it('does not offer ad-hoc removal after a set is logged', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    is_ad_hoc: true,
+                    sets: [playerSet({ completed: true, logged_weight_kg: 80, logged_reps: 6 })],
+                }),
+            ],
+        });
+
+        expect(player.canRemoveAdHocBlock.value).toBe(false);
+    });
+
+    it('hides progression hints for ad-hoc exercises', () => {
+        const player = mountPlayer({
+            blocks: [playerBlock({ is_ad_hoc: true })],
+        });
+
+        expect(player.logProgressionHints.value).toBeNull();
+    });
+
     it('ignores overlapping structure mutations while busy', () => {
         const player = mountPlayer({
             blocks: [

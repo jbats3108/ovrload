@@ -31,6 +31,7 @@ use App\Shared\Http\Controllers\ShowPrivacyController;
 use App\Shared\Http\Controllers\ShowTutorialController;
 use App\Shared\Http\Controllers\StoreFeedbackController;
 use App\Shared\Http\Controllers\StoreInviteRequestController;
+use App\Workouts\Http\Controllers\AddAdHocExerciseController;
 use App\Workouts\Http\Controllers\AddWorkingSetController;
 use App\Workouts\Http\Controllers\ApplyProgressionBumpsController;
 use App\Workouts\Http\Controllers\CompleteWorkoutSetController;
@@ -42,6 +43,7 @@ use App\Workouts\Http\Controllers\IndexWorkoutHistoryController;
 use App\Workouts\Http\Controllers\PickHistoricalWorkoutRoutineController;
 use App\Workouts\Http\Controllers\PlayWorkoutController;
 use App\Workouts\Http\Controllers\PromoteWorkoutSetToDropsetController;
+use App\Workouts\Http\Controllers\RemoveAdHocBlockController;
 use App\Workouts\Http\Controllers\RemoveWorkingSetController;
 use App\Workouts\Http\Controllers\ShowProgressionController;
 use App\Workouts\Http\Controllers\ShowWorkoutHistoryController;
@@ -175,6 +177,14 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/{workout}/blocks/{block}/working-sets', AddWorkingSetController::class)
             ->can('update', 'workout')
             ->name('workouts.working-sets.add');
+
+        Route::post('/{workout}/ad-hoc-exercises', AddAdHocExerciseController::class)
+            ->can('update', 'workout')
+            ->name('workouts.ad-hoc-exercises.store');
+
+        Route::delete('/{workout}/blocks/{block}/ad-hoc', RemoveAdHocBlockController::class)
+            ->can('update', 'workout')
+            ->name('workouts.ad-hoc-blocks.destroy');
 
         Route::post('/{workout}/blocks/{block}/skip-rest', SkipRestOfBlockController::class)
             ->can('update', 'workout')

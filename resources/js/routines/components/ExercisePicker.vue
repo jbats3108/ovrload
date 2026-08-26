@@ -1,38 +1,58 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
-import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
+import { routineEditorKey } from '@/routines/composables/useRoutineEditor';
 import { filterExercises } from '@/routines/lib/catalog';
-import type { ExerciseOption } from '@/routines/types';
+import type { EquipmentOption, ExerciseOption, MuscleGroupOption } from '@/routines/types';
 import { useHttp } from '@inertiajs/vue3';
 import { ChevronDown } from 'lucide-vue-next';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, inject, nextTick, ref, watch } from 'vue';
 
 const model = defineModel<number | null>({ required: true });
 
-withDefaults(
+const props = withDefaults(
     defineProps<{
         /** Highlight when this slot is the editor’s active selection. */
         active?: boolean;
-        variant?: 'mobile' | 'desktop';
+        variant?: 'mobile' | 'desktop' | 'compact' | 'action';
+        catalog?: ExerciseOption[];
+        muscleGroups?: MuscleGroupOption[];
+        equipmentOptions?: EquipmentOption[];
+        triggerLabel?: string;
+        disabled?: boolean;
     }>(),
-    { active: false, variant: 'mobile' },
+    { active: false, variant: 'mobile', disabled: false },
 );
 
 const emit = defineEmits<{
     open: [];
 }>();
 
-const { catalog, exerciseName, muscleGroups, equipmentOptions, addToCatalog } = useRoutineEditor();
+const editor = inject(routineEditorKey, null);
 
 const open = ref(false);
 const query = ref('');
 const searchEl = ref<HTMLInputElement | null>(null);
 const creating = ref(false);
+const catalogExtras = ref<ExerciseOption[]>([]);
+
+const catalog = computed(() => {
+    const base = props.catalog ?? editor?.catalog.value ?? [];
+    const seen = new Set(base.map((exercise) => exercise.id));
+
+    return [...base, ...catalogExtras.value.filter((exercise) => !seen.has(exercise.id))];
+});
+const muscleGroups = computed(() => props.muscleGroups ?? editor?.muscleGroups.value ?? []);
+const equipmentOptions = computed(() => props.equipmentOptions ?? editor?.equipmentOptions.value ?? []);
+
+const exerciseName = (id: number | null): string => catalog.value.find((exercise) => exercise.id === id)?.name ?? 'Exercise';
 
 const matches = computed(() => filterExercises(catalog.value, query.value));
 
 const label = computed(() => {
+    if (props.triggerLabel) {
+        return props.triggerLabel;
+    }
     if (!catalog.value.length && !creating.value) {
         return 'Loading…';
     }
@@ -93,6 +113,19 @@ const startCreate = () => {
     }
 };
 
+const addToCatalog = (exercise: ExerciseOption) => {
+    if (editor) {
+        editor.addToCatalog(exercise);
+        return;
+    }
+
+    if (catalog.value.some((item) => item.id === exercise.id)) {
+        return;
+    }
+
+    catalogExtras.value = [...catalogExtras.value, exercise];
+};
+
 const cancelCreate = () => {
     creating.value = false;
     createForm.clearErrors();
@@ -126,12 +159,16 @@ const submitCreate = () => {
             type="button"
             class="flex items-center justify-between gap-2 text-left outline-none focus:border-primary"
             :class="[
-                variant === 'mobile'
+                props.variant === 'mobile'
                     ? 'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-base'
-                    : 'w-44 rounded border border-border bg-card px-2 py-1 text-sm',
-                active ? 'border-primary' : '',
+                    : props.variant === 'action'
+                      ? 'inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20'
+                      : props.variant === 'compact'
+                        ? 'rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        : 'w-44 rounded border border-border bg-card px-2 py-1 text-sm',
+                props.active ? 'border-primary' : '',
             ]"
-            :disabled="!catalog.length && !muscleGroups.length"
+            :disabled="props.disabled || (!catalog.length && !muscleGroups.length)"
             :aria-expanded="open"
             aria-haspopup="dialog"
             @click="open = true"
