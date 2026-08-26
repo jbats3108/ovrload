@@ -18,9 +18,15 @@ const backlogItems = [
         recentlyAdded: true,
     },
     {
+        title: 'Add exercise in Play',
+        description:
+            'Add an extra lift mid-workout from the player — pick from the catalog (or a custom), log it for this session only without changing the routine.',
+        recentlyAdded: true,
+    },
+    {
         title: 'Better History Edits',
         description:
-            'Allow editing more details of past workouts, such as warmup weights; see discarded workouts in history, even add or remove exercises and sets from a logged workout.',
+            'Allow editing more details of past workouts, such as warmup weights, and see discarded workouts in history. Bigger structure rewrites on old sessions may come later.',
     },
     {
         title: 'Support for lbs as your preferred unit of weight',

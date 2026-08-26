@@ -155,6 +155,11 @@ const toc = [
                     that edits this workout, not the routine. Keep the tab open if you can; wake lock tries to stop the phone sleeping.
                 </p>
                 <p class="text-muted-foreground">
+                    Need an extra lift? Tap <strong class="text-foreground">Add exercise to workout</strong> in the action row. Choose a catalog or
+                    private custom exercise and it is appended as a single, three-set block on this workout only. It does not change the routine or
+                    offer progression; its first target reps match the previous exercise. You can remove the new block before logging a set.
+                </p>
+                <p class="text-muted-foreground">
                     On the log sheet you will see <strong class="text-foreground">Floor</strong> and
                     <strong class="text-foreground">Bump @</strong> (your Target reps). Hitting Target at working weight is what unlocks a bump — not
                     the Floor.
