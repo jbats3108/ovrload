@@ -14,8 +14,10 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
-1. **Add exercise in Play** — snapshot-only ad-hoc exercise from catalog/custom picker; three working sets; current focus stays in place; no progression
-2. **PWA install instructions** — FAQ “How do I install…?” + tutorial `#install` (iOS Safari Share → Add to Home Screen; Android Chrome Install / Add to Home screen)
+1. **Demote dropset → single in Play** — incomplete dropset → clear segments back to a single (mirror of Promote)
+2. **Add exercise in Play** — snapshot-only ad-hoc exercise from catalog/custom picker; three working sets; current focus stays in place; no progression
+3. **Fewer dashboard history items** — dashboard recent strip shows 3, not 5
+4. **PWA install instructions** — FAQ “How do I install…?” + tutorial `#install` (iOS Safari Share → Add to Home Screen; Android Chrome Install / Add to Home screen)
 3. **Tutorial** — public `/tutorial` walkthrough (page first; in-app tour later); FAQ “How do I learn the app?”; Training / empty Dashboard / History entry points; device-matched screenshots
 4. **Custom user exercises** — private per-user customs from routine ExercisePicker; shared catalog stays admin/import-only
 5. **Choose an alternate exercise for Deload sessions** — optional Deload Alternate (exercise + own weight) per block exercise; Deload snapshot only; Singles when alternate set
@@ -102,24 +104,20 @@ Public order matches `/beta-tester-faqs`.
 - **Resend → Gmail forward webhook** — optional; forms/mailboxes work without it
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
-- **Demote dropset → single in Play**
-- **Ad-hoc setup from player** — beyond planned `has_setup_after`
 - **Skip block / come back later in Play** — leave a block and return after doing a later one (machine busy)
 - **Default Target reps in Training** — user default for new editor blocks + Play ad-hoc (then ad-hoc uses Training default always when set; today interim = previous block Target)
 - **Ad-hoc / off-routine historical log (C2)** — log a lift not on a routine session; own grill (maybe after Play ad-hoc)
-- **Transition duration preference** — stored pref for A→B pause in supersets (today client-side)
 - **Dropsets on supersets**
 - **Flaky-network drafts** — best-effort offline/queue for player logging
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
 - **Bump between sets** — auto / config / ask whether to bump mid-block (not only on finish)
 - **In-app product tour** — after the public `/tutorial` page; own grill
-- **Shorter rest on deload** — maybe not worth the effort
 - **Account switcher**
 - **Welcome email** — tutorial is a prerequisite
 
 ### Polish & mobile integration
 
-- **Fewer dashboard history items** — show 3 recent, not 5
+-
 
 ### Bugfixes
 

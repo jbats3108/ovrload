@@ -152,7 +152,9 @@ const toc = [
                 </p>
                 <p class="text-muted-foreground">
                     Rest counts down with ticks near the end. Skip rest if you need to. You can add or remove incomplete working sets mid-session —
-                    that edits this workout, not the routine. Keep the tab open if you can; wake lock tries to stop the phone sleeping.
+                    that edits this workout, not the routine. On a working set you can also
+                    <strong class="text-foreground">Promote to dropset</strong> or <strong class="text-foreground">Demote to single</strong> before
+                    you log it. Keep the tab open if you can; wake lock tries to stop the phone sleeping.
                 </p>
                 <p class="text-muted-foreground">
                     Need an extra lift? Tap <strong class="text-foreground">Add exercise to workout</strong> in the action row. Choose a catalog or
@@ -167,7 +169,7 @@ const toc = [
                 <TutorialShot
                     name="play"
                     alt="Play screen showing set actions, including Add exercise to workout"
-                    caption="Play: set actions, Skip rest of group, and Add exercise to workout; Done opens the log sheet."
+                    caption="Play: set actions (+/− Set, Promote/Demote dropset), Skip rest of group, and Add exercise to workout; Done opens the log sheet."
                 />
             </section>
 
