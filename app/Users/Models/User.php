@@ -104,6 +104,17 @@ class User extends Authenticatable
         ));
     }
 
+    /**
+     * Default Target (prescribed) reps for new editor blocks and Play ad-hoc exercises.
+     * Stored as progression_target_default; null column → app fallback of 6.
+     */
+    public function resolvedDefaultTargetReps(): int
+    {
+        $value = $this->progression_target_default;
+
+        return $value !== null && $value >= 1 ? $value : 6;
+    }
+
     public function isAdmin(): bool
     {
         return $this->hasRole('admin');

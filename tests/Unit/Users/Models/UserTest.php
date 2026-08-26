@@ -80,6 +80,22 @@ class UserTest extends TestCase
     }
 
     #[Test]
+    public function resolved_default_target_reps_falls_back_to_six_when_null(): void
+    {
+        $user = User::factory()->create(['progression_target_default' => null]);
+
+        $this->assertSame(6, $user->resolvedDefaultTargetReps());
+    }
+
+    #[Test]
+    public function resolved_default_target_reps_uses_stored_value(): void
+    {
+        $user = User::factory()->create(['progression_target_default' => 10]);
+
+        $this->assertSame(10, $user->resolvedDefaultTargetReps());
+    }
+
+    #[Test]
     public function resolved_warm_up_steps_default_returns_custom_steps(): void
     {
         $custom = [
