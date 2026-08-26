@@ -166,8 +166,8 @@ const toc = [
                 </p>
                 <TutorialShot
                     name="play"
-                    alt="Play screen showing a warm-up set, plate guide, and Done"
-                    caption="Play: set progress, Target, plate guide, Done to open the log sheet."
+                    alt="Play screen showing set actions, including Add exercise to workout"
+                    caption="Play: set actions, Skip rest of group, and Add exercise to workout; Done opens the log sheet."
                 />
             </section>
 
