@@ -58,6 +58,8 @@ export function createRoutineEditor(props: EditRoutineProps) {
         }));
 
     const firstCatalogId = () => catalog.value[0]?.id ?? null;
+    const defaultTargetReps = () =>
+        typeof props.progression_target_default === 'number' && props.progression_target_default >= 1 ? props.progression_target_default : 6;
 
     const form = useForm(`EditRoutine:${props.routine.id}`, {
         name: props.routine.name,
@@ -134,6 +136,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
                 seedWarmUp,
                 warmUpDefaults: defaultWarmUpSteps(),
                 firstCatalogId: firstCatalogId(),
+                prescribedReps: defaultTargetReps(),
             }),
         );
         active.value = form.blocks.length - 1;
@@ -144,7 +147,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
     };
 
     const onToggleSuperset = (block: Block) => {
-        toggleSuperset(block, firstCatalogId());
+        toggleSuperset(block, firstCatalogId(), defaultTargetReps());
     };
 
     const rackStart = ref(20);
@@ -264,7 +267,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
         deloadExpanded,
         toggleDeloadExpanded,
         achievementFloorDefault: computed(() => props.achievement_floor_default ?? null),
-        progressionTargetDefault: computed(() => null),
+        progressionTargetDefault: computed(() => defaultTargetReps()),
         activeBlock,
         selectBlockExercise,
         exerciseName,

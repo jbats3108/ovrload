@@ -7,6 +7,11 @@ describe('emptyExercise', () => {
         expect(emptyExercise(42).exercise_id).toBe(42);
         expect(emptyExercise(42).deload_exercise_id).toBeNull();
         expect(emptyExercise(42).deload_working_weight_kg).toBeNull();
+        expect(emptyExercise(42).prescribed_reps).toBe(6);
+    });
+
+    it('uses prescribed reps when provided', () => {
+        expect(emptyExercise(42, 10).prescribed_reps).toBe(10);
     });
 });
 
@@ -20,6 +25,11 @@ describe('emptyBlock', () => {
         const b = emptyBlock({ superset: true, seedWarmUp: false, firstCatalogId: 1 });
         expect(b.is_superset).toBe(true);
         expect(b.exercises).toHaveLength(2);
+    });
+
+    it('seeds prescribed reps from options', () => {
+        const b = emptyBlock({ seedWarmUp: false, prescribedReps: 10 });
+        expect(b.exercises[0].prescribed_reps).toBe(10);
     });
 });
 

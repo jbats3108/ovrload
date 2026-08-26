@@ -563,7 +563,7 @@ class WorkoutService
     {
         return DB::transaction(function () use ($workout, $exerciseId): WorkoutBlock {
             $locked = $this->lockInProgressWorkout($workout);
-            $locked->load(['user', 'blocks.blockExercises']);
+            $locked->load(['user', 'blocks']);
 
             $exercise = Exercise::query()
                 ->forUser($locked->user)
@@ -575,9 +575,8 @@ class WorkoutService
             }
 
             $previousBlock = $locked->blocks->sortByDesc('position')->first();
-            $previousExercise = $previousBlock?->blockExercises->sortBy('position')->first();
             $position = ((int) ($previousBlock?->position ?? 0)) + 1;
-            $targetReps = max(1, (int) ($previousExercise?->prescribed_reps ?? 6));
+            $targetReps = $locked->user->resolvedDefaultTargetReps();
 
             $adHocBlock = WorkoutBlock::create([
                 'workout_id' => $locked->id,

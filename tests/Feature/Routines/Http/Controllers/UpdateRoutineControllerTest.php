@@ -280,7 +280,7 @@ class UpdateRoutineControllerTest extends TestCase
                 ->has('warm_up_defaults')
                 ->has('warm_up_defaults_scope')
                 ->has('achievement_floor_default')
-                ->missing('progression_target_default')
+                ->where('progression_target_default', 6)
                 ->where('routine.blocks.0.working.dropsets.0.set_index', 1)
                 ->where('routine.blocks.0.working.dropsets.0.segments.0.weight_kg', 20)
                 ->where('routine.blocks.0.working.dropsets.0.segments.1.weight_kg', 8)
