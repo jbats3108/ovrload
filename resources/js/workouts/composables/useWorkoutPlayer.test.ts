@@ -314,6 +314,32 @@ describe('createWorkoutPlayer', () => {
         expect(player.restSecondsLeft.value).toBe(0);
     });
 
+    it('uses the server notification instead of a duplicate local notification', () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
+        inertiaMocks().inertiaFormPost.mockImplementation((url, options) => {
+            if (url === '/workouts.sets.complete') {
+                options?.onSuccess?.();
+            }
+            if (url === '/workouts.rest-timers.start') {
+                options?.onSuccess?.({ id: 99 });
+            }
+        });
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    sets: [playerSet({ id: 1, completed: false, rest_seconds: 3 }), playerSet({ id: 2, set_index: 1, completed: false })],
+                }),
+            ],
+        });
+        player.logSheetOpen.value = true;
+        player.completeSet();
+
+        vi.advanceTimersByTime(3000);
+
+        expect(restAlert.notifyRestEnded).toHaveBeenCalledWith({ showNotification: false });
+    });
+
     it('beeps once per remaining second in the last five seconds of rest', () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));

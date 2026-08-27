@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'web_push' => [
+        'subject' => env('WEB_PUSH_VAPID_SUBJECT'),
+        'public_key' => env('WEB_PUSH_VAPID_PUBLIC_KEY'),
+        'private_key' => env('WEB_PUSH_VAPID_PRIVATE_KEY'),
+        'connect_timeout' => (float) env('WEB_PUSH_CONNECT_TIMEOUT', 3),
+        'timeout' => (float) env('WEB_PUSH_TIMEOUT', 10),
+    ],
+
 ];

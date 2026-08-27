@@ -34,6 +34,7 @@ use App\Shared\Http\Controllers\StoreInviteRequestController;
 use App\Workouts\Http\Controllers\AddAdHocExerciseController;
 use App\Workouts\Http\Controllers\AddWorkingSetController;
 use App\Workouts\Http\Controllers\ApplyProgressionBumpsController;
+use App\Workouts\Http\Controllers\CancelRestTimerController;
 use App\Workouts\Http\Controllers\CompleteWorkoutSetController;
 use App\Workouts\Http\Controllers\CreateHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\DeleteWorkoutHistoryController;
@@ -50,6 +51,7 @@ use App\Workouts\Http\Controllers\ShowProgressionController;
 use App\Workouts\Http\Controllers\ShowWorkoutHistoryController;
 use App\Workouts\Http\Controllers\SkipProgressionController;
 use App\Workouts\Http\Controllers\SkipRestOfBlockController;
+use App\Workouts\Http\Controllers\StartRestTimerController;
 use App\Workouts\Http\Controllers\StoreHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\StoreWorkoutController;
 use App\Workouts\Http\Controllers\UpdateWorkoutHistorySetController;
@@ -194,6 +196,14 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/{workout}/blocks/{block}/skip-rest', SkipRestOfBlockController::class)
             ->can('update', 'workout')
             ->name('workouts.blocks.skip-rest');
+
+        Route::post('/{workout}/rest-timers', StartRestTimerController::class)
+            ->can('update', 'workout')
+            ->name('workouts.rest-timers.start');
+
+        Route::delete('/{workout}/rest-timers/{timer}', CancelRestTimerController::class)
+            ->can('update', 'workout')
+            ->name('workouts.rest-timers.destroy');
 
         Route::delete('/{workout}/sets/{set}', RemoveWorkingSetController::class)
             ->can('update', 'workout')

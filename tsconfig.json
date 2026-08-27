@@ -16,7 +16,8 @@
         "lib": [
             "ESNext",
             "DOM",
-            "DOM.Iterable"
+            "DOM.Iterable",
+            "WebWorker"
         ] /* Specify a set of bundled library declaration files that describe the target runtime environment. */,
         "jsx": "preserve" /* Specify what JSX code is generated. */,
         "jsxImportSource": "vue" /* Specify module specifier used to import the JSX factory functions when using 'jsx: react-jsx*'. */,

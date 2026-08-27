@@ -30,6 +30,7 @@ const inertia = vi.hoisted(() => {
             },
             put: inertiaFormPut,
             post: inertiaFormPost,
+            delete: inertiaFormPost,
             reset: vi.fn(),
         });
     }

@@ -11,7 +11,7 @@ export function isPathActive(path: string, match: string): boolean {
 }
 
 export function isPreferencesActive(path: string): boolean {
-    return isPathActive(path, '/settings/training') || isPathActive(path, '/settings/appearance');
+    return isPathActive(path, '/settings/training') || isPathActive(path, '/settings/appearance') || isPathActive(path, '/settings/notifications');
 }
 
 export function isAccountActive(path: string): boolean {
@@ -35,6 +35,7 @@ export function preferencesNavItems(route: ZiggyRouteFn): AppNavLink[] {
     return [
         { href: route('training.edit'), label: 'Training', match: '/settings/training' },
         { href: route('appearance'), label: 'Appearance', match: '/settings/appearance' },
+        { href: route('notifications.edit'), label: 'Notifications', match: '/settings/notifications' },
     ];
 }
 

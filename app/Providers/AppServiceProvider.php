@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Notifications\Contracts\PushNotificationSender;
+use App\Notifications\Services\WebPushNotificationSender;
 use App\Routines\Models\Routine;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
     #[Override]
     public function register(): void
     {
-        //
+        $this->app->bind(PushNotificationSender::class, WebPushNotificationSender::class);
     }
 
     /**

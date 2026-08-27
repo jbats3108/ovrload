@@ -4,6 +4,7 @@ namespace App\Users\Models;
 
 use App\Auth\Models\RegistrationInvite;
 use App\Exercises\Models\Exercise;
+use App\Notifications\Models\PushSubscription;
 use App\Routines\Models\Routine;
 use App\Users\Enums\BumpWhen;
 use App\Users\Enums\WarmUpDefaultsScope;
@@ -158,6 +159,12 @@ class User extends Authenticatable
     public function workouts(): HasMany
     {
         return $this->hasMany(Workout::class);
+    }
+
+    /** @return HasMany<PushSubscription, $this> */
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
     }
 
     /** @return HasOne<PlateProfile, $this> */

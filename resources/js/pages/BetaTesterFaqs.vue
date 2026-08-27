@@ -191,6 +191,11 @@ function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
                             <BrandName /> is a progressive web app — open it in your phone browser, then add it to your home screen for a full-screen
                             icon (no App Store / Play Store).
                         </p>
+                        <p>
+                            To receive a lock-screen alert when a rest period ends, install it first, open it from the new home-screen icon, then go
+                            to Preferences → Notifications and enable rest notifications. iPhone support requires iOS 16.4 or later, network access,
+                            and notification permission.
+                        </p>
                         <ul class="list-disc space-y-4 pl-5">
                             <li>
                                 <span class="font-medium text-foreground">iPhone / iPad (Safari)</span>

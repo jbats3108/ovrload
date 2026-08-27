@@ -26,7 +26,7 @@ import {
 } from '@/workouts/lib/sets';
 import { abandonWorkout as abandonWorkoutMutation, finishWorkout as finishWorkoutMutation } from '@/workouts/lib/workoutMutations';
 import type { Focus, PlateProfile, WorkoutPayload } from '@/workouts/types';
-import { router, useForm } from '@inertiajs/vue3';
+import { router, useForm, useHttp } from '@inertiajs/vue3';
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch, type InjectionKey } from 'vue';
 
 export type PlayWorkoutProps = {
@@ -65,6 +65,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     let removeBeforeListener: (() => void) | undefined;
     let removeVisibilityListener: (() => void) | undefined;
     let removeRestVisibilityListener: (() => void) | undefined;
+    let restTimerId: number | null = null;
+    let restScheduleVersion = 0;
+    let serverRestNotificationScheduled = false;
 
     const flatSets = computed(() => flattenPlayerSets(props.workout.blocks));
 
@@ -77,8 +80,25 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         weight_kg: 0,
         segments: [] as Array<{ weight_kg: number }>,
     });
+    const restTimerHttp = useHttp<{ seconds: number }, { id?: number }>({ seconds: 0 });
+    const restTimerCancelHttp = useHttp<Record<string, never>>({});
 
-    const clearRest = () => {
+    const cancelServerRestTimer = (timerId: number | null = restTimerId) => {
+        restScheduleVersion += 1;
+        if (timerId === null) {
+            return;
+        }
+
+        if (restTimerId === timerId) {
+            restTimerId = null;
+        }
+
+        restTimerCancelHttp.delete(route('workouts.rest-timers.destroy', { workout: props.workout.id, timer: timerId }), {
+            onError: () => {},
+        });
+    };
+
+    const clearRest = (cancelServerTimer = true) => {
         if (restTimer) {
             clearInterval(restTimer);
             restTimer = null;
@@ -86,13 +106,21 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         restEndsAt = 0;
         restSecondsLeft.value = 0;
         lastCountdownBeepSecond = null;
+        if (cancelServerTimer) {
+            cancelServerRestTimer();
+            serverRestNotificationScheduled = false;
+        } else {
+            restTimerId = null;
+        }
         removeRestVisibilityListener?.();
         removeRestVisibilityListener = undefined;
     };
 
     const finishRest = () => {
-        clearRest();
-        notifyRestEnded();
+        const serverNotificationScheduled = serverRestNotificationScheduled;
+        clearRest(false);
+        notifyRestEnded({ showNotification: !serverNotificationScheduled });
+        serverRestNotificationScheduled = false;
         focus.value = firstIncomplete();
     };
 
@@ -135,6 +163,30 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         };
         document.addEventListener('visibilitychange', onRestVisibility);
         removeRestVisibilityListener = () => document.removeEventListener('visibilitychange', onRestVisibility);
+
+        const requestVersion = restScheduleVersion;
+        restTimerHttp.seconds = seconds;
+        restTimerHttp.post(route('workouts.rest-timers.start', { workout: props.workout.id }), {
+            onSuccess: (response) => {
+                const timerId = typeof response?.id === 'number' ? response.id : null;
+                if (timerId === null) {
+                    serverRestNotificationScheduled = false;
+                    return;
+                }
+
+                if (requestVersion !== restScheduleVersion || restEndsAt <= Date.now()) {
+                    serverRestNotificationScheduled = false;
+                    cancelServerRestTimer(timerId);
+                    return;
+                }
+
+                restTimerId = timerId;
+                serverRestNotificationScheduled = true;
+            },
+            onError: () => {
+                serverRestNotificationScheduled = false;
+            },
+        });
     };
 
     watch(

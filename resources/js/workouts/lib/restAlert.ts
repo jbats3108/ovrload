@@ -11,6 +11,7 @@ let sharedAudioContext: AudioContext | null = null;
 export type RestAlertOptions = {
     title?: string;
     body?: string;
+    showNotification?: boolean;
 };
 
 /** @internal test helper */
@@ -158,13 +159,12 @@ export function notifyRestEnded(options: RestAlertOptions = {}): void {
     const playedSound = playRestEndSound();
     vibrateRestEnd();
 
-    if (Notification.permission === 'granted' && (!playedSound || document.hidden)) {
+    if (options.showNotification !== false && Notification.permission === 'granted' && (!playedSound || document.hidden)) {
         showRestEndNotification(options);
     }
 }
 
-/** User-gesture entry point: prime audio and optionally request notification access. */
+/** User-gesture entry point: prime audio without prompting for notification access. */
 export function prepareRestAlerts(): void {
     primeRestAlerts();
-    void ensureRestNotificationPermission();
 }

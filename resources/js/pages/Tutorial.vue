@@ -10,6 +10,7 @@ const isSignedIn = computed(() => Boolean(page.props.auth.user));
 
 const toc = [
     { href: '#install', label: 'Install on your phone' },
+    { href: '#notifications', label: 'Rest notifications' },
     { href: '#oriented', label: 'Get oriented' },
     { href: '#training', label: 'Training preferences' },
     { href: '#editor', label: 'Create a routine' },
@@ -73,6 +74,29 @@ const toc = [
                 </ul>
                 <p class="text-muted-foreground">
                     After install, open <BrandName /> from the home-screen icon rather than a browser tab when you train.
+                </p>
+            </section>
+
+            <section id="notifications" class="mt-12 scroll-mt-20 space-y-3">
+                <h2 class="text-2xl font-bold tracking-tight">Get a lock-screen rest alert</h2>
+                <p class="text-muted-foreground">
+                    Open <strong class="text-foreground">Preferences</strong>, choose <strong class="text-foreground">Notifications</strong>, and tap
+                    <strong class="text-foreground">Enable rest notifications</strong>. OVRLOAD sends one notification when a rest period ends, so the
+                    phone can be locked while you wait.
+                </p>
+                <p class="text-muted-foreground">
+                    On iPhone, first add <BrandName /> to the Home Screen from Safari using Share →
+                    <strong class="text-foreground">Add to Home Screen</strong>, then open it from the new icon. Allow notifications when prompted.
+                    Android users should install the app from Chrome before enabling notifications too.
+                </p>
+                <p class="text-muted-foreground">
+                    The alert needs network access and your phone’s notification permission. Focus modes, notification settings, and notification
+                    sounds remain under your phone’s control. Without the alert enabled, the in-app timer still works while the page is awake.
+                </p>
+                <p v-if="isSignedIn">
+                    <Link :href="route('notifications.edit')" class="font-medium text-primary underline-offset-2 hover:underline">
+                        Open Notification Preferences
+                    </Link>
                 </p>
             </section>
 
@@ -158,10 +182,11 @@ const toc = [
                     that set.
                 </p>
                 <p class="text-muted-foreground">
-                    Rest counts down with ticks near the end. Skip rest if you need to. You can add or remove incomplete working sets mid-session —
-                    that edits this workout, not the routine. On a working set you can also
+                    Rest counts down with ticks near the end. If you enabled Notifications in Preferences, one lock-screen alert arrives when rest
+                    ends. Skip rest if you need to. You can add or remove incomplete working sets mid-session — that edits this workout, not the
+                    routine. On a working set you can also
                     <strong class="text-foreground">Promote to dropset</strong> or <strong class="text-foreground">Demote to single</strong> before
-                    you log it. Keep the tab open if you can; wake lock tries to stop the phone sleeping.
+                    you log it. Wake lock tries to stop the phone sleeping for the in-app timer.
                 </p>
                 <p class="text-muted-foreground">
                     Need an extra lift? Tap <strong class="text-foreground">Add exercise to workout</strong> in the action row. Choose a catalog or

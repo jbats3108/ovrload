@@ -1,8 +1,11 @@
 <?php
 
 use App\Settings\Http\Controllers\ExportUserDataController;
+use App\Settings\Http\Controllers\NotificationSettingsController;
 use App\Settings\Http\Controllers\PasswordController;
 use App\Settings\Http\Controllers\ProfileController;
+use App\Settings\Http\Controllers\RevokePushSubscriptionController;
+use App\Settings\Http\Controllers\StorePushSubscriptionController;
 use App\Settings\Http\Controllers\TrainingDefaultsController;
 use App\Settings\Http\Controllers\UpdatePlateProfileController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +26,12 @@ Route::middleware('auth')->group(function (): void {
         ->name('password.update');
 
     Route::get('settings/appearance', fn () => Inertia::render('settings/Appearance'))->name('appearance');
+    Route::get('settings/notifications', [NotificationSettingsController::class, 'edit'])->name('notifications.edit');
+    Route::post('settings/notifications/push-subscription', StorePushSubscriptionController::class)->name('notifications.subscription.store');
+    Route::delete(
+        'settings/notifications/push-subscription',
+        RevokePushSubscriptionController::class,
+    )->name('notifications.subscription.destroy');
 
     Route::get('settings/training', [TrainingDefaultsController::class, 'edit'])->name('training.edit');
     Route::put('settings/training', [TrainingDefaultsController::class, 'update'])->name('training.update');

@@ -126,6 +126,9 @@ export default defineConfig(({ mode, isSsrBuild }) => {
             VitePWA({
                 // Keep the plugin on SSR so `virtual:pwa-register` resolves; skip SW emit.
                 disable: isSsrBuild,
+                strategies: 'injectManifest',
+                srcDir: 'resources/js',
+                filename: 'sw.ts',
                 registerType: 'autoUpdate',
                 injectRegister: false,
                 manifest: false,
@@ -134,14 +137,12 @@ export default defineConfig(({ mode, isSsrBuild }) => {
                 scope: '/',
                 base: '/',
                 buildBase: '/',
-                workbox: {
+                injectManifest: {
                     globDirectory: resolve(import.meta.dirname, 'public/build'),
                     globPatterns: ['**/*.{js,css,ico,png,svg,woff2,webmanifest}'],
                     modifyURLPrefix: {
                         '': '/build/',
                     },
-                    navigateFallback: null,
-                    cleanupOutdatedCaches: true,
                     additionalManifestEntries: [
                         { url: '/manifest.webmanifest', revision: '2' },
                         { url: '/pwa-192x192.png', revision: '2' },

@@ -80,6 +80,7 @@ class WorkoutService
 
     public function __construct(
         private readonly WorkoutProgressionService $progressionService,
+        private readonly RestTimerService $restTimerService,
     ) {}
 
     /**
@@ -729,6 +730,8 @@ class WorkoutService
         }
 
         DB::transaction(function () use ($block): void {
+            $this->restTimerService->cancelForWorkout($block->workout);
+
             foreach ($block->setGroups as $group) {
                 $incompleteIds = $group->sets
                     ->filter(fn (WorkoutSet $set): bool => $set->completed_at === null)
@@ -786,6 +789,7 @@ class WorkoutService
             $locked->status = WorkoutStatus::Finished;
             $locked->finished_at = now();
             $locked->save();
+            $this->restTimerService->cancelForWorkout($locked);
 
             $workout->status = $locked->status;
             $workout->finished_at = $locked->finished_at;
@@ -804,6 +808,7 @@ class WorkoutService
 
             $locked->status = WorkoutStatus::Discarded;
             $locked->save();
+            $this->restTimerService->cancelForWorkout($locked);
 
             $workout->status = $locked->status;
         });

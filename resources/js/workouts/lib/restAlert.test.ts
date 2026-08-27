@@ -145,6 +145,12 @@ describe('restAlert', () => {
         expect(Notification).toHaveBeenCalled();
     });
 
+    it('can suppress the local notification when server push is scheduled', () => {
+        notifyRestEnded({ showNotification: false });
+
+        expect(Notification).not.toHaveBeenCalled();
+    });
+
     it('creates an audio context for the rest-end tone', () => {
         resetRestAlertsForTests();
         const start = vi.fn();
@@ -189,7 +195,7 @@ describe('restAlert', () => {
         expect(Notification).toHaveBeenCalled();
     });
 
-    it('primes audio and requests permission from a user gesture helper', () => {
+    it('primes audio without requesting notification permission from the player', () => {
         resetRestAlertsForTests();
         mockNotification('default');
         const resume = vi.fn().mockResolvedValue(undefined);
@@ -207,7 +213,7 @@ describe('restAlert', () => {
         prepareRestAlerts();
 
         expect(resume).toHaveBeenCalled();
-        expect(Notification.requestPermission).toHaveBeenCalled();
+        expect(Notification.requestPermission).not.toHaveBeenCalled();
     });
 
     it('only beeps countdown for the last five seconds', () => {

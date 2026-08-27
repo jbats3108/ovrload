@@ -24,6 +24,7 @@ describe('isPreferencesActive', () => {
         expect(isPreferencesActive('/settings/training')).toBe(true);
         expect(isPreferencesActive('/settings/training/plates')).toBe(true);
         expect(isPreferencesActive('/settings/appearance')).toBe(true);
+        expect(isPreferencesActive('/settings/notifications')).toBe(true);
         expect(isPreferencesActive('/settings/profile')).toBe(false);
     });
 });
@@ -51,7 +52,7 @@ describe('primaryNavItems', () => {
 describe('preferencesNavItems', () => {
     it('returns the preference links', () => {
         const links = preferencesNavItems(route);
-        expect(links.map((link) => link.label)).toEqual(['Training', 'Appearance']);
+        expect(links.map((link) => link.label)).toEqual(['Training', 'Appearance', 'Notifications']);
     });
 });
 
