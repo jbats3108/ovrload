@@ -43,14 +43,12 @@ class WelcomeBetaTesterMailTest extends TestCase
             'invite' => $invite->token,
         ])->assertRedirect(route('dashboard', absolute: false));
 
-        Mail::assertQueued(WelcomeBetaTesterMail::class, function (WelcomeBetaTesterMail $mail): bool {
-            return $mail->hasTo('buddy@example.com')
-                && $mail->userName === 'Buddy'
-                && $mail->tutorialUrl === route('tutorial', absolute: true)
-                && $mail->faqsUrl === route('beta-tester-faqs', absolute: true)
-                && $mail->replyToEmail === 'jamie@example.com'
-                && $mail->replyToName === 'Jamie';
-        });
+        Mail::assertQueued(WelcomeBetaTesterMail::class, fn (WelcomeBetaTesterMail $mail): bool => $mail->hasTo('buddy@example.com')
+            && $mail->userName === 'Buddy'
+            && $mail->tutorialUrl === route('tutorial', absolute: true)
+            && $mail->faqsUrl === route('beta-tester-faqs', absolute: true)
+            && $mail->replyToEmail === 'jamie@example.com'
+            && $mail->replyToName === 'Jamie');
     }
 
     #[Test]
@@ -75,9 +73,7 @@ class WelcomeBetaTesterMailTest extends TestCase
             'invite' => $invite->token,
         ])->assertRedirect(route('dashboard', absolute: false));
 
-        Mail::assertQueued(WelcomeBetaTesterMail::class, function (WelcomeBetaTesterMail $mail): bool {
-            return $mail->replyToEmail === 'admin@ovr-load.co.uk'
-                && $mail->replyToName === 'Jamie';
-        });
+        Mail::assertQueued(WelcomeBetaTesterMail::class, fn (WelcomeBetaTesterMail $mail): bool => $mail->replyToEmail === 'admin@ovr-load.co.uk'
+            && $mail->replyToName === 'Jamie');
     }
 }
