@@ -14,21 +14,22 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
-1. **Default Target reps in Training** — Preferences field; seeds new editor blocks and Play ad-hoc (fallback 6)
-2. **Demote dropset → single in Play** — incomplete dropset → clear segments back to a single (mirror of Promote)
-3. **Add exercise in Play** — snapshot-only ad-hoc exercise from catalog/custom picker; three working sets; current focus stays in place; no progression
-4. **Fewer dashboard history items** — dashboard recent strip shows 3, not 5
-5. **PWA install instructions** — FAQ “How do I install…?” + tutorial `#install` (iOS Safari Share → Add to Home Screen; Android Chrome Install / Add to Home screen)
-6. **Tutorial** — public `/tutorial` walkthrough (page first; in-app tour later); Preferences / Account / empty Dashboard / History entry points; device-matched screenshots
-7. **Custom user exercises** — private per-user customs from routine ExercisePicker; shared catalog stays admin/import-only
-8. **Choose an alternate exercise for Deload sessions** — optional Deload Alternate (exercise + own weight) per block exercise; Deload snapshot only; Singles when alternate set
-9. **Laravel Sail local stack** — Dockerised local app (PHP/MySQL/Redis/Mailpit/queue/Vite); `npm run sail:up` LAN phone access; host `composer run dev` fallback (#63)
-10. **Add Historical Workouts** — History → Add historical; when-first (no “now” default); deload; +/− set / mark group skipped; warm-ups %×Set 1 (hint + override); progression only if latest non-deload; OK while Play in progress; UI “group” not “block” on skip actions
-11. **Skip rest of block** — − Set trims incomplete rounds (never last); confirmed Skip rest of group deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History (#64)
-12. **Since-last-deload counts** — per-routine dashboard standards since latest finished deload; soft Deload hint at ≥ Deload Velocity (`deload_every_n`, editor + Training defaults; 0 = never); #47
-13. **Domain mail + beta forms + PWA icons** — Resend domain mailboxes; invite `MAIL_REPLY_TO_ADDRESS`; first-party `/invite-request` & `/feedback` (stored + notify invite@/feedback@); privacy drops Tally; Ko-Fi link; padded/maskable PWA icons (#56)
-14. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); `exercises:import` soft-deletes extras unless `--no-prune`
-15. **Nicer confirms** — ~~replace browser `confirm`/`alert` with in-app dialogs~~ done (`confirmDialog` + `ConfirmDialogHost`; RestStage inline skip unchanged)
+1. **Welcome email** — queued mail on register; tutorial + Beta FAQs links; reply-to Jamie / admin mailbox
+2. **Default Target reps in Training** — Preferences field; seeds new editor blocks and Play ad-hoc (fallback 6)
+3. **Demote dropset → single in Play** — incomplete dropset → clear segments back to a single (mirror of Promote)
+4. **Add exercise in Play** — snapshot-only ad-hoc exercise from catalog/custom picker; three working sets; current focus stays in place; no progression
+5. **Fewer dashboard history items** — dashboard recent strip shows 3, not 5
+6. **PWA install instructions** — FAQ “How do I install…?” + tutorial `#install` (iOS Safari Share → Add to Home Screen; Android Chrome Install / Add to Home screen)
+7. **Tutorial** — public `/tutorial` walkthrough (page first; in-app tour later); Preferences / Account / empty Dashboard / History entry points; device-matched screenshots
+8. **Custom user exercises** — private per-user customs from routine ExercisePicker; shared catalog stays admin/import-only
+9. **Choose an alternate exercise for Deload sessions** — optional Deload Alternate (exercise + own weight) per block exercise; Deload snapshot only; Singles when alternate set
+10. **Laravel Sail local stack** — Dockerised local app (PHP/MySQL/Redis/Mailpit/queue/Vite); `npm run sail:up` LAN phone access; host `composer run dev` fallback (#63)
+11. **Add Historical Workouts** — History → Add historical; when-first (no “now” default); deload; +/− set / mark group skipped; warm-ups %×Set 1 (hint + override); progression only if latest non-deload; OK while Play in progress; UI “group” not “block” on skip actions
+12. **Skip rest of block** — − Set trims incomplete rounds (never last); confirmed Skip rest of group deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History (#64)
+13. **Since-last-deload counts** — per-routine dashboard standards since latest finished deload; soft Deload hint at ≥ Deload Velocity (`deload_every_n`, editor + Training defaults; 0 = never); #47
+14. **Domain mail + beta forms + PWA icons** — Resend domain mailboxes; invite `MAIL_REPLY_TO_ADDRESS`; first-party `/invite-request` & `/feedback` (stored + notify invite@/feedback@); privacy drops Tally; Ko-Fi link; padded/maskable PWA icons (#56)
+15. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); `exercises:import` soft-deletes extras unless `--no-prune`
+16. **Nicer confirms** — ~~replace browser `confirm`/`alert` with in-app dialogs~~ done (`confirmDialog` + `ConfirmDialogHost`; RestStage inline skip unchanged)
 13. **"Block" naming** — ~~UI/copy only: Play/History drop “Block N” (show `Superset` when needed); Up next drops Block N; setup hints use exercise names; editor/settings leftover noun = Exercise; domain `Block` unchanged~~ done
 14. **Set x/y in exercise header (Play)** — ~~set progress in the big exercise header (and log sheet), labeled Warm-up / Working~~ done
 15. **Bump when mode** — ~~Preferences “Bump when”: Any set / Last set at top weight; snapshotted on workout start; Floor kept for carry-forward; Bump = prescribed Target (no separate Progression Target / editor Bump); log sheet `Floor X. Bump @ Y`; confirm on finish + history re-eval~~ done
@@ -113,7 +114,6 @@ Public order matches `/beta-tester-faqs`.
 - **Bump between sets** — auto / config / ask whether to bump mid-block (not only on finish)
 - **In-app product tour** — after the public `/tutorial` page; own grill
 - **Account switcher**
-- **Welcome email** — tutorial is a prerequisite
 
 ### Polish & mobile integration
 
