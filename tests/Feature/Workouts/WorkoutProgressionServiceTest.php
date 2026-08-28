@@ -9,7 +9,7 @@ use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineDropsetSegment;
 use App\Routines\Models\RoutineSetGroup;
 use App\Shared\Enums\SetGroupType;
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
 use App\Users\Models\User;
 use App\Workouts\Enums\WorkoutMode;
 use App\Workouts\Models\WorkoutSet;
@@ -95,17 +95,17 @@ class WorkoutProgressionServiceTest extends TestCase
     }
 
     #[Test]
-    public function last_at_top_weight_skips_bump_when_top_set_misses_target(): void
+    public function progressive_overload_skips_finish_bump_when_top_set_misses_target(): void
     {
         [$routine] = $this->seedRoutine(
             workingWeightG: 20000,
             prescribedReps: 6,
             achievementFloor: 4,
-            bumpWhen: BumpWhen::LastAtTopWeight,
+            progressionStyle: ProgressionStyle::ProgressiveOverload,
             setCount: 3,
         );
         $workout = $this->workoutService->createWorkout($routine);
-        $this->assertSame(BumpWhen::LastAtTopWeight, $workout->bump_when);
+        $this->assertSame(ProgressionStyle::ProgressiveOverload, $workout->progression_style);
 
         $sets = $this->workingSets($workout->id);
         $this->workoutService->completeSet($sets[0], reps: 6, weightGrams: 20000);
@@ -118,21 +118,43 @@ class WorkoutProgressionServiceTest extends TestCase
     }
 
     #[Test]
-    public function last_at_top_weight_offers_bump_from_last_heaviest_set(): void
+    public function progressive_overload_skips_finish_bump_when_final_set_is_below_session_top(): void
     {
-        [$routine, $routineExercise] = $this->seedRoutine(
-            workingWeightG: 20000,
+        [$routine] = $this->seedRoutine(
+            workingWeightG: 80000,
             prescribedReps: 6,
             achievementFloor: 4,
-            bumpWhen: BumpWhen::LastAtTopWeight,
+            progressionStyle: ProgressionStyle::ProgressiveOverload,
             setCount: 3,
         );
         $workout = $this->workoutService->createWorkout($routine);
 
         $sets = $this->workingSets($workout->id);
-        $this->workoutService->completeSet($sets[0], reps: 6, weightGrams: 20000);
-        $this->workoutService->completeSet($sets[1], reps: 6, weightGrams: 20000);
-        $this->workoutService->completeSet($sets[2], reps: 4, weightGrams: 15000);
+        $this->workoutService->completeSet($sets[0], reps: 6, weightGrams: 85000);
+        $this->workoutService->completeSet($sets[1], reps: 6, weightGrams: 82500);
+        $this->workoutService->completeSet($sets[2], reps: 6, weightGrams: 82500);
+
+        $bumps = $this->workoutService->finishWorkout($workout);
+
+        $this->assertCount(0, $bumps);
+    }
+
+    #[Test]
+    public function progressive_overload_offers_finish_bump_when_final_set_is_at_session_top(): void
+    {
+        [$routine, $routineExercise] = $this->seedRoutine(
+            workingWeightG: 80000,
+            prescribedReps: 6,
+            achievementFloor: 4,
+            progressionStyle: ProgressionStyle::ProgressiveOverload,
+            setCount: 3,
+        );
+        $workout = $this->workoutService->createWorkout($routine);
+
+        $sets = $this->workingSets($workout->id);
+        $this->workoutService->completeSet($sets[0], reps: 6, weightGrams: 80000);
+        $this->workoutService->completeSet($sets[1], reps: 6, weightGrams: 82500);
+        $this->workoutService->completeSet($sets[2], reps: 6, weightGrams: 85000);
 
         $bumps = $this->workoutService->finishWorkout($workout);
 
@@ -141,13 +163,36 @@ class WorkoutProgressionServiceTest extends TestCase
     }
 
     #[Test]
-    public function any_set_still_offers_bump_when_earlier_set_hit_target(): void
+    public function progressive_overload_offers_finish_bump_when_last_top_set_hits_target(): void
+    {
+        [$routine, $routineExercise] = $this->seedRoutine(
+            workingWeightG: 20000,
+            prescribedReps: 6,
+            achievementFloor: 4,
+            progressionStyle: ProgressionStyle::ProgressiveOverload,
+            setCount: 3,
+        );
+        $workout = $this->workoutService->createWorkout($routine);
+
+        $sets = $this->workingSets($workout->id);
+        $this->workoutService->completeSet($sets[0], reps: 6, weightGrams: 20000);
+        $this->workoutService->completeSet($sets[1], reps: 6, weightGrams: 20000);
+        $this->workoutService->completeSet($sets[2], reps: 6, weightGrams: 20000);
+
+        $bumps = $this->workoutService->finishWorkout($workout);
+
+        $this->assertCount(1, $bumps);
+        $this->assertSame($routineExercise->id, $bumps->first()->routineBlockExerciseId);
+    }
+
+    #[Test]
+    public function straight_sets_offers_finish_bump_when_any_set_hit_target(): void
     {
         [$routine] = $this->seedRoutine(
             workingWeightG: 20000,
             prescribedReps: 6,
             achievementFloor: 4,
-            bumpWhen: BumpWhen::AnySet,
+            progressionStyle: ProgressionStyle::StraightSets,
             setCount: 3,
         );
         $workout = $this->workoutService->createWorkout($routine);
@@ -319,12 +364,12 @@ class WorkoutProgressionServiceTest extends TestCase
         int $workingWeightG,
         int $prescribedReps,
         int $achievementFloor,
-        BumpWhen $bumpWhen = BumpWhen::AnySet,
+        ProgressionStyle $progressionStyle = ProgressionStyle::StraightSets,
         int $setCount = 1,
     ): array {
         $user = User::factory()->create([
             'achievement_floor_default' => $achievementFloor,
-            'bump_when_default' => $bumpWhen,
+            'progression_style_default' => $progressionStyle,
         ]);
         $routine = Routine::factory()->create(['user_id' => $user->id]);
         $block = RoutineBlock::create([

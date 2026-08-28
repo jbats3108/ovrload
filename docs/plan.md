@@ -32,7 +32,8 @@ Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first withi
 16. **Nicer confirms** — ~~replace browser `confirm`/`alert` with in-app dialogs~~ done (`confirmDialog` + `ConfirmDialogHost`; RestStage inline skip unchanged)
 13. **"Block" naming** — ~~UI/copy only: Play/History drop “Block N” (show `Superset` when needed); Up next drops Block N; setup hints use exercise names; editor/settings leftover noun = Exercise; domain `Block` unchanged~~ done
 14. **Set x/y in exercise header (Play)** — ~~set progress in the big exercise header (and log sheet), labeled Warm-up / Working~~ done
-15. **Bump when mode** — ~~Preferences “Bump when”: Any set / Last set at top weight; snapshotted on workout start; Floor kept for carry-forward; Bump = prescribed Target (no separate Progression Target / editor Bump); log sheet `Floor X. Bump @ Y`; confirm on finish + history re-eval~~ done
+15. **Progression style + mid-block bumps** — ~~Preferences “Progression style”: Straight Sets / Progressive Overload; Progressive mid-block Ask or Auto; snapshotted on workout start; per-set next-set +2.5 kg ramp; finish bump rules bundled per style; Tutorial updated~~ done
+16. **Bump when mode** — ~~superseded by Progression style (Straight Sets ≈ any set at finish; Progressive ≈ last at top at finish + mid-block)~~ done
 16. **PWA app shell** — ~~tabbed app shell; haptics~~ done (mobile bottom tabs: Dashboard · History · Preferences · Account, plus Admin for admins; desktop sidebar unchanged; player haptics on Done / Log set; rest-end vibrate already shipped)
 17. **Duplicate routine** — ~~clone an existing routine as a starting point~~ done (POST duplicate; deep-copies blocks / set groups / warm-ups / dropsets / deload; opens editor as `{name} (copy)`)
 18. **Superset setup preview** — ~~show both exercises during setup~~ done (Setup Up Next lists A + B for the upcoming round)
@@ -111,7 +112,6 @@ Public order matches `/beta-tester-faqs`.
 - **Dropsets on supersets**
 - **Flaky-network drafts** — best-effort offline/queue for player logging
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
-- **Bump between sets** — auto / config / ask whether to bump mid-block (not only on finish)
 - **In-app product tour** — after the public `/tutorial` page; own grill
 - **Account switcher**
 

@@ -2,7 +2,8 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,7 +34,8 @@ class TrainingDefaultsTest extends TestCase
             ->where('warm_up_defaults_scope', 'all_blocks')
             ->where('achievement_floor_default', null)
             ->where('progression_target_default', 6)
-            ->where('bump_when_default', 'any_set')
+            ->where('progression_style_default', 'straight_sets')
+            ->where('progressive_mid_block_default', 'ask')
             ->where('deload_weight_factor_default', 0.5)
             ->where('deload_reps_factor_default', 2)
             ->where('deload_every_n_default', 3)
@@ -82,7 +84,8 @@ class TrainingDefaultsTest extends TestCase
             ],
             'warm_up_defaults_scope' => 'all_blocks',
             'achievement_floor_default' => 1,
-            'bump_when_default' => 'any_set',
+            'progression_style_default' => 'straight_sets',
+            'progressive_mid_block_default' => 'ask',
         ]);
 
         $response->assertRedirect(route('training.edit'));
@@ -100,7 +103,8 @@ class TrainingDefaultsTest extends TestCase
             ],
             'warm_up_defaults_scope' => 'all_blocks',
             'progression_target_default' => 8,
-            'bump_when_default' => 'any_set',
+            'progression_style_default' => 'straight_sets',
+            'progressive_mid_block_default' => 'ask',
         ]);
 
         $response->assertRedirect(route('training.edit'));
@@ -119,7 +123,8 @@ class TrainingDefaultsTest extends TestCase
             ],
             'warm_up_defaults_scope' => 'all_blocks',
             'progression_target_default' => 0,
-            'bump_when_default' => 'any_set',
+            'progression_style_default' => 'straight_sets',
+            'progressive_mid_block_default' => 'ask',
         ])->assertSessionHasErrors('progression_target_default');
     }
 
@@ -136,7 +141,8 @@ class TrainingDefaultsTest extends TestCase
             ],
             'warm_up_defaults_scope' => 'all_blocks',
             'achievement_floor_default' => null,
-            'bump_when_default' => 'any_set',
+            'progression_style_default' => 'straight_sets',
+            'progressive_mid_block_default' => 'ask',
         ]);
 
         $response->assertRedirect(route('training.edit'));
@@ -146,20 +152,22 @@ class TrainingDefaultsTest extends TestCase
     }
 
     #[Test]
-    public function it_saves_bump_when_default(): void
+    public function it_saves_progression_style_defaults(): void
     {
         $response = $this->actingAs($this->user)->put(route('training.update'), [
             'warm_up_steps_default' => [
                 ['percent' => 40, 'reps' => 5],
             ],
             'warm_up_defaults_scope' => 'all_blocks',
-            'bump_when_default' => 'last_at_top_weight',
+            'progression_style_default' => 'progressive_overload',
+            'progressive_mid_block_default' => 'auto',
         ]);
 
         $response->assertRedirect(route('training.edit'));
 
         $this->user->refresh();
-        $this->assertSame(BumpWhen::LastAtTopWeight, $this->user->bump_when_default);
+        $this->assertSame(ProgressionStyle::ProgressiveOverload, $this->user->progression_style_default);
+        $this->assertSame(ProgressiveMidBlock::Auto, $this->user->progressive_mid_block_default);
     }
 
     #[Test]
@@ -170,7 +178,8 @@ class TrainingDefaultsTest extends TestCase
                 ['percent' => 40, 'reps' => 5],
             ],
             'warm_up_defaults_scope' => 'all_blocks',
-            'bump_when_default' => 'any_set',
+            'progression_style_default' => 'straight_sets',
+            'progressive_mid_block_default' => 'ask',
             'deload_weight_factor_default' => 0.7,
             'deload_reps_factor_default' => 1.5,
             'deload_every_n_default' => 4,
@@ -192,7 +201,8 @@ class TrainingDefaultsTest extends TestCase
                 ['percent' => 40, 'reps' => 5],
             ],
             'warm_up_defaults_scope' => 'all_blocks',
-            'bump_when_default' => 'any_set',
+            'progression_style_default' => 'straight_sets',
+            'progressive_mid_block_default' => 'ask',
             'deload_weight_factor_default' => 5.1,
             'deload_reps_factor_default' => 1,
             'deload_every_n_default' => 3,
@@ -203,7 +213,8 @@ class TrainingDefaultsTest extends TestCase
                 ['percent' => 40, 'reps' => 5],
             ],
             'warm_up_defaults_scope' => 'all_blocks',
-            'bump_when_default' => 'any_set',
+            'progression_style_default' => 'straight_sets',
+            'progressive_mid_block_default' => 'ask',
             'deload_weight_factor_default' => 0.5,
             'deload_reps_factor_default' => 1,
             'deload_every_n_default' => 100,
@@ -230,7 +241,8 @@ class TrainingDefaultsTest extends TestCase
         $this->put(route('training.update'), [
             'warm_up_steps_default' => [['percent' => 40, 'reps' => 5]],
             'warm_up_defaults_scope' => WarmUpDefaultsScope::AllBlocks->value,
-            'bump_when_default' => BumpWhen::AnySet->value,
+            'progression_style_default' => ProgressionStyle::StraightSets->value,
+            'progressive_mid_block_default' => ProgressiveMidBlock::Ask->value,
         ])->assertRedirect(route('login'));
 
         $this->post(route('training.reset'))->assertRedirect(route('login'));

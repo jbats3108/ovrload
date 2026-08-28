@@ -52,19 +52,23 @@ Minimum reps for a logged set’s weight to count as achieved. Optional; user de
 _Avoid_: Count reps, achieved-at, valid set threshold
 
 **Progression Target**:
-The exercise’s prescribed reps (**Target** in Play). Hitting this many reps at the working weight unlocks a bump suggestion (subject to **Bump When**). Not a separate setting.
+The exercise’s prescribed reps (**Target** in Play). Hitting this many reps at the working weight unlocks a bump suggestion (subject to **Progression Style**). Not a separate setting.
 _Avoid_: Bump reps, increase-at, progression threshold
 
-**Bump When**:
-Which completed working set(s) decide whether the Progression Target was hit for a bump suggestion. User default, snapshotted onto the Workout at start. **Any set**: any working set at or above the snapshotted working weight. **Last set at top weight**: among sets at the session’s heaviest weight, the last one (must still be at or above the snapshotted working weight).
-_Avoid_: Bump mode, progression style, confirm rule
+**Progression Style**:
+User default for how overload ramps within and after a workout; snapshotted onto the Workout at start. **Straight Sets**: same weight for every working set in a block; finish bump if any set hit Target. **Progressive Overload**: when a working set hits Target, raise the next working set by 2.5 kg (Ask on rest or Auto); finish bump only if the **final** working set in the block was at the session’s top weight and hit Target.
+_Avoid_: Bump mode, bump when, progression preset
+
+**Mid-block bump**:
+Within **Progressive Overload**, the +2.5 kg step applied to the **next** working set after Target is hit on the current set. Prefill only — logged weight always wins. Does not update the routine until finish carry-forward / confirmed finish bump.
+_Avoid_: Intra-set bump, auto-load
 
 **Carry-forward**:
 On finishing (or when re-evaluating an eligible finished workout), set the routine’s working weight for an exercise to the highest achieved top weight from that workout — without asking. Only raises weight; never lowers. Does not apply from deload workouts.
 _Avoid_: Sync, catch-up
 
 **Bump**:
-A confirmed increase to an exercise’s working weight on the routine, offered when the prescribed Target reps were hit under the Workout’s **Bump When** rule. Never silent. Each confirmation produces a **Bump Record**.
+A confirmed increase to an exercise’s working weight on the routine, offered when the prescribed Target reps were hit under the Workout’s **Progression Style** finish rule. Never silent. Each confirmation produces a **Bump Record**.
 _Avoid_: Increase, PR jump, auto-load
 
 **Bump Record**:

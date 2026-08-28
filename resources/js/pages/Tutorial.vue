@@ -113,15 +113,17 @@ const toc = [
                 </p>
                 <p class="text-muted-foreground">
                     <strong class="text-foreground">Achievement Floor</strong> is the minimum reps for a logged set’s weight to count as achieved
-                    (used when carry-forward raises the routine to your heaviest real top set). <strong class="text-foreground">Bump when</strong> is
-                    which set has to hit Target reps before the app offers a bump — any working set at the working weight, or only the last set at the
-                    session’s heaviest weight. Deload defaults and your bar/plate inventory live here too; the plate guide in Play uses that
-                    inventory.
+                    (used when carry-forward raises the routine to your heaviest real top set).
+                    <strong class="text-foreground">Progression style</strong> controls mid-session ramping and finish bumps:
+                    <strong class="text-foreground">Straight Sets</strong> keeps the same weight for every working set and offers a finish bump if any
+                    set hit Target; <strong class="text-foreground">Progressive Overload</strong> can raise the next set by 2.5 kg when Target is hit
+                    (ask on rest or auto) and offers a finish bump only when the final working set was at your session top weight and hit Target.
+                    Deload defaults and your bar/plate inventory live here too; the plate guide in Play uses that inventory.
                 </p>
                 <TutorialShot
                     name="training"
                     alt="Training preferences for warm-ups, progression, and deload defaults"
-                    caption="Preferences: warm-up ladder, Default Target reps, Floor, Bump when, and deload defaults that seed new routines."
+                    caption="Preferences: warm-up ladder, Default Target reps, Floor, Progression style, and deload defaults that seed new routines."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('training.edit')" class="font-medium text-primary underline-offset-2 hover:underline">Open Preferences</Link>

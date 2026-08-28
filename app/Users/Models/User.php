@@ -5,7 +5,8 @@ namespace App\Users\Models;
 use App\Auth\Models\RegistrationInvite;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Enums\WeightUnit;
 use App\Workouts\Models\Workout;
@@ -36,7 +37,8 @@ class User extends Authenticatable
         'weight_unit',
         'achievement_floor_default',
         'progression_target_default',
-        'bump_when_default',
+        'progression_style_default',
+        'progressive_mid_block_default',
         'deload_weight_factor_default',
         'deload_reps_factor_default',
         'deload_every_n_default',
@@ -61,7 +63,8 @@ class User extends Authenticatable
             'weight_unit' => WeightUnit::class,
             'achievement_floor_default' => 'integer',
             'progression_target_default' => 'integer',
-            'bump_when_default' => BumpWhen::class,
+            'progression_style_default' => ProgressionStyle::class,
+            'progressive_mid_block_default' => ProgressiveMidBlock::class,
             'deload_weight_factor_default' => 'decimal:3',
             'deload_reps_factor_default' => 'decimal:3',
             'deload_every_n_default' => 'integer',
