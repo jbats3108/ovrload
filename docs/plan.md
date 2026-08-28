@@ -113,7 +113,11 @@ Public order matches `/beta-tester-faqs`.
 - **Flaky-network drafts** — best-effort offline/queue for player logging
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
 - **In-app product tour** — after the public `/tutorial` page; own grill
-- **Account switcher**
+- ~~**Account switcher**~~ — folded into **PT mode** grill (client switching)
+- **PT mode** — new user type; client roster; personal + client routines; PT→client share — grill: [PT mode](#grill-pt-mode)
+- **Exercise videos (PT)** — user-uploadable video per exercise/routine; PT-mode scope first — grill: [Exercise videos](#grill-exercise-videos-pt)
+- **Exercise profiles** — optional presets for reps, warm-up reps, rest (strength / hypertrophy / endurance) — grill: [Exercise profiles](#grill-exercise-profiles)
+- **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
 
 ### Polish & mobile integration
 
@@ -133,3 +137,97 @@ Public order matches `/beta-tester-faqs`.
 
 - **Soft host cap ~100 accounts** — prod: Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 - **Maintenance handoff plan** — reduce ongoing Cursor dependence so a human can keep the app running without constant AI spend
+
+## Backlog: 121 Feedback (gym owner)
+
+Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5dd99f0c8077bed9d976fb53af77).
+
+| Raw note | Feature |
+| --- | --- |
+| PT mode; contacts; account switcher | [PT mode](#grill-pt-mode) |
+| Share workouts | [PT mode](#grill-pt-mode) (PT→client; low demand for 1-2-1 individual share) |
+| Videos; custom videos with routines | [Exercise videos](#grill-exercise-videos-pt) |
+| Profiles (S/H/E reps, warm-ups, rest) | [Exercise profiles](#grill-exercise-profiles) |
+| Should warm-up reps change based on working reps? | [Exercise profiles](#grill-exercise-profiles) |
+| Time range rather than reps; rest 60s circuits | [Circuit workouts](#grill-circuit-workouts) |
+
+## Grill: PT mode
+
+**Motivation:** Gym-owner 1:1 — PTs need to manage many clients and their programmes, not just their own training.
+
+**Scope sketch (initial):**
+
+- New **User type** (PT) is the likely starting seam.
+- PT stores **personal** routines/workouts plus **client** routines (individual and possibly group).
+- **Contacts** = client roster (who the PT trains).
+- **Share workouts** lives here: primary case is **PT → client** (assign or push a routine). Demand for peer **individual → individual** share looks low for now.
+- Client **switching** (was “account switcher?” in raw notes) — PT moves between clients without separate logins per client.
+
+**Open (grill later):**
+
+- PT vs admin vs regular user — roles, invites, billing?
+- Client accounts: do clients need their own login, or PT-only records?
+- Group clients — one routine shared across a class, or tagged individuals?
+- Permissions: can clients edit assigned routines, or view-only / log-only?
+- Data ownership and GDPR when PT holds client data
+- How sharing is delivered (in-app assign, link, email?)
+
+## Grill: Exercise videos (PT)
+
+**Motivation:** Gym-owner 1:1 — attach demo/form videos to exercises or routines.
+
+**Scope sketch (initial):**
+
+- User-uploadable **video on an exercise** (or routine context TBD).
+- Restrict to **PT mode** first — PTs film demos for clients; not a general social upload surface.
+- Tied to routines the PT assigns (raw note: “save custom videos to go along with routines”).
+
+**Open (grill later):**
+
+- Storage and delivery: object storage, CDN, transcode, size/duration limits, cost at ~100 users
+- Who uploads, who views (PT only vs client sees assigned video)
+- Attach to shared catalog exercise vs custom exercise vs routine block
+- Privacy, retention, delete on client unlink
+- MVP: embed external URL (YouTube/Vimeo) vs hosted upload
+
+## Grill: Exercise profiles
+
+**Motivation:** Gym-owner 1:1 — named presets for training intent so reps, warm-ups, and rest stay coherent.
+
+**Scope sketch (initial):**
+
+- **Profiles** such as Strength, Hypertrophy, Endurance — each bundles defaults, e.g.:
+  - **S** → 1–6 reps, 2–3 warm-up reps
+  - **H** → 8–12 reps, ~90s rest
+  - **E** → 15+ reps
+- Applying a profile sets (or suggests) rep target, warm-up rep count, and rest for a block or exercise.
+- **Warm-up reps from working reps** (raw note) — likely a profile rule or derived default, not a separate feature.
+- **UX:** optional and easy to ignore, but **discoverable** — must not dominate editor/Play for users who never pick a profile.
+
+**Open (grill later):**
+
+- Profile granularity: per block, per exercise, user default, routine-level?
+- Built-in presets only vs user-defined profiles
+- Interaction with existing Preferences (default target reps, warm-up %s, progression style)
+- Override behaviour when profile applied to a block that already has values
+- Deload, dropsets, supersets — do profiles apply uniformly?
+
+## Grill: Circuit workouts
+
+**Motivation:** Gym-owner 1:1 — circuit-style training beyond two-exercise supersets.
+
+**Scope sketch (initial):**
+
+- New structure (like **Superset**, but **>2 exercises** per round).
+- **Rest between stages** within a circuit round; **longer rest at end** of the full circuit (cf. superset: transition A→B, then group rest).
+- **Rest presets** for circuit modes (raw note: “rest 60s circuits”) — same idea as presets elsewhere.
+- **Time range rather than reps** for circuit-style work (duration-based sets) — may belong here or as a circuit set type; grill together.
+
+**Open (grill later):**
+
+- Domain name and model: new block kind vs generalised “round group”
+- Max exercises per circuit; order within a round
+- Warm-ups and setup in circuits
+- Progression rules (if any) for timed vs rep-based circuit sets
+- Player UX: how “stage” rest differs visually from end-of-circuit rest
+- Relationship to existing Superset machinery — extend or parallel type
