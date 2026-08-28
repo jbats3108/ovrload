@@ -191,15 +191,31 @@ const toc = [
                     progressive overload, one lift at a time. The app never silently adds plates; you tick the lifts you want on the finish screen.
                 </p>
                 <p class="text-muted-foreground">
-                    You earn the offer when you hit the exercise’s prescribed
-                    <strong class="text-foreground">Target</strong> reps at (or above) the working weight, under your
-                    <strong class="text-foreground">Bump when</strong> rule. Say yes, and next time that lift starts heavier. Say no, and the routine
-                    stays put (carry-forward can still raise it if you already lifted more than the prescribed weight).
+                    You earn a <strong class="text-foreground">finish bump</strong> when you hit the exercise’s prescribed
+                    <strong class="text-foreground">Target</strong> reps at (or above) the snapshotted working weight. Which set counts depends on
+                    your <strong class="text-foreground">Progression style</strong> in Preferences (snapshotted when the workout starts):
+                </p>
+                <ul class="list-disc space-y-2 pl-6 text-muted-foreground">
+                    <li>
+                        <strong class="text-foreground">Straight Sets</strong> (default) — same weight for every working set in the block. A finish
+                        bump is offered if <em>any</em> working set at that weight hit Target.
+                    </li>
+                    <li>
+                        <strong class="text-foreground">Progressive Overload</strong> — when a working set hits Target, the <em>next</em> set can go
+                        up by 2.5 kg (Ask on rest, or Auto-bump next set). Logged weight always wins over the suggested bump. A finish bump is offered
+                        only if your <em>final</em> working set in the block was at the session’s top weight and hit Target — backing off on later
+                        sets (e.g. 85 → 82.5 → 82.5) does not earn a finish bump even if an earlier set was heavy.
+                    </li>
+                </ul>
+                <p class="text-muted-foreground">
+                    Mid-block bumps only change what Play prefills for the next set; they do not update the routine until you finish. Say yes to a
+                    finish bump and next time that lift starts heavier. Say no, and the routine stays put (carry-forward can still raise it if you
+                    already lifted more than the prescribed weight).
                 </p>
                 <p class="text-muted-foreground">
                     <strong class="text-foreground">Carry-forward</strong> is the quiet cousin: finishing a standard session sets the routine to the
-                    highest achieved top weight from that workout, without asking, and only ever up. A bump is the extra step when you hit Target.
-                    Deload sessions do neither.
+                    highest achieved top weight from that workout, without asking, and only ever up. A finish bump is the extra +2.5 kg step on top
+                    when you hit Target under your progression style. Deload sessions do neither.
                 </p>
             </section>
 
