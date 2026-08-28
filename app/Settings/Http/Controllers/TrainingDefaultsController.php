@@ -4,7 +4,8 @@ namespace App\Settings\Http\Controllers;
 
 use App\Shared\Http\Controllers\Controller;
 use App\Users\Data\UpdateTrainingDefaultsData;
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Models\User;
 use App\Users\Services\PlateProfileService;
@@ -26,7 +27,8 @@ class TrainingDefaultsController extends Controller
             'using_app_fallback' => $user->warm_up_steps_default === null,
             'achievement_floor_default' => $user->achievement_floor_default,
             'progression_target_default' => $user->resolvedDefaultTargetReps(),
-            'bump_when_default' => ($user->bump_when_default ?? BumpWhen::AnySet)->value,
+            'progression_style_default' => ($user->progression_style_default ?? ProgressionStyle::StraightSets)->value,
+            'progressive_mid_block_default' => ($user->progressive_mid_block_default ?? ProgressiveMidBlock::Ask)->value,
             'deload_weight_factor_default' => (float) $user->deload_weight_factor_default,
             'deload_reps_factor_default' => (float) $user->deload_reps_factor_default,
             'deload_every_n_default' => (int) $user->deload_every_n_default,
@@ -53,7 +55,8 @@ class TrainingDefaultsController extends Controller
         $user->warm_up_defaults_scope = $data->warmUpDefaultsScope;
         $user->achievement_floor_default = $data->achievementFloorDefault;
         $user->progression_target_default = $data->progressionTargetDefault;
-        $user->bump_when_default = $data->bumpWhenDefault;
+        $user->progression_style_default = $data->progressionStyleDefault;
+        $user->progressive_mid_block_default = $data->progressiveMidBlockDefault;
         $user->deload_weight_factor_default = $data->deloadWeightFactorDefault;
         $user->deload_reps_factor_default = $data->deloadRepsFactorDefault;
         $user->deload_every_n_default = $data->deloadEveryNDefault;

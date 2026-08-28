@@ -6,7 +6,8 @@ use App\Routines\Data\Editor\SyncWarmUpStepData;
 use App\Shared\Data\Validation\DeloadEveryN;
 use App\Shared\Data\Validation\DeloadRepsFactor;
 use App\Shared\Data\Validation\DeloadWeightFactor;
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapName;
@@ -38,8 +39,11 @@ class UpdateTrainingDefaultsData extends Data
         #[Min(1), Max(100)]
         public readonly int $progressionTargetDefault = 6,
 
-        #[Enum(BumpWhen::class)]
-        public readonly BumpWhen $bumpWhenDefault = BumpWhen::AnySet,
+        #[Enum(ProgressionStyle::class)]
+        public readonly ProgressionStyle $progressionStyleDefault = ProgressionStyle::StraightSets,
+
+        #[Enum(ProgressiveMidBlock::class)]
+        public readonly ProgressiveMidBlock $progressiveMidBlockDefault = ProgressiveMidBlock::Ask,
 
         #[DeloadWeightFactor]
         public readonly float $deloadWeightFactorDefault = 0.5,

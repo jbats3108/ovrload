@@ -3,7 +3,8 @@
 namespace App\Workouts\Models;
 
 use App\Routines\Models\Routine;
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Models\User;
 use App\Workouts\Enums\WorkoutMode;
 use App\Workouts\Enums\WorkoutStatus;
@@ -30,7 +31,8 @@ class Workout extends Model
         'routine_id',
         'ulid',
         'mode',
-        'bump_when',
+        'progression_style',
+        'progressive_mid_block',
         'status',
         'notes',
         'started_at',
@@ -61,7 +63,8 @@ class Workout extends Model
     {
         return [
             'mode' => WorkoutMode::class,
-            'bump_when' => BumpWhen::class,
+            'progression_style' => ProgressionStyle::class,
+            'progressive_mid_block' => ProgressiveMidBlock::class,
             'status' => WorkoutStatus::class,
             'started_at' => 'datetime',
             'finished_at' => 'datetime',

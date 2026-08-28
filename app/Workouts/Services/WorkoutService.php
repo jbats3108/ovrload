@@ -6,7 +6,8 @@ use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Shared\Enums\SetGroupType;
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Models\User;
 use App\Workouts\Data\History\StoreHistoricalBlockData;
 use App\Workouts\Data\History\StoreHistoricalSetData;
@@ -116,7 +117,8 @@ class WorkoutService
                     'user_id' => $routine->user_id,
                     'routine_id' => $routine->id,
                     'mode' => $mode,
-                    'bump_when' => $routine->user->bump_when_default ?? BumpWhen::AnySet,
+                    'progression_style' => $routine->user->progression_style_default ?? ProgressionStyle::StraightSets,
+                    'progressive_mid_block' => $routine->user->progressive_mid_block_default ?? ProgressiveMidBlock::Ask,
                     'status' => WorkoutStatus::InProgress,
                     'started_at' => now(),
                 ]);
@@ -200,7 +202,8 @@ class WorkoutService
                 'user_id' => $routine->user_id,
                 'routine_id' => $routine->id,
                 'mode' => $mode,
-                'bump_when' => $routine->user->bump_when_default ?? BumpWhen::AnySet,
+                'progression_style' => $routine->user->progression_style_default ?? ProgressionStyle::StraightSets,
+                'progressive_mid_block' => $routine->user->progressive_mid_block_default ?? ProgressiveMidBlock::Ask,
                 'status' => WorkoutStatus::Finished,
                 'started_at' => $finishedAt,
                 'finished_at' => $finishedAt,

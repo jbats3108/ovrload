@@ -2,6 +2,8 @@
 
 namespace App\Workouts\Data\Player;
 
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Models\User;
 use App\Workouts\Models\Workout;
 use App\Workouts\Models\WorkoutBlock;
@@ -21,6 +23,8 @@ class WorkoutPlayerPageData extends Data
         public readonly string $id,
         public readonly string $routineName,
         public readonly string $mode,
+        public readonly string $progressionStyle,
+        public readonly string $progressiveMidBlock,
         public readonly string $status,
         public readonly string $weightUnit,
         #[DataCollectionOf(WorkoutPlayerBlockData::class)]
@@ -40,6 +44,8 @@ class WorkoutPlayerPageData extends Data
             id: $workout->ulid,
             routineName: $workout->routine->getName(),
             mode: $workout->mode->value,
+            progressionStyle: ($workout->progression_style ?? ProgressionStyle::StraightSets)->value,
+            progressiveMidBlock: ($workout->progressive_mid_block ?? ProgressiveMidBlock::Ask)->value,
             status: $workout->status->value,
             weightUnit: $user->weight_unit->value,
             blocks: WorkoutPlayerBlockData::collect(

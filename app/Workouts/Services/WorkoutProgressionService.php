@@ -4,7 +4,7 @@ namespace App\Workouts\Services;
 
 use App\Routines\Models\RoutineBlockExercise;
 use App\Shared\Enums\SetGroupType;
-use App\Users\Enums\BumpWhen;
+use App\Users\Enums\ProgressionStyle;
 use App\Workouts\Data\Progression\BumpProposalData;
 use App\Workouts\Data\Progression\ProgressionSessionData;
 use App\Workouts\Data\Progression\UndoBumpProposalData;
@@ -365,12 +365,15 @@ class WorkoutProgressionService
     {
         $target = $workoutExercise->prescribed_reps;
 
-        $bumpWhen = $workout->bump_when ?? BumpWhen::AnySet;
+        $style = $workout->progression_style ?? ProgressionStyle::StraightSets;
 
-        if ($bumpWhen === BumpWhen::LastAtTopWeight) {
+        if ($style === ProgressionStyle::ProgressiveOverload) {
             $decisive = $this->lastSetAtTopWeight($workingSets);
+            $lastWorking = $this->lastWorkingSet($workingSets);
 
             return $decisive !== null
+                && $lastWorking !== null
+                && $decisive->is($lastWorking)
                 && $decisive->weight_g >= $workoutExercise->working_weight_g
                 && $decisive->reps >= $target;
         }
@@ -379,6 +382,25 @@ class WorkoutProgressionService
             fn (WorkoutSet $set): bool => $set->weight_g >= $workoutExercise->working_weight_g
                 && $set->reps >= $target
         );
+    }
+
+    /**
+     * Chronologically last completed working set in the block.
+     *
+     * @param  Collection<int, WorkoutSet>  $workingSets
+     */
+    private function lastWorkingSet(Collection $workingSets): ?WorkoutSet
+    {
+        if ($workingSets->isEmpty()) {
+            return null;
+        }
+
+        return $workingSets
+            ->sortBy([
+                ['set_index', 'asc'],
+                ['id', 'asc'],
+            ])
+            ->last();
     }
 
     /**
