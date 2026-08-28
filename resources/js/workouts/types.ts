@@ -52,6 +52,8 @@ export type WorkoutPayload = {
     id: string;
     routine_name: string;
     mode: string;
+    progression_style: 'straight_sets' | 'progressive_overload';
+    progressive_mid_block: 'ask' | 'auto';
     status: string;
     weight_unit: string;
     blocks: PlayerBlock[];

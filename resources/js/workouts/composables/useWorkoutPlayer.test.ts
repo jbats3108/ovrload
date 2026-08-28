@@ -5,7 +5,7 @@ import { inertiaMocks } from '@/test/inertiaMocks';
 import { createWorkoutPlayer, useWorkoutPlayer, workoutPlayerKey } from '@/workouts/composables/useWorkoutPlayer';
 import * as playerInteraction from '@/workouts/lib/playerInteraction';
 import * as restAlert from '@/workouts/lib/restAlert';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, reactive } from 'vue';
 
@@ -273,7 +273,7 @@ describe('createWorkoutPlayer', () => {
         expect(player.draftSegments.value).toHaveLength(2);
     });
 
-    it('skips rest and advances focus', () => {
+    it('skips rest and advances focus', async () => {
         vi.useFakeTimers();
         inertiaMocks().inertiaFormPost.mockImplementation((_url, options) => {
             options?.onSuccess?.();
@@ -287,6 +287,7 @@ describe('createWorkoutPlayer', () => {
         });
         player.logSheetOpen.value = true;
         player.completeSet();
+        await flushPromises();
         expect(player.restSecondsLeft.value).toBe(90);
         expect(playerInteraction.preparePlayerInteraction).toHaveBeenCalled();
         player.skipRest();
@@ -294,7 +295,7 @@ describe('createWorkoutPlayer', () => {
         expect(player.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 1 });
     });
 
-    it('alerts when rest timer completes', () => {
+    it('alerts when rest timer completes', async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
         inertiaMocks().inertiaFormPost.mockImplementation((_url, options) => {
@@ -309,12 +310,13 @@ describe('createWorkoutPlayer', () => {
         });
         player.logSheetOpen.value = true;
         player.completeSet();
+        await flushPromises();
         vi.advanceTimersByTime(3000);
         expect(restAlert.notifyRestEnded).toHaveBeenCalled();
         expect(player.restSecondsLeft.value).toBe(0);
     });
 
-    it('beeps once per remaining second in the last five seconds of rest', () => {
+    it('beeps once per remaining second in the last five seconds of rest', async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
         inertiaMocks().inertiaFormPost.mockImplementation((_url, options) => {
@@ -329,6 +331,7 @@ describe('createWorkoutPlayer', () => {
         });
         player.logSheetOpen.value = true;
         player.completeSet();
+        await flushPromises();
 
         expect(restAlert.notifyRestCountdown).not.toHaveBeenCalled();
 
@@ -1056,6 +1059,106 @@ describe('createWorkoutPlayer', () => {
             ],
         });
         expect(dropset.logProgressionHints.value).toBeNull();
+    });
+
+    it('auto-bumps the next working set weight after target is hit in progressive mode', async () => {
+        const props = reactive({
+            workout: workoutPayload({
+                progression_style: 'progressive_overload',
+                progressive_mid_block: 'auto',
+                blocks: [
+                    playerBlock({
+                        sets: [
+                            playerSet({ id: 1, equipment: null, completed: false, rest_seconds: 0, target_reps: 5, target_weight_kg: 100 }),
+                            playerSet({ id: 2, equipment: null, set_index: 1, completed: false, target_reps: 5, target_weight_kg: 100 }),
+                        ],
+                    }),
+                ],
+            }),
+            plate_profile: plateProfile(),
+        });
+        let player!: ReturnType<typeof createWorkoutPlayer>;
+        mount(
+            defineComponent({
+                setup() {
+                    player = createWorkoutPlayer(props);
+                    return () => h('div');
+                },
+            }),
+        );
+
+        inertiaMocks().inertiaFormPost.mockImplementation((_url, options) => {
+            const set = props.workout.blocks[0].sets[0];
+            set.completed = true;
+            set.logged_weight_kg = 100;
+            set.logged_reps = 5;
+            options?.onSuccess?.();
+        });
+
+        player.setForm.reps = 5;
+        player.setForm.weight_kg = 100;
+        player.logSheetOpen.value = true;
+        player.completeSet();
+        await flushPromises();
+        expect(player.upcoming.value?.weightLabel).toBe('102.5');
+    });
+
+    it('follows logged weight when auto bump prefill is ignored', async () => {
+        const props = reactive({
+            workout: workoutPayload({
+                progression_style: 'progressive_overload',
+                progressive_mid_block: 'auto',
+                blocks: [
+                    playerBlock({
+                        sets: [
+                            playerSet({ id: 1, equipment: null, completed: false, rest_seconds: 0, target_reps: 5, target_weight_kg: 100 }),
+                            playerSet({
+                                id: 2,
+                                equipment: null,
+                                set_index: 1,
+                                completed: false,
+                                rest_seconds: 0,
+                                target_reps: 5,
+                                target_weight_kg: 100,
+                            }),
+                            playerSet({ id: 3, equipment: null, set_index: 2, completed: false, target_reps: 5, target_weight_kg: 100 }),
+                        ],
+                    }),
+                ],
+            }),
+            plate_profile: plateProfile(),
+        });
+        let player!: ReturnType<typeof createWorkoutPlayer>;
+        mount(
+            defineComponent({
+                setup() {
+                    player = createWorkoutPlayer(props);
+                    return () => h('div');
+                },
+            }),
+        );
+
+        inertiaMocks().inertiaFormPost.mockImplementation((_url, options) => {
+            const set = props.workout.blocks[0].sets.find((row) => !row.completed) ?? props.workout.blocks[0].sets[0];
+            set.completed = true;
+            set.logged_weight_kg = player.setForm.weight_kg;
+            set.logged_reps = player.setForm.reps;
+            options?.onSuccess?.();
+        });
+
+        player.setForm.reps = 5;
+        player.setForm.weight_kg = 100;
+        player.logSheetOpen.value = true;
+        player.completeSet();
+        await flushPromises();
+        expect(player.upcoming.value?.weightLabel).toBe('102.5');
+
+        player.setForm.reps = 5;
+        player.setForm.weight_kg = 100;
+        player.logSheetOpen.value = true;
+        player.completeSet();
+        await flushPromises();
+        expect(player.upcoming.value?.weightLabel).toBe('102.5');
     });
 
     it('confirms log set with a haptic', () => {

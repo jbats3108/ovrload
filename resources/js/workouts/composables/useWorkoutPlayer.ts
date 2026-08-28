@@ -4,6 +4,7 @@ import { confirmDialog } from '@/shared/lib/confirmDialog';
 import { hapticConfirm, hapticTap } from '@/shared/lib/haptics';
 import { findFirstIncompleteFocus, flattenPlayerSets, setupKey, type FlatSetEntry } from '@/workouts/lib/focus';
 import { formatRestSeconds, groupLabel, setupHintText, workoutProgressLabel } from '@/workouts/lib/labels';
+import { bumpedWeightKg, qualifiesForMidBlockBump, workingSetPrefillKg, type MidBlockBumpOffer } from '@/workouts/lib/midBlockBump';
 import { changePlateCount, formatPlateStackLabel, resolvePlateLoad, resolvePlateStack, serializePlateStack } from '@/workouts/lib/plates';
 import { preparePlayerInteraction } from '@/workouts/lib/playerInteraction';
 import { notifyRestCountdown, notifyRestEnded, shouldBeepRestCountdown } from '@/workouts/lib/restAlert';
@@ -45,6 +46,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const setupDone = ref<Record<string, boolean>>({});
     const pendingRestSeconds = ref(0);
     const lastWorkingWeightKg = ref<Record<number, number>>({});
+    /** Next-set bump prefill (Progressive Overload); cleared when that set is logged. */
+    const nextSetBumpPrefillKg = ref<Record<number, number>>({});
+    const pendingMidBlockBump = ref<MidBlockBumpOffer | null>(null);
     const draftSegments = ref<Array<{ weight_kg: number }>>([]);
     const restSecondsLeft = ref(0);
     const leaveConfirmed = ref(false);
@@ -91,6 +95,15 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     };
 
     const finishRest = () => {
+        if (pendingMidBlockBump.value) {
+            void resolvePendingMidBlockBump().then(() => {
+                clearRest();
+                notifyRestEnded();
+                focus.value = firstIncomplete();
+            });
+            return;
+        }
+
         clearRest();
         notifyRestEnded();
         focus.value = firstIncomplete();
@@ -248,6 +261,94 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         setForm.weight_kg = gramsToKg(normalized.total_g);
     };
 
+    const workingWeightForEntry = (entry: FlatSetEntry): number => {
+        const exerciseId = entry.set.workout_block_exercise_id;
+
+        return workingSetPrefillKg(
+            entry.set.logged_weight_kg,
+            previousSetWeightKg(entry),
+            lastWorkingWeightKg.value[exerciseId],
+            entry.set.target_weight_kg,
+            nextSetBumpPrefillKg.value[exerciseId],
+        );
+    };
+
+    const resolvePendingMidBlockBump = async (): Promise<void> => {
+        const pending = pendingMidBlockBump.value;
+        if (!pending) {
+            return;
+        }
+
+        pendingMidBlockBump.value = null;
+        const accepted = await confirmDialog({
+            title: 'Bump next set?',
+            description: `Load ${pending.suggestedWeightKg}${props.workout.weight_unit} on the next working set?`,
+            confirmLabel: 'Bump',
+            cancelLabel: 'Keep weight',
+        });
+
+        if (accepted) {
+            nextSetBumpPrefillKg.value[pending.exerciseId] = pending.suggestedWeightKg;
+        }
+    };
+
+    const acceptMidBlockBump = (): void => {
+        const pending = pendingMidBlockBump.value;
+        if (!pending) {
+            return;
+        }
+
+        nextSetBumpPrefillKg.value[pending.exerciseId] = pending.suggestedWeightKg;
+        pendingMidBlockBump.value = null;
+    };
+
+    const declineMidBlockBump = (): void => {
+        pendingMidBlockBump.value = null;
+    };
+
+    const applyMidBlockBumpAfterLog = async (
+        block: (typeof props.workout.blocks)[number],
+        set: (typeof block.sets)[number],
+        loggedWeightKg: number,
+        loggedReps: number,
+        restAfter: number,
+    ): Promise<void> => {
+        const exercise = block.exercises.find((row) => row.id === set.workout_block_exercise_id);
+        if (!exercise) {
+            return;
+        }
+
+        delete nextSetBumpPrefillKg.value[set.workout_block_exercise_id];
+
+        if (
+            !qualifiesForMidBlockBump(exercise, loggedWeightKg, loggedReps, {
+                mode: props.workout.mode,
+                progressionStyle: props.workout.progression_style,
+                blockIsAdHoc: block.is_ad_hoc,
+                isDropset: set.is_dropset,
+                groupType: set.group_type,
+            })
+        ) {
+            return;
+        }
+
+        const suggestedWeightKg = bumpedWeightKg(loggedWeightKg);
+
+        if (props.workout.progressive_mid_block === 'auto') {
+            nextSetBumpPrefillKg.value[set.workout_block_exercise_id] = suggestedWeightKg;
+            return;
+        }
+
+        pendingMidBlockBump.value = {
+            exerciseId: set.workout_block_exercise_id,
+            suggestedWeightKg,
+        };
+
+        if (restAfter === 0) {
+            await resolvePendingMidBlockBump();
+        }
+    };
+
     const syncDraftFromSet = (entry: FlatSetEntry) => {
         setForm.reps = entry.set.logged_reps ?? entry.set.target_reps ?? 0;
         logPlateLoadDraft.value = null;
@@ -270,12 +371,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             setForm.weight_kg = entry.set.logged_weight_kg ?? entry.set.target_weight_kg ?? 0;
             return;
         }
-        const weightKg =
-            entry.set.logged_weight_kg ??
-            previousSetWeightKg(entry) ??
-            lastWorkingWeightKg.value[entry.set.workout_block_exercise_id] ??
-            entry.set.target_weight_kg ??
-            0;
+        const weightKg = workingWeightForEntry(entry);
         const load = plateLoadForEntry(entry, weightKg);
         setForm.weight_kg = load ? gramsToKg(load.total_g) : weightKg;
         logPlateLoadDraft.value = load;
@@ -481,12 +577,26 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                         stagePlateLoadOverrides.value[set.id] = finalPlateLoad;
                     }
                     logPlateLoadDraft.value = null;
-                    if (restAfter > 0) {
-                        startRest(restAfter);
-                    } else {
-                        pendingRestSeconds.value = 0;
-                        focus.value = firstIncomplete();
-                    }
+
+                    const afterLog = async (): Promise<void> => {
+                        if (
+                            !set.is_dropset &&
+                            set.group_type === 'working' &&
+                            typeof payload.reps === 'number' &&
+                            typeof payload.weight_kg === 'number'
+                        ) {
+                            await applyMidBlockBumpAfterLog(block, set, payload.weight_kg, payload.reps, restAfter);
+                        }
+
+                        if (restAfter > 0) {
+                            startRest(restAfter);
+                        } else {
+                            pendingRestSeconds.value = 0;
+                            focus.value = firstIncomplete();
+                        }
+                    };
+
+                    void afterLog();
                 },
                 onError: () => {
                     pendingRestSeconds.value = 0;
@@ -565,6 +675,14 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
     const skipRest = () => {
         preparePlayerInteraction();
+        if (pendingMidBlockBump.value) {
+            void resolvePendingMidBlockBump().then(() => {
+                clearRest();
+                focus.value = firstIncomplete();
+            });
+            return;
+        }
+
         clearRest();
         focus.value = firstIncomplete();
     };
@@ -615,7 +733,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (nextSet.group_type === 'warm_up') {
             weightKg = nextSet.target_weight_kg;
         } else {
-            weightKg = previousSetWeightKg(entry) ?? lastWorkingWeightKg.value[nextSet.workout_block_exercise_id] ?? nextSet.target_weight_kg;
+            weightKg = workingWeightForEntry(entry);
         }
 
         const targetParts: string[] = [];
@@ -649,7 +767,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             weightKg = entry.set.target_weight_kg;
             weightLabel = weightKg != null ? String(weightKg) : null;
         } else {
-            weightKg = previousSetWeightKg(entry) ?? lastWorkingWeightKg.value[entry.set.workout_block_exercise_id] ?? entry.set.target_weight_kg;
+            weightKg = workingWeightForEntry(entry);
             const load = plateLoadForEntry(entry, weightKg);
             if (load) {
                 weightKg = gramsToKg(load.total_g);
@@ -931,13 +1049,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (entry.set.group_type === 'warm_up') {
             return entry.set.logged_weight_kg ?? entry.set.target_weight_kg ?? null;
         }
-        return (
-            entry.set.logged_weight_kg ??
-            previousSetWeightKg(entry) ??
-            lastWorkingWeightKg.value[entry.set.workout_block_exercise_id] ??
-            entry.set.target_weight_kg ??
-            null
-        );
+        return workingWeightForEntry(entry);
     });
 
     const stageDropsetWeights = computed(() => {
@@ -1028,6 +1140,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         draftSegments,
         restSecondsLeft,
         restLabel,
+        pendingMidBlockBump,
+        acceptMidBlockBump,
+        declineMidBlockBump,
         logSheetOpen,
         mutating,
         progressLabel,

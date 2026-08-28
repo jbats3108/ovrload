@@ -14,7 +14,8 @@ const props = defineProps<{
     using_app_fallback: boolean;
     achievement_floor_default: number | null;
     progression_target_default: number;
-    bump_when_default: 'any_set' | 'last_at_top_weight';
+    progression_style_default: 'straight_sets' | 'progressive_overload';
+    progressive_mid_block_default: 'ask' | 'auto';
     deload_weight_factor_default: number;
     deload_reps_factor_default: number;
     deload_every_n_default: number;
@@ -33,7 +34,8 @@ const form = useForm({
     warm_up_defaults_scope: props.warm_up_defaults_scope,
     achievement_floor_default: props.achievement_floor_default,
     progression_target_default: props.progression_target_default,
-    bump_when_default: props.bump_when_default,
+    progression_style_default: props.progression_style_default,
+    progressive_mid_block_default: props.progressive_mid_block_default,
     deload_weight_factor_default: props.deload_weight_factor_default,
     deload_reps_factor_default: props.deload_reps_factor_default,
     deload_every_n_default: props.deload_every_n_default,
@@ -222,20 +224,37 @@ const savePlates = () => {
                             </label>
 
                             <fieldset class="space-y-2">
-                                <legend class="text-sm text-muted-foreground">Bump when</legend>
+                                <legend class="text-sm text-muted-foreground">Progression style</legend>
                                 <span class="block text-xs text-muted-foreground/80">
-                                    Bump unlocks when you hit the exercise’s Target (prescribed) reps. Top weight = heaviest completed working set;
-                                    the last of those decides under “Last set at top weight.”
+                                    Controls mid-session ramping and when a finish bump is offered after you hit Target reps. Snapshotted when a
+                                    workout starts.
                                 </span>
                                 <label class="flex items-center gap-2 text-sm">
-                                    <input v-model="form.bump_when_default" type="radio" value="any_set" />
-                                    Any set
+                                    <input v-model="form.progression_style_default" type="radio" value="straight_sets" />
+                                    Straight Sets — same weight all block; finish bump if any set hit Target
                                 </label>
                                 <label class="flex items-center gap-2 text-sm">
-                                    <input v-model="form.bump_when_default" type="radio" value="last_at_top_weight" />
-                                    Last set at top weight
+                                    <input v-model="form.progression_style_default" type="radio" value="progressive_overload" />
+                                    Progressive Overload — bump the next set when Target is hit; finish bump if the final working set was at your top
+                                    weight and hit Target
                                 </label>
-                                <InputError :message="form.errors.bump_when_default" />
+                                <InputError :message="form.errors.progression_style_default" />
+                            </fieldset>
+
+                            <fieldset v-if="form.progression_style_default === 'progressive_overload'" class="space-y-2">
+                                <legend class="text-sm text-muted-foreground">Mid-block bump</legend>
+                                <span class="block text-xs text-muted-foreground/80">
+                                    When a working set hits Target, raise the next set by 2.5 kg automatically or ask on rest.
+                                </span>
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input v-model="form.progressive_mid_block_default" type="radio" value="ask" />
+                                    Ask on rest
+                                </label>
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input v-model="form.progressive_mid_block_default" type="radio" value="auto" />
+                                    Auto-bump next set
+                                </label>
+                                <InputError :message="form.errors.progressive_mid_block_default" />
                             </fieldset>
                         </div>
 

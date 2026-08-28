@@ -79,6 +79,8 @@ export function workoutPayload(overrides: Partial<WorkoutPayload> = {}): Workout
         id: '01TESTWORKOUTULID000000000',
         routine_name: 'Test',
         mode: 'standard',
+        progression_style: 'straight_sets',
+        progressive_mid_block: 'ask',
         status: 'in_progress',
         weight_unit: 'kg',
         blocks: [playerBlock()],
