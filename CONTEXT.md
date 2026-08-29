@@ -41,6 +41,30 @@ _Avoid_: Top set, training max, TM
 A named movement in the library. Either shared (master catalog) or owned by a user (custom). No demo media required.
 _Avoid_: Movement, lift, catalog exercise (as a separate type)
 
+**Exercise Profile**:
+A reusable training recipe for an exercise or block: an exact Target, an effective Floor, working Rest, and an ordered warm-up ladder. Applying one copies its values into the routine; it is not part of Workout history.
+_Avoid_: Scheme, programming style
+
+**Preset**:
+A system-owned, published Exercise Profile supplied by OVRLOAD. Presets are shown with the `OVRLOAD` prefix and are available to every user.
+_Avoid_: Default profile, template (when a user-owned profile is meant)
+
+**Custom Profile**:
+A user-owned Exercise Profile that the user can name, edit, archive, restore, and delete when it has no references.
+_Avoid_: Personal preset (use Custom Profile)
+
+**User Default Profile**:
+The Exercise Profile preselected when the user creates a new Routine. Changing it affects future Routine creation, not existing Routines.
+_Avoid_: Global routine profile
+
+**Routine Default Profile**:
+The Exercise Profile selected for a Routine and used to seed new blocks. Existing blocks keep their copied values until explicitly updated.
+_Avoid_: Live profile link
+
+**Outdated Profile Copy**:
+A routine exercise or block that still contains values copied from an earlier version of its Exercise Profile. It can be explicitly updated; a Custom override is not updated automatically.
+_Avoid_: Stale workout, old session
+
 **Workout**:
 One started instance of a routine (standard or deload mode). Snapshots the routine’s blocks at start so mid-session and later routine edits don’t rewrite history. At most one in-progress workout per user.
 _Avoid_: Session, log, activity

@@ -12,6 +12,7 @@ const toc = [
     { href: '#install', label: 'Install on your phone' },
     { href: '#oriented', label: 'Get oriented' },
     { href: '#training', label: 'Training preferences' },
+    { href: '#profiles', label: 'Exercise profiles' },
     { href: '#editor', label: 'Create a routine' },
     { href: '#play', label: 'Play a workout' },
     { href: '#bump', label: 'Bumps' },
@@ -103,38 +104,69 @@ const toc = [
             <section id="training" class="mt-12 scroll-mt-20 space-y-3">
                 <h2 class="text-2xl font-bold tracking-tight">Set your training preferences</h2>
                 <p class="text-muted-foreground">
-                    Open <strong class="text-foreground">Preferences</strong> before you build a lot of routines. Warm-up steps (% of working weight ×
-                    reps) seed into new exercises. You choose whether that ladder applies to every new exercise or only the first one.
+                    Open <strong class="text-foreground">Preferences</strong> before you build a lot of routines. The
+                    <strong class="text-foreground">Exercise profiles</strong> section manages reusable Profile Details: Target, Floor, working Rest,
+                    and warm-up steps. The separate warm-up placement setting controls whether a selected profile’s ladder seeds every new exercise or
+                    only the first one.
                 </p>
                 <p class="text-muted-foreground">
-                    <strong class="text-foreground">Default Target reps</strong> seeds the Target field on new routine exercises and on Play
-                    <strong class="text-foreground"> Add exercise</strong> blocks (default 6 until you change it). Per-exercise Target in the editor
-                    still wins once you set it.
-                </p>
-                <p class="text-muted-foreground">
-                    <strong class="text-foreground">Achievement Floor</strong> is the minimum reps for a logged set’s weight to count as achieved
-                    (used when carry-forward raises the routine to your heaviest real top set).
                     <strong class="text-foreground">Progression style</strong> controls mid-session ramping and finish bumps:
                     <strong class="text-foreground">Straight Sets</strong> keeps the same weight for every working set and offers a finish bump if any
                     set hit Target; <strong class="text-foreground">Progressive Overload</strong> can raise the next set by 2.5 kg when Target is hit
                     (ask on rest or auto) and offers a finish bump only when the final working set was at your session top weight and hit Target.
                     Deload defaults and your bar/plate inventory live here too; the plate guide in Play uses that inventory.
                 </p>
-                <TutorialShot
-                    name="training"
-                    alt="Training preferences for warm-ups, progression, and deload defaults"
-                    caption="Preferences: warm-up ladder, Default Target reps, Floor, Progression style, and deload defaults that seed new routines."
-                />
                 <p v-if="isSignedIn">
                     <Link :href="route('training.edit')" class="font-medium text-primary underline-offset-2 hover:underline">Open Preferences</Link>
+                </p>
+            </section>
+
+            <section id="profiles" class="mt-12 scroll-mt-20 space-y-3">
+                <h2 class="text-2xl font-bold tracking-tight">Choose an exercise profile</h2>
+                <p class="text-muted-foreground">
+                    When you create a routine, choosing a profile is required in the first step. Your
+                    <strong class="text-foreground">default profile</strong> is preselected. If you have not chosen one yet, pick an
+                    <BrandName class="mr-1" />preset or create your own custom profile.
+                </p>
+                <p class="text-muted-foreground">
+                    A profile gives each exercise an exact <strong class="text-foreground">Target</strong>. Its
+                    <strong class="text-foreground">Floor</strong> starts two reps lower, creating an effective Floor-to-Target range; you can
+                    explicitly override Floor when needed. Profiles also carry working Rest and a complete warm-up ladder.
+                </p>
+                <ul class="list-disc space-y-2 pl-6 text-muted-foreground">
+                    <li><BrandName class="mr-1" />Strength — Target 6, Floor 4, 3-minute working Rest; Warm-up 50%×5, 75%×3, 90%×1.</li>
+                    <li><BrandName class="mr-1" />Hypertrophy — Target 10, Floor 8, 90-second working Rest; Warm-up 50%×10, 80%×5.</li>
+                    <li><BrandName class="mr-1" />Endurance — Target 17, Floor 15, 1-minute working Rest; Warm-up 50%×10, 75%×5.</li>
+                </ul>
+                <p class="text-muted-foreground">
+                    In the routine editor, the profile selector stays compact and Target/Floor details are available under
+                    <strong class="text-foreground">Edit overrides</strong>. Selecting a different profile copies its Profile Details into the block.
+                    Editing a profile-owned value makes that block or exercise <strong class="text-foreground">Custom</strong>; saving those Profile
+                    Details as a profile is explicit.
+                </p>
+                <p class="text-muted-foreground">
+                    Supersets can use a different profile for A and B. Their Target/Floor values are separate, but warm-ups and working Rest are
+                    shared by the pair. Changing a profile does not rewrite existing blocks. You can explicitly choose to update eligible existing
+                    uses after editing a custom profile.
+                </p>
+                <TutorialShot
+                    name="training"
+                    alt="Preferences showing exercise profiles and training settings"
+                    caption="Preferences: choose a default, manage custom profiles, and review OVRLOAD preset Profile Details."
+                />
+                <p v-if="isSignedIn">
+                    <Link :href="route('training.edit')" class="font-medium text-primary underline-offset-2 hover:underline">
+                        Manage exercise profiles
+                    </Link>
                 </p>
             </section>
 
             <section id="editor" class="mt-12 scroll-mt-20 space-y-3">
                 <h2 class="text-2xl font-bold tracking-tight">Create and edit a routine</h2>
                 <p class="text-muted-foreground">
-                    A routine is a list of exercises (internally, blocks). Each exercise has working sets, optional warm-ups, rest, and optional
-                    dropsets. Pick lifts from the catalog, or add a private custom that only you see. Per-exercise
+                    Choose a profile before naming the routine. A routine is a list of exercises (internally, blocks). Each exercise has working sets,
+                    optional warm-ups, Rest, and optional dropsets. Pick lifts from the catalog, or add a private custom that only you see.
+                    Per-exercise
                     <strong class="text-foreground">Deload Alternate</strong> is covered under Deloads below.
                 </p>
                 <p class="text-muted-foreground">
@@ -144,8 +176,8 @@ const toc = [
                 </p>
                 <TutorialShot
                     name="editor"
-                    alt="Routine editor with exercises, setup options, and deload alternate"
-                    caption="Editor: working weight, Target reps, Setup, Superset, and Deload Alternate per lift."
+                    alt="Routine editor with profile selectors, setup options, and deload alternate"
+                    caption="Editor: profile selectors keep Target and Rest compact; open overrides only when you need to edit them."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>
@@ -168,8 +200,8 @@ const toc = [
                 <p class="text-muted-foreground">
                     Need an extra lift? Tap <strong class="text-foreground">Add exercise to workout</strong> in the action row. Choose a catalog or
                     private custom exercise and it is appended as a single, three-set block on this workout only. It does not change the routine or
-                    offer progression; its Target reps come from your Preferences <strong class="text-foreground">Default Target reps</strong>. You
-                    can remove the new block before logging a set.
+                    offer progression; its Target and working Rest come from your user default exercise profile. You can remove the new block before
+                    logging a set.
                 </p>
                 <p class="text-muted-foreground">
                     On the log sheet you will see <strong class="text-foreground">Floor</strong> and
@@ -224,7 +256,7 @@ const toc = [
                 <p class="text-muted-foreground">
                     A <strong class="text-foreground">Deload</strong> is the same routine, started lighter — not a second programme. From the routine
                     card you start <strong class="text-foreground">standard</strong> or Deload. Deload applies that routine’s
-                    <strong class="text-foreground">recipe</strong> (a weight factor and a reps factor, the same for every lift) to the snapshot.
+                    <strong class="text-foreground">settings</strong> (a weight factor and a reps factor, the same for every lift) to the snapshot.
                     Warm-ups are omitted; the working weights are already light.
                 </p>
                 <p class="text-muted-foreground">
@@ -236,8 +268,8 @@ const toc = [
                 <p class="text-muted-foreground">
                     Optional <strong class="text-foreground">Deload Alternate</strong> on an exercise swaps in a different lift for Deload only, with
                     its own working weight used as-is (the weight factor does not scale that alternate). Prescribed reps still come from the primary
-                    via the recipe. If an alternate is set, that lift’s Deload snapshot is singles — no dropsets. Finishing a Deload does not bump or
-                    carry-forward your usual working weights.
+                    via the profile settings. If an alternate is set, that lift’s Deload snapshot is singles — no dropsets. Finishing a Deload does
+                    not bump or carry-forward your usual working weights.
                 </p>
             </section>
 
@@ -277,7 +309,7 @@ const toc = [
                     <li>
                         <p class="font-medium text-foreground">Deload start</p>
                         <p class="mt-1">
-                            Same routine, started lighter from the card. Recipe scales weight and reps; optional alternate lift; no bump or
+                            Same routine, started lighter from the card. Deload settings scale weight and reps; optional alternate lift; no bump or
                             carry-forward. See <a href="#deload" class="font-medium text-primary underline-offset-2 hover:underline">Deloads</a>.
                         </p>
                     </li>

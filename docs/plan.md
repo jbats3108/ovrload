@@ -14,7 +14,8 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
-1. **Welcome email** — queued mail on register; tutorial + Beta FAQs links; reply-to Jamie / admin mailbox
+1. **Exercise profiles** — user defaults, OVRLOAD presets, custom recipes, routine/block assignment, explicit sync, and admin publication flow
+2. **Welcome email** — queued mail on register; tutorial + Beta FAQs links; reply-to Jamie / admin mailbox
 2. **Default Target reps in Training** — Preferences field; seeds new editor blocks and Play ad-hoc (fallback 6)
 3. **Demote dropset → single in Play** — incomplete dropset → clear segments back to a single (mirror of Promote)
 4. **Add exercise in Play** — snapshot-only ad-hoc exercise from catalog/custom picker; three working sets; current focus stays in place; no progression
@@ -116,7 +117,6 @@ Public order matches `/beta-tester-faqs`.
 - ~~**Account switcher**~~ — folded into **PT mode** grill (client switching)
 - **PT mode** — new user type; client roster; personal + client routines; PT→client share — grill: [PT mode](#grill-pt-mode)
 - **Exercise videos (PT)** — user-uploadable video per exercise/routine; PT-mode scope first — grill: [Exercise videos](#grill-exercise-videos-pt)
-- **Exercise profiles** — optional presets for reps, warm-up reps, rest (strength / hypertrophy / endurance) — grill: [Exercise profiles](#grill-exercise-profiles)
 - **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
 
 ### Polish & mobile integration
@@ -147,8 +147,6 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 | PT mode; contacts; account switcher | [PT mode](#grill-pt-mode) |
 | Share workouts | [PT mode](#grill-pt-mode) (PT→client; low demand for 1-2-1 individual share) |
 | Videos; custom videos with routines | [Exercise videos](#grill-exercise-videos-pt) |
-| Profiles (S/H/E reps, warm-ups, rest) | [Exercise profiles](#grill-exercise-profiles) |
-| Should warm-up reps change based on working reps? | [Exercise profiles](#grill-exercise-profiles) |
 | Time range rather than reps; rest 60s circuits | [Circuit workouts](#grill-circuit-workouts) |
 
 ## Grill: PT mode
@@ -189,28 +187,6 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 - Attach to shared catalog exercise vs custom exercise vs routine block
 - Privacy, retention, delete on client unlink
 - MVP: embed external URL (YouTube/Vimeo) vs hosted upload
-
-## Grill: Exercise profiles
-
-**Motivation:** Gym-owner 1:1 — named presets for training intent so reps, warm-ups, and rest stay coherent.
-
-**Scope sketch (initial):**
-
-- **Profiles** such as Strength, Hypertrophy, Endurance — each bundles defaults, e.g.:
-  - **S** → 1–6 reps, 2–3 warm-up reps
-  - **H** → 8–12 reps, ~90s rest
-  - **E** → 15+ reps
-- Applying a profile sets (or suggests) rep target, warm-up rep count, and rest for a block or exercise.
-- **Warm-up reps from working reps** (raw note) — likely a profile rule or derived default, not a separate feature.
-- **UX:** optional and easy to ignore, but **discoverable** — must not dominate editor/Play for users who never pick a profile.
-
-**Open (grill later):**
-
-- Profile granularity: per block, per exercise, user default, routine-level?
-- Built-in presets only vs user-defined profiles
-- Interaction with existing Preferences (default target reps, warm-up %s, progression style)
-- Override behaviour when profile applied to a block that already has values
-- Deload, dropsets, supersets — do profiles apply uniformly?
 
 ## Grill: Circuit workouts
 
