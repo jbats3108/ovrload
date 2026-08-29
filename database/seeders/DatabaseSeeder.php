@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\ExerciseProfiles\Services\ExerciseProfileBackfillService;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -15,7 +16,11 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             ExerciseSeeder::class,
+            ExerciseProfileSeeder::class,
+            LocalExerciseProfileSeeder::class,
             RoutineSeeder::class,
         ]);
+
+        app(ExerciseProfileBackfillService::class)->run();
     }
 }
