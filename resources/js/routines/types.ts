@@ -1,6 +1,6 @@
 import type { WarmUpStep } from '@/settings/types';
 
-export type { WarmUpStep } from '@/settings/types';
+export type { ExerciseProfileOption, WarmUpStep } from '@/settings/types';
 
 export type ExerciseOption = {
     id: number;
@@ -21,9 +21,12 @@ export type EquipmentOption = {
 
 export type BlockExercise = {
     exercise_id: number | null;
+    exercise_profile_id?: number | null;
+    exercise_profile_fingerprint?: string | null;
     working_weight_kg: number;
     prescribed_reps: number;
     achievement_floor: number | null;
+    floor_is_derived?: boolean | null;
     progression_target: number | null;
     deload_exercise_id: number | null;
     deload_working_weight_kg: number | null;
@@ -42,6 +45,8 @@ export type Block = {
     is_superset: boolean;
     has_setup_after: boolean;
     has_setup_after_warm_up: boolean;
+    shared_profile_id?: number | null;
+    shared_profile_fingerprint?: string | null;
     exercises: BlockExercise[];
     working: { set_count: number; rest_seconds: number; dropsets: DropsetRecipe[] };
     warm_up: { set_count: number; rest_seconds: number; steps: WarmUpStep[] };
@@ -51,6 +56,7 @@ export type RoutinePayload = {
     id: number;
     slug: string;
     name: string;
+    default_exercise_profile_id?: number | null;
     deload_weight_factor: number;
     deload_reps_factor: number;
     deload_every_n: number;

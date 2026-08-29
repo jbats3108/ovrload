@@ -9,11 +9,21 @@ import {
     setSlotKind,
     trimDropsetsToSetCount,
 } from '@/routines/lib/dropsets';
+import {
+    applyProfileToBlock,
+    applyProfileToExercise,
+    applyProfileToSupersetExercise,
+    applySharedProfileToBlock,
+    markExerciseProfileCustom,
+    markSharedProfileCustom,
+    profileMatchesExerciseAssignment,
+    profileMatchesSharedAssignment,
+} from '@/routines/lib/exerciseProfiles';
 import { formatRest, normalizeRestSeconds } from '@/routines/lib/formatRest';
 import { deleteRoutine as deleteRoutineMutation, duplicateRoutine as duplicateRoutineMutation } from '@/routines/lib/routineMutations';
 import { addWarmUpStep, clearWarmUp, removeWarmUpStep, sanitizeWarmUpStepsForSave, setWarmUpText, warmUpText } from '@/routines/lib/warmUp';
 import type { Block, EquipmentOption, ExerciseOption, MuscleGroupOption, RoutinePayload, WarmUpStep } from '@/routines/types';
-import type { WarmUpDefaultsScope } from '@/settings/types';
+import type { ExerciseProfileOption, WarmUpDefaultsScope } from '@/settings/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
 import { useForm } from '@inertiajs/vue3';
 import { computed, inject, ref, watch, type InjectionKey } from 'vue';
@@ -26,6 +36,7 @@ export type EditRoutineProps = {
     warm_up_defaults_scope?: WarmUpDefaultsScope;
     achievement_floor_default?: number | null;
     progression_target_default?: number | null;
+    exercise_profiles?: ExerciseProfileOption[];
     muscle_groups?: MuscleGroupOption[];
     equipment_options?: EquipmentOption[];
 };
@@ -66,6 +77,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
         deload_weight_factor: props.routine.deload_weight_factor,
         deload_reps_factor: props.routine.deload_reps_factor,
         deload_every_n: props.routine.deload_every_n,
+        default_exercise_profile_id: props.routine.default_exercise_profile_id,
         expected_updated_at: props.routine.updated_at,
         // Inertia props are nested reactive proxies — structuredClone cannot clone them
         blocks: props.routine.blocks.length
@@ -120,6 +132,17 @@ export function createRoutineEditor(props: EditRoutineProps) {
     });
 
     const activeBlock = computed(() => form.blocks[active.value] ?? null);
+    const profileOptions = ref<ExerciseProfileOption[]>([...(props.exercise_profiles ?? [])]);
+    const profileById = (profileId: number | null): ExerciseProfileOption | null =>
+        profileOptions.value.find((profile) => profile.id === profileId) ?? null;
+
+    const registerProfile = (profile: ExerciseProfileOption): void => {
+        if (profileOptions.value.some((item) => item.id === profile.id)) {
+            return;
+        }
+
+        profileOptions.value.push(profile);
+    };
 
     const selectBlockExercise = (blockIndex: number, exerciseIndex = 0) => {
         active.value = blockIndex;
@@ -130,15 +153,18 @@ export function createRoutineEditor(props: EditRoutineProps) {
 
     const addBlock = (superset = false) => {
         const seedWarmUp = (props.warm_up_defaults_scope ?? 'all_blocks') === 'all_blocks' || form.blocks.length === 0;
-        form.blocks.push(
-            emptyBlock({
-                superset,
-                seedWarmUp,
-                warmUpDefaults: defaultWarmUpSteps(),
-                firstCatalogId: firstCatalogId(),
-                prescribedReps: defaultTargetReps(),
-            }),
-        );
+        const profile = profileById(form.default_exercise_profile_id ?? null);
+        const block = emptyBlock({
+            superset,
+            seedWarmUp: profile === null ? seedWarmUp : false,
+            warmUpDefaults: defaultWarmUpSteps(),
+            firstCatalogId: firstCatalogId(),
+            prescribedReps: defaultTargetReps(),
+        });
+        if (profile !== null) {
+            applyProfileToBlock(block, profile, seedWarmUp);
+        }
+        form.blocks.push(block);
         active.value = form.blocks.length - 1;
     };
 
@@ -147,7 +173,140 @@ export function createRoutineEditor(props: EditRoutineProps) {
     };
 
     const onToggleSuperset = (block: Block) => {
+        const wasSuperset = block.is_superset;
+        const source = { ...block.exercises[0] };
         toggleSuperset(block, firstCatalogId(), defaultTargetReps());
+        if (!wasSuperset && block.is_superset && block.exercises[1]) {
+            block.exercises[1].prescribed_reps = source.prescribed_reps;
+            block.exercises[1].achievement_floor = source.achievement_floor;
+            block.exercises[1].floor_is_derived = source.floor_is_derived;
+            block.exercises[1].exercise_profile_id = source.exercise_profile_id;
+            block.exercises[1].exercise_profile_fingerprint = source.exercise_profile_fingerprint;
+        }
+    };
+
+    const applyProfile = (block: Block, profileId: number | null, exerciseIndex = 0): void => {
+        const profile = profileById(profileId);
+        if (profile === null) {
+            if (block.is_superset) {
+                const exercise = block.exercises[exerciseIndex];
+                if (exercise) {
+                    markExerciseProfileCustom(exercise);
+                }
+            } else {
+                const exercise = block.exercises[0];
+                if (exercise) {
+                    markExerciseProfileCustom(exercise);
+                }
+                markSharedProfileCustom(block);
+            }
+            return;
+        }
+
+        if (block.is_superset) {
+            applyProfileToSupersetExercise(block, exerciseIndex, profile);
+            return;
+        }
+
+        applyProfileToBlock(block, profile);
+    };
+
+    const setRoutineProfile = async (profileId: number | null): Promise<void> => {
+        const previousProfileId = form.default_exercise_profile_id ?? null;
+        form.default_exercise_profile_id = profileId;
+
+        if (profileId === null || previousProfileId === null || previousProfileId === profileId) {
+            return;
+        }
+
+        const profile = profileById(profileId);
+        if (profile === null || form.blocks.length === 0) {
+            return;
+        }
+
+        const confirmed = await confirmDialog({
+            title: 'Apply new routine profile?',
+            description: 'This updates blocks still using the previous routine profile. Blocks you have changed manually stay as they are.',
+            confirmLabel: 'Update blocks',
+        });
+        if (!confirmed) {
+            return;
+        }
+
+        form.blocks.forEach((block) => {
+            const sharedAssigned = block.shared_profile_id === previousProfileId;
+            const singleBlockUsesPrevious =
+                !block.is_superset && block.exercises.some((exercise) => exercise.exercise_profile_id === previousProfileId);
+
+            if (sharedAssigned && singleBlockUsesPrevious) {
+                applyProfileToBlock(block, profile);
+                return;
+            }
+
+            if (sharedAssigned) {
+                applySharedProfileToBlock(block, profile);
+            }
+
+            block.exercises.forEach((exercise, index) => {
+                if (exercise.exercise_profile_id !== previousProfileId) {
+                    return;
+                }
+
+                if (block.is_superset) {
+                    applyProfileToSupersetExercise(block, index, profile);
+                    return;
+                }
+
+                applyProfileToExercise(exercise, profile, true);
+            });
+        });
+    };
+
+    const setExerciseTarget = (exercise: Block['exercises'][number], raw: string): void => {
+        const wasDerived = exercise.floor_is_derived === true || (exercise.exercise_profile_id != null && exercise.achievement_floor === null);
+        exercise.prescribed_reps = Number(raw);
+        if (wasDerived) {
+            exercise.achievement_floor = null;
+            exercise.floor_is_derived = true;
+        }
+        markExerciseProfileCustom(exercise);
+    };
+
+    const setExerciseFloor = (exercise: Block['exercises'][number], raw: string): void => {
+        exercise.achievement_floor = raw === '' ? null : Number(raw);
+        exercise.floor_is_derived = raw === '' ? true : false;
+        markExerciseProfileCustom(exercise);
+    };
+
+    const markSharedCustom = (block: Block): void => {
+        markSharedProfileCustom(block);
+
+        if (block.is_superset) {
+            return;
+        }
+
+        const exercise = block.exercises[0];
+        const profile = profileById(exercise?.exercise_profile_id ?? null);
+        if (exercise && profile && exercise.prescribed_reps === profile.target_reps && exercise.achievement_floor === profile.floor_override) {
+            exercise.exercise_profile_fingerprint = profile.exercise_fingerprint;
+        }
+    };
+
+    const exerciseProfileIsOutdated = (block: Block, exerciseIndex: number): boolean => {
+        const exercise = block.exercises[exerciseIndex];
+        const profile = profileById(exercise?.exercise_profile_id ?? null);
+
+        return (
+            exercise !== undefined &&
+            profile !== null &&
+            !profileMatchesExerciseAssignment(exercise, profile, block.is_superset, block.shared_profile_id === profile.id)
+        );
+    };
+
+    const sharedProfileIsOutdated = (block: Block): boolean => {
+        const profile = profileById(block.shared_profile_id ?? null);
+
+        return profile !== null && !profileMatchesSharedAssignment(block, profile);
     };
 
     const rackStart = ref(20);
@@ -185,14 +344,20 @@ export function createRoutineEditor(props: EditRoutineProps) {
         syncSetupAfterBlockFlags(form.blocks);
         form.transform((data) => ({
             ...data,
+            default_exercise_profile_id: data.default_exercise_profile_id,
             blocks: data.blocks.map((block) => {
                 const warmUpSteps = sanitizeWarmUpStepsForSave(block.warm_up.steps);
 
                 return {
                     ...block,
                     has_setup_after_warm_up: warmUpSteps.length === 0 ? false : block.has_setup_after_warm_up,
+                    shared_profile_id: block.shared_profile_id,
+                    shared_profile_fingerprint: block.shared_profile_fingerprint,
                     exercises: block.exercises.map((exercise) => ({
                         ...exercise,
+                        exercise_profile_id: exercise.exercise_profile_id ?? null,
+                        exercise_profile_fingerprint: exercise.exercise_profile_fingerprint ?? null,
+                        floor_is_derived: exercise.floor_is_derived ?? null,
                         achievement_floor: normalizeOptionalReps(exercise.achievement_floor),
                         progression_target: null,
                         deload_exercise_id: exercise.deload_exercise_id,
@@ -268,6 +433,16 @@ export function createRoutineEditor(props: EditRoutineProps) {
         toggleDeloadExpanded,
         achievementFloorDefault: computed(() => props.achievement_floor_default ?? null),
         progressionTargetDefault: computed(() => defaultTargetReps()),
+        profileOptions,
+        profileById,
+        registerProfile,
+        applyProfile,
+        setRoutineProfile,
+        setExerciseTarget,
+        setExerciseFloor,
+        markSharedCustom,
+        exerciseProfileIsOutdated,
+        sharedProfileIsOutdated,
         activeBlock,
         selectBlockExercise,
         exerciseName,

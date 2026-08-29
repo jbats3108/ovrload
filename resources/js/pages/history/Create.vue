@@ -280,7 +280,7 @@ const submit = () => {
                             <div>
                                 <p class="font-mono text-xs tracking-wide text-muted-foreground uppercase">Warm-up</p>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    Weights are % of Set 1 for each exercise. Change Set 1 and they update; edit a warm-up row to override.
+                                    Weights are % of Set 1 for each exercise. Change Set 1 and they update; edit a warm-up row to change it.
                                 </p>
                             </div>
                             <div v-for="round in warmUpRoundsForBlock(block)" :key="`wu-${round.setIndex}`" class="space-y-2">

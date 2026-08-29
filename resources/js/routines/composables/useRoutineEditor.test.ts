@@ -1,10 +1,53 @@
 import { createRoutineEditor } from '@/routines/composables/useRoutineEditor';
+import type { ExerciseProfileOption } from '@/settings/types';
 import * as confirmDialog from '@/shared/lib/confirmDialog';
 import { exerciseOption, routinePayload } from '@/test/factories';
 import { inertiaMocks } from '@/test/inertiaMocks';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick } from 'vue';
+
+const strengthProfile: ExerciseProfileOption = {
+    id: 1,
+    slug: 'preset-strength',
+    name: 'Strength',
+    display_name: 'OVRLOAD Strength',
+    kind: 'preset',
+    status: 'published',
+    target_reps: 6,
+    floor: 4,
+    floor_override: null,
+    working_rest_seconds: 180,
+    warm_up_steps: [
+        { percent: 50, reps: 5 },
+        { percent: 75, reps: 3 },
+        { percent: 90, reps: 1 },
+    ],
+    recipe_fingerprint: 'recipe-strength',
+    exercise_fingerprint: 'exercise-strength',
+    shared_fingerprint: 'shared-strength',
+    reference_count: 0,
+    stale_assignment_count: 0,
+    is_default: true,
+};
+
+const hypertrophyProfile: ExerciseProfileOption = {
+    ...strengthProfile,
+    id: 2,
+    slug: 'preset-hypertrophy',
+    name: 'Hypertrophy',
+    display_name: 'OVRLOAD Hypertrophy',
+    target_reps: 10,
+    floor: 8,
+    working_rest_seconds: 90,
+    warm_up_steps: [
+        { percent: 50, reps: 10 },
+        { percent: 80, reps: 5 },
+    ],
+    recipe_fingerprint: 'recipe-hypertrophy',
+    exercise_fingerprint: 'exercise-hypertrophy',
+    shared_fingerprint: 'shared-hypertrophy',
+};
 
 function mountEditor(props = {}) {
     let editor!: ReturnType<typeof createRoutineEditor>;
@@ -46,6 +89,191 @@ describe('createRoutineEditor', () => {
         const editor = mountEditor({ progression_target_default: 10 });
         editor.addBlock(false);
         expect(editor.form.blocks[0].exercises[0].prescribed_reps).toBe(10);
+    });
+
+    it('seeds new blocks from the routine profile', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile],
+        });
+
+        editor.addBlock(false);
+
+        expect(editor.form.blocks[0].exercises[0]).toMatchObject({
+            prescribed_reps: 6,
+            achievement_floor: null,
+            floor_is_derived: true,
+            exercise_profile_id: 1,
+            exercise_profile_fingerprint: 'recipe-strength',
+        });
+        expect(editor.form.blocks[0].working.rest_seconds).toBe(180);
+        expect(editor.form.blocks[0].warm_up.steps).toEqual([
+            { percent: 50, reps: 5, has_setup_after: false },
+            { percent: 75, reps: 3, has_setup_after: false },
+            { percent: 90, reps: 1, has_setup_after: false },
+        ]);
+    });
+
+    it('copies the first exercise profile when turning a block into a superset', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile],
+        });
+        editor.addBlock(false);
+
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        expect(editor.form.blocks[0].exercises[1]).toMatchObject({
+            prescribed_reps: 6,
+            floor_is_derived: true,
+            exercise_profile_id: 1,
+            exercise_profile_fingerprint: 'recipe-strength',
+        });
+    });
+
+    it('keeps a derived floor when a target override detaches the profile', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile],
+        });
+        editor.addBlock(false);
+        const exercise = editor.form.blocks[0].exercises[0];
+
+        editor.setExerciseTarget(exercise, '8');
+
+        expect(exercise).toMatchObject({
+            prescribed_reps: 8,
+            achievement_floor: null,
+            floor_is_derived: true,
+            exercise_profile_id: null,
+            exercise_profile_fingerprint: null,
+        });
+    });
+
+    it('can sync eligible blocks when changing the routine profile', async () => {
+        const current = routinePayload({
+            default_exercise_profile_id: 1,
+            blocks: [
+                {
+                    ...routinePayload().blocks[0],
+                    shared_profile_id: 1,
+                    shared_profile_fingerprint: 'shared-strength',
+                    exercises: [
+                        {
+                            ...routinePayload().blocks[0].exercises[0],
+                            exercise_profile_id: 1,
+                            exercise_profile_fingerprint: 'recipe-strength',
+                            floor_is_derived: true,
+                        },
+                    ],
+                },
+            ],
+        });
+        const editor = mountEditor({
+            routine: current,
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+        });
+
+        await editor.setRoutineProfile(2);
+
+        expect(editor.form.default_exercise_profile_id).toBe(2);
+        expect(editor.form.blocks[0]).toMatchObject({
+            shared_profile_id: 2,
+            shared_profile_fingerprint: 'shared-hypertrophy',
+        });
+        expect(editor.form.blocks[0].exercises[0]).toMatchObject({
+            prescribed_reps: 10,
+            exercise_profile_id: 2,
+            exercise_profile_fingerprint: 'recipe-hypertrophy',
+        });
+        expect(editor.form.blocks[0].working.rest_seconds).toBe(90);
+    });
+
+    it('detects outdated shared and exercise profile assignments', () => {
+        const current = routinePayload({
+            blocks: [
+                {
+                    ...routinePayload().blocks[0],
+                    shared_profile_id: 1,
+                    shared_profile_fingerprint: 'old-shared',
+                    exercises: [
+                        {
+                            ...routinePayload().blocks[0].exercises[0],
+                            exercise_profile_id: 1,
+                            exercise_profile_fingerprint: 'old-recipe',
+                        },
+                    ],
+                },
+            ],
+        });
+        const editor = mountEditor({
+            routine: current,
+            exercise_profiles: [strengthProfile],
+        });
+
+        expect(editor.sharedProfileIsOutdated(editor.form.blocks[0])).toBe(true);
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(true);
+    });
+
+    it('does not mark a mixed-profile exercise outdated when only the shared profile differs', () => {
+        const current = routinePayload({
+            blocks: [
+                {
+                    ...routinePayload().blocks[0],
+                    shared_profile_id: 1,
+                    shared_profile_fingerprint: 'old-shared',
+                    exercises: [
+                        {
+                            ...routinePayload().blocks[0].exercises[0],
+                            exercise_profile_id: 2,
+                            exercise_profile_fingerprint: 'exercise-hypertrophy',
+                        },
+                    ],
+                },
+            ],
+        });
+        const editor = mountEditor({
+            routine: current,
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+        });
+
+        expect(editor.sharedProfileIsOutdated(editor.form.blocks[0])).toBe(true);
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
+    });
+
+    it('leaves custom blocks unchanged when the routine profile changes', async () => {
+        const customBlock = {
+            ...routinePayload().blocks[0],
+            shared_profile_id: null,
+            shared_profile_fingerprint: null,
+            working: { set_count: 3, rest_seconds: 45, dropsets: [] },
+            exercises: [
+                {
+                    ...routinePayload().blocks[0].exercises[0],
+                    prescribed_reps: 7,
+                    exercise_profile_id: null,
+                    exercise_profile_fingerprint: null,
+                },
+            ],
+        };
+        const editor = mountEditor({
+            routine: routinePayload({
+                default_exercise_profile_id: 1,
+                blocks: [customBlock],
+            }),
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+        });
+
+        await editor.setRoutineProfile(2);
+
+        expect(editor.form.blocks[0]).toMatchObject({
+            shared_profile_id: null,
+            working: { rest_seconds: 45 },
+        });
+        expect(editor.form.blocks[0].exercises[0]).toMatchObject({
+            prescribed_reps: 7,
+            exercise_profile_id: null,
+        });
     });
 
     it('keeps dropsets collapsed by default and resets when changing blocks', async () => {

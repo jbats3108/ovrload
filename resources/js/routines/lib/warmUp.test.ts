@@ -14,14 +14,14 @@ describe('warmUpText', () => {
                 ],
             },
         });
-        expect(warmUpText(b)).toBe('40x5, 60x3');
+        expect(warmUpText(b)).toBe('40%×5, 60%×3');
     });
 });
 
 describe('setWarmUpText', () => {
     it('parses percent×reps and legacy percent-only', () => {
         const b = block();
-        setWarmUpText(b, '40x5, 60, 80x1');
+        setWarmUpText(b, '40%×5, 60%, 80x1');
         expect(b.warm_up.steps).toEqual([
             { percent: 40, reps: 5, has_setup_after: false },
             { percent: 60, reps: 5, has_setup_after: false },

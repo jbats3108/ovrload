@@ -18,6 +18,7 @@ export function routinePayload(overrides: Partial<RoutinePayload> = {}): Routine
         id: 1,
         slug: 'test-routine',
         name: 'Test Routine',
+        default_exercise_profile_id: null,
         deload_weight_factor: 0.8,
         deload_reps_factor: 0.8,
         deload_every_n: 3,

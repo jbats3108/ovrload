@@ -1,7 +1,11 @@
 import type { Block, WarmUpStep } from '@/routines/types';
 
 export function warmUpText(block: Block): string {
-    return block.warm_up.steps.map((s) => `${s.percent}x${s.reps}`).join(', ');
+    return block.warm_up.steps.map(formatWarmUpStep).join(', ');
+}
+
+export function formatWarmUpStep(step: Pick<WarmUpStep, 'percent' | 'reps'>): string {
+    return `${step.percent}%×${step.reps}`;
 }
 
 export function syncWarmUpMeta(block: Block): void {
@@ -19,7 +23,7 @@ function normalizeWarmUpStep(step: WarmUpStep): WarmUpStep {
     };
 }
 
-/** Compact editor string: `40x5, 60x3, 80x1` (also accepts legacy `40, 60, 80`). */
+/** Compact editor string: `40%×5, 60%×3, 80%×1` (also accepts legacy `40, 60, 80`). */
 export function setWarmUpText(block: Block, value: string): void {
     const previousFlags = block.warm_up.steps.map((s) => s.has_setup_after ?? false);
     block.warm_up.steps = value
@@ -27,13 +31,13 @@ export function setWarmUpText(block: Block, value: string): void {
         .map((part) => part.trim())
         .filter(Boolean)
         .map((part) => {
-            const withReps = part.match(/^(\d+)\s*[x×]\s*(\d+)$/i);
+            const withReps = part.match(/^(\d+)\s*%?\s*[x×]\s*(\d+)$/i);
             if (withReps) {
                 return { percent: parseInt(withReps[1], 10), reps: parseInt(withReps[2], 10) };
             }
-            const percentOnly = parseInt(part, 10);
-            if (!Number.isNaN(percentOnly) && percentOnly > 0) {
-                return { percent: percentOnly, reps: 5 };
+            const percentOnly = part.match(/^(\d+)\s*%?$/);
+            if (percentOnly) {
+                return { percent: parseInt(percentOnly[1], 10), reps: 5 };
             }
             return null;
         })
