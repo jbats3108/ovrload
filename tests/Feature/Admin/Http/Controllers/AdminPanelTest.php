@@ -4,6 +4,8 @@ namespace Tests\Feature\Admin\Http\Controllers;
 
 use App\Auth\Mail\RegistrationInviteMail;
 use App\Auth\Models\RegistrationInvite;
+use App\ExerciseProfiles\Enums\ExerciseProfileStatus;
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\MuscleGroups\Models\MuscleGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,6 +41,13 @@ class AdminPanelTest extends TestCase
                 ->component('admin/Exercises')
                 ->has('muscle_groups')
                 ->loadDeferredProps(fn ($page) => $page->has('exercises')));
+
+        $this->actingAs($this->adminUser)->get(route('admin.exercise-profiles'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('admin/ExerciseProfiles')
+                ->has('drafts')
+                ->has('published'));
 
         $this->actingAs($this->adminUser)->get(route('admin.muscle-groups'))
             ->assertOk()
@@ -156,9 +165,68 @@ class AdminPanelTest extends TestCase
     {
         $this->actingAs($this->user)->get(route('admin.index'))->assertForbidden();
         $this->actingAs($this->user)->get(route('admin.exercises'))->assertForbidden();
+        $this->actingAs($this->user)->get(route('admin.exercise-profiles'))->assertForbidden();
         $this->actingAs($this->user)->get(route('admin.muscle-groups'))->assertForbidden();
         $this->actingAs($this->user)->get(route('admin.users'))->assertForbidden();
         $this->actingAs($this->user)->get(route('admin.invites'))->assertForbidden();
+    }
+
+    #[Test]
+    public function admins_can_create_edit_and_publish_an_immutable_preset(): void
+    {
+        $payload = [
+            'name' => 'Power',
+            'target_reps' => 5,
+            'floor_override' => null,
+            'working_rest_seconds' => 180,
+            'warm_up_steps' => [
+                ['percent' => 50, 'reps' => 5],
+                ['percent' => 75, 'reps' => 3],
+            ],
+        ];
+
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.exercise-profiles.store'), $payload)
+            ->assertRedirect(route('admin.exercise-profiles'));
+
+        $draft = ExerciseProfile::query()->where('name', 'Power')->firstOrFail();
+        $this->assertSame(ExerciseProfileStatus::Draft, $draft->status);
+        $this->assertNull($draft->slug);
+
+        $this->actingAs($this->adminUser)
+            ->put(route('admin.exercise-profiles.update', $draft), [...$payload, 'target_reps' => 6])
+            ->assertRedirect(route('admin.exercise-profiles'));
+
+        $draft->refresh();
+        $this->assertSame(6, $draft->target_reps);
+
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.exercise-profiles.publish', $draft))
+            ->assertRedirect(route('admin.exercise-profiles'));
+
+        $published = $draft->fresh();
+        $this->assertSame(ExerciseProfileStatus::Published, $published->status);
+        $this->assertSame('preset-power', $published->slug);
+
+        $this->actingAs($this->adminUser)
+            ->put(route('admin.exercise-profiles.update', $published), $payload)
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function admins_cannot_publish_a_duplicate_preset_recipe(): void
+    {
+        $strength = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
+        $draft = ExerciseProfile::factory()->preset()->draft()->withRecipe($strength->recipe())->create([
+            'name' => 'Heavy Strength',
+            'slug' => null,
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.exercise-profiles.publish', $draft))
+            ->assertSessionHasErrors('profile');
+
+        $this->assertSame(ExerciseProfileStatus::Draft, $draft->fresh()->status);
     }
 
     #[Test]

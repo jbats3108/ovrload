@@ -1,13 +1,18 @@
 <?php
 
+use App\Admin\Http\Controllers\DeleteAdminExerciseProfileController;
 use App\Admin\Http\Controllers\IndexAdminExercisesController;
 use App\Admin\Http\Controllers\IndexAdminInvitesController;
 use App\Admin\Http\Controllers\IndexAdminMuscleGroupsController;
 use App\Admin\Http\Controllers\IndexAdminUsersController;
+use App\Admin\Http\Controllers\PublishAdminExerciseProfileController;
 use App\Admin\Http\Controllers\ResendAdminInviteController;
 use App\Admin\Http\Controllers\RevokeAdminInviteController;
 use App\Admin\Http\Controllers\ShowAdminController;
+use App\Admin\Http\Controllers\ShowAdminExerciseProfilesController;
+use App\Admin\Http\Controllers\StoreAdminExerciseProfileController;
 use App\Admin\Http\Controllers\StoreAdminInviteController;
+use App\Admin\Http\Controllers\UpdateAdminExerciseProfileController;
 use App\Dashboard\Http\Controllers\ShowDashboardController;
 use App\Exercises\Http\Controllers\DeleteExerciseController;
 use App\Exercises\Http\Controllers\StoreCustomExerciseController;
@@ -223,6 +228,11 @@ Route::middleware('auth')->group(function (): void {
     Route::prefix('admin')->middleware('role:admin')->group(function (): void {
         Route::get('/', ShowAdminController::class)->name('admin.index');
         Route::get('/exercises', IndexAdminExercisesController::class)->name('admin.exercises');
+        Route::get('/exercise-profiles', ShowAdminExerciseProfilesController::class)->name('admin.exercise-profiles');
+        Route::post('/exercise-profiles', StoreAdminExerciseProfileController::class)->name('admin.exercise-profiles.store');
+        Route::put('/exercise-profiles/{exerciseProfile}', UpdateAdminExerciseProfileController::class)->name('admin.exercise-profiles.update');
+        Route::delete('/exercise-profiles/{exerciseProfile}', DeleteAdminExerciseProfileController::class)->name('admin.exercise-profiles.delete');
+        Route::post('/exercise-profiles/{exerciseProfile}/publish', PublishAdminExerciseProfileController::class)->name('admin.exercise-profiles.publish');
         Route::get('/muscle-groups', IndexAdminMuscleGroupsController::class)->name('admin.muscle-groups');
         Route::get('/users', IndexAdminUsersController::class)->name('admin.users');
         Route::get('/invites', IndexAdminInvitesController::class)->name('admin.invites');

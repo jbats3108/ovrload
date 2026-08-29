@@ -9,6 +9,7 @@ import { computed } from 'vue';
 const sidebarNavItems: NavItem[] = [
     { title: 'Overview', href: route('admin.index') },
     { title: 'Exercises', href: route('admin.exercises') },
+    { title: 'Exercise profiles', href: route('admin.exercise-profiles') },
     { title: 'Muscle groups', href: route('admin.muscle-groups') },
     { title: 'Users', href: route('admin.users') },
     { title: 'Invites', href: route('admin.invites') },

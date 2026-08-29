@@ -87,17 +87,12 @@ const revoke = async (id: number) => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Admin · Invites" />
         <AdminLayout>
-            <HeadingSmall
-                title="Registration invites"
-                description="Create a one-time link and email it in one step. Local leave REGISTRATION_INVITE empty so only these links work."
-            />
+            <HeadingSmall title="Registration invites" description="Create a one-time registration link and email it directly." />
 
             <p v-if="master_enabled" class="rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-                Master <code class="font-mono text-xs">REGISTRATION_INVITE</code> is set. Prefer one-time invites below for sharing.
+                A shared registration code is also active. One-time invites below are still the best way to invite someone specific.
             </p>
-            <p v-else class="text-sm text-muted-foreground">
-                Master env invite is off (good for local). Only admin-created links below can register.
-            </p>
+            <p v-else class="text-sm text-muted-foreground">Registration is invite-only. Share the links you create below.</p>
 
             <div v-if="flashUrl" class="rounded-xl border border-primary/40 bg-primary/5 px-4 py-3">
                 <p class="text-sm font-medium">Invite link (backup copy)</p>
