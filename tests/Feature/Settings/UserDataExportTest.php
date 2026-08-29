@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Users\Models\User;
@@ -47,6 +48,12 @@ class UserDataExportTest extends TestCase
             'user_id' => $user->id,
             'name' => 'Owner Routine',
         ]);
+        $ownProfile = ExerciseProfile::factory()->forUser($user)->create([
+            'name' => 'Owner Profile',
+        ]);
+        ExerciseProfile::factory()->forUser($other)->create([
+            'name' => 'Other Profile',
+        ]);
         Routine::factory()->create([
             'user_id' => $other->id,
             'name' => 'Other Routine',
@@ -71,6 +78,9 @@ class UserDataExportTest extends TestCase
         $this->assertArrayNotHasKey('password', $payload['profile']);
 
         $this->assertArrayHasKey('plate_profile', $payload);
+        $this->assertContains('Owner Profile', array_column($payload['exercise_profiles'], 'name'));
+        $this->assertNotContains('Other Profile', array_column($payload['exercise_profiles'], 'name'));
+        $this->assertContains($ownProfile->id, array_column($payload['exercise_profiles'], 'id'));
         $this->assertArrayHasKey('exported_at', $payload);
 
         $customNames = array_column($payload['custom_exercises'], 'name');

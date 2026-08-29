@@ -25,6 +25,7 @@ class RoutineEditorPageData extends Data
         public readonly int $id,
         public readonly string $slug,
         public readonly string $name,
+        public readonly ?int $defaultExerciseProfileId,
         public readonly float $deloadWeightFactor,
         public readonly float $deloadRepsFactor,
         public readonly int $deloadEveryN,
@@ -71,6 +72,8 @@ class RoutineEditorPageData extends Data
                 isSuperset: $block->is_superset,
                 hasSetupAfter: $block->has_setup_after,
                 hasSetupAfterWarmUp: $block->has_setup_after_warm_up,
+                sharedProfileId: $block->shared_exercise_profile_id,
+                sharedProfileFingerprint: $block->shared_profile_fingerprint,
                 exercises: RoutineEditorBlockExerciseData::collect(
                     $block->blockExercises->map(fn (RoutineBlockExercise $row): RoutineEditorBlockExerciseData => new RoutineEditorBlockExerciseData(
                         exerciseId: $row->exercise_id,
@@ -78,6 +81,9 @@ class RoutineEditorPageData extends Data
                         prescribedReps: $row->prescribed_reps,
                         achievementFloor: $row->achievement_floor_override,
                         progressionTarget: $row->progression_target_override,
+                        floorIsDerived: $row->floor_is_derived,
+                        exerciseProfileId: $row->exercise_profile_id,
+                        exerciseProfileFingerprint: $row->exercise_profile_fingerprint,
                         deloadExerciseId: $row->deload_exercise_id,
                         deloadWorkingWeightKg: $row->deload_working_weight_g !== null
                             ? Weight::gramsToKg($row->deload_working_weight_g)
@@ -111,6 +117,7 @@ class RoutineEditorPageData extends Data
             id: $routine->id,
             slug: $routine->getSlug(),
             name: $routine->getName(),
+            defaultExerciseProfileId: $routine->default_exercise_profile_id,
             deloadWeightFactor: (float) $routine->deload_weight_factor,
             deloadRepsFactor: (float) $routine->deload_reps_factor,
             deloadEveryN: (int) $routine->deload_every_n,

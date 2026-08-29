@@ -2,6 +2,7 @@
 
 namespace App\Routines\Models;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,8 @@ class RoutineBlock extends Model
     #[Override]
     protected $fillable = [
         'routine_id',
+        'shared_exercise_profile_id',
+        'shared_profile_fingerprint',
         'position',
         'is_superset',
         'has_setup_after',
@@ -25,6 +28,7 @@ class RoutineBlock extends Model
     {
         return [
             'position' => 'integer',
+            'shared_exercise_profile_id' => 'integer',
             'is_superset' => 'boolean',
             'has_setup_after' => 'boolean',
             'has_setup_after_warm_up' => 'boolean',
@@ -35,6 +39,12 @@ class RoutineBlock extends Model
     public function routine(): BelongsTo
     {
         return $this->belongsTo(Routine::class);
+    }
+
+    /** @return BelongsTo<ExerciseProfile, $this> */
+    public function sharedExerciseProfile(): BelongsTo
+    {
+        return $this->belongsTo(ExerciseProfile::class, 'shared_exercise_profile_id');
     }
 
     /** @return HasMany<RoutineBlockExercise, $this> */

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Routines\Services;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Routines\Data\Editor\SyncRoutineBlockData;
 use App\Routines\Data\Editor\SyncRoutineData;
@@ -363,7 +364,7 @@ class RoutineEditorServiceTest extends TestCase
         $exercise = Exercise::factory()->create();
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Duplicate dropset recipe for set index 0.');
+        $this->expectExceptionMessage('Duplicate dropset entry for set index 0.');
 
         $this->service->sync($routine, SyncRoutineData::from([
             'name' => 'Dup Dropset',
@@ -483,5 +484,125 @@ class RoutineEditorServiceTest extends TestCase
                 RoutineEditorPayload::block($exercise->id),
             ],
         ]));
+    }
+
+    #[Test]
+    public function sync_rejects_tampered_shared_values_when_the_profile_fingerprint_is_current(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $exercise = Exercise::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The shared profile values no longer match this block.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Tampered shared profile values',
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 2,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $profile->recipe()->fingerprint(),
+                    'prescribed_reps' => $profile->target_reps,
+                    'floor_is_derived' => true,
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => 999,
+                    ],
+                    'warm_up' => [
+                        'set_count' => count($profile->warm_up_steps),
+                        'rest_seconds' => 60,
+                        'steps' => $profile->warm_up_steps,
+                    ],
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_tampered_exercise_values_when_the_profile_fingerprint_is_current(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $exercise = Exercise::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The exercise profile values no longer match this exercise.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Tampered profile values',
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 2,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $profile->recipe()->fingerprint(),
+                    'prescribed_reps' => 99,
+                    'floor_is_derived' => true,
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => $profile->working_rest_seconds,
+                    ],
+                    'warm_up' => [
+                        'set_count' => count($profile->warm_up_steps),
+                        'rest_seconds' => 60,
+                        'steps' => $profile->warm_up_steps,
+                    ],
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_allows_an_outdated_profile_copy_with_matching_saved_values(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $exercise = Exercise::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create([
+            'target_reps' => 6,
+            'working_rest_seconds' => 120,
+            'warm_up_steps' => [['percent' => 50, 'reps' => 5]],
+        ]);
+        $oldFingerprint = $profile->recipe()->fingerprint();
+
+        $profile->update([
+            'target_reps' => 10,
+            'recipe_fingerprint' => $profile->recipe()->fingerprint(),
+        ]);
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Outdated copy',
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 2,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $oldFingerprint,
+                    'prescribed_reps' => 6,
+                    'floor_is_derived' => true,
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $profile->fresh()->recipe()->sharedFingerprint(),
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => 120,
+                    ],
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [['percent' => 50, 'reps' => 5]],
+                    ],
+                ]),
+            ],
+        ]));
+
+        $savedExercise = $result->blocks->firstOrFail()->blockExercises->firstOrFail();
+        $this->assertSame(6, $savedExercise->prescribed_reps);
+        $this->assertSame($oldFingerprint, $savedExercise->exercise_profile_fingerprint);
     }
 }

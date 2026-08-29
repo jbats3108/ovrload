@@ -2,6 +2,7 @@
 
 namespace App\Routines\Data\Editor;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Shared\Support\Weight;
 use Spatie\LaravelData\Attributes\MapName;
@@ -30,8 +31,16 @@ class SyncBlockExerciseData extends Data
         #[Nullable, Min(1), Max(100)]
         public readonly ?int $achievementFloor = null,
 
+        #[Nullable]
+        public readonly ?bool $floorIsDerived = null,
+
         #[Nullable, Min(1), Max(100)]
         public readonly ?int $progressionTarget = null,
+
+        #[Nullable, Exists(ExerciseProfile::class, 'id')]
+        public readonly ?int $exerciseProfileId = null,
+
+        public readonly ?string $exerciseProfileFingerprint = null,
 
         #[Nullable, Exists(Exercise::class, 'id'), Different('exercise_id'), RequiredWith('deload_working_weight_kg')]
         public readonly ?int $deloadExerciseId = null,

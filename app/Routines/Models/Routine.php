@@ -2,6 +2,7 @@
 
 namespace App\Routines\Models;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Routines\Services\RoutineSlugGenerator;
 use App\Shared\Traits\HasName;
 use App\Shared\Traits\HasSlug;
@@ -32,6 +33,7 @@ class Routine extends Model
         'deload_weight_factor',
         'deload_reps_factor',
         'deload_every_n',
+        'default_exercise_profile_id',
     ];
 
     #[Override]
@@ -65,6 +67,7 @@ class Routine extends Model
             'deload_weight_factor' => 'decimal:3',
             'deload_reps_factor' => 'decimal:3',
             'deload_every_n' => 'integer',
+            'default_exercise_profile_id' => 'integer',
         ];
     }
 
@@ -72,6 +75,12 @@ class Routine extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<ExerciseProfile, $this> */
+    public function defaultExerciseProfile(): BelongsTo
+    {
+        return $this->belongsTo(ExerciseProfile::class, 'default_exercise_profile_id');
     }
 
     /** @return HasMany<RoutineBlock, $this> */

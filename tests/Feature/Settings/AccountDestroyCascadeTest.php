@@ -3,6 +3,7 @@
 namespace Tests\Feature\Settings;
 
 use App\Auth\Models\RegistrationInvite;
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
@@ -52,6 +53,9 @@ class AccountDestroyCascadeTest extends TestCase
         $exercise = Exercise::factory()->create(['user_id' => $user->id]);
 
         $routine = Routine::factory()->create(['user_id' => $user->id]);
+        $exerciseProfile = ExerciseProfile::factory()->forUser($user)->create();
+        $user->forceFill(['default_exercise_profile_id' => $exerciseProfile->id])->save();
+        $routine->forceFill(['default_exercise_profile_id' => $exerciseProfile->id])->save();
         $block = RoutineBlock::create([
             'routine_id' => $routine->id,
             'position' => 1,
@@ -76,6 +80,7 @@ class AccountDestroyCascadeTest extends TestCase
         $this->assertDatabaseMissing('routine_blocks', ['id' => $block->id]);
         $this->assertDatabaseMissing('exercises', ['id' => $exercise->id]);
         $this->assertDatabaseMissing('plate_profiles', ['user_id' => $user->id]);
+        $this->assertDatabaseMissing('exercise_profiles', ['id' => $exerciseProfile->id]);
     }
 
     #[Test]

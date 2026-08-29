@@ -34,6 +34,7 @@ class RoutineDuplicator
                 'deload_weight_factor' => $source->deload_weight_factor,
                 'deload_reps_factor' => $source->deload_reps_factor,
                 'deload_every_n' => $source->deload_every_n,
+                'default_exercise_profile_id' => $source->default_exercise_profile_id,
             ]);
 
             foreach ($source->blocks as $block) {
@@ -66,6 +67,8 @@ class RoutineDuplicator
     {
         $newBlock = RoutineBlock::create([
             'routine_id' => $copy->id,
+            'shared_exercise_profile_id' => $block->shared_exercise_profile_id,
+            'shared_profile_fingerprint' => $block->shared_profile_fingerprint,
             'position' => $block->position,
             'is_superset' => $block->is_superset,
             'has_setup_after' => $block->has_setup_after,
@@ -81,6 +84,8 @@ class RoutineDuplicator
 
             RoutineBlockExercise::create([
                 'routine_block_id' => $newBlock->id,
+                'exercise_profile_id' => $blockExercise->exercise_profile_id,
+                'exercise_profile_fingerprint' => $blockExercise->exercise_profile_fingerprint,
                 'exercise_id' => $blockExercise->exercise_id,
                 'position' => $blockExercise->position,
                 'working_weight_g' => $blockExercise->working_weight_g,
@@ -88,6 +93,7 @@ class RoutineDuplicator
                 'deload_working_weight_g' => $blockExercise->deload_working_weight_g,
                 'prescribed_reps' => $blockExercise->prescribed_reps,
                 'achievement_floor_override' => $blockExercise->achievement_floor_override,
+                'floor_is_derived' => $blockExercise->floor_is_derived,
                 'progression_target_override' => $blockExercise->progression_target_override,
             ]);
         }

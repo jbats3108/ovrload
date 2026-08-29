@@ -2,8 +2,13 @@
 
 namespace Tests\Feature\Routines\Http\Controllers;
 
+use App\ExerciseProfiles\Enums\ExerciseProfileStatus;
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
+use App\Routines\Models\RoutineBlock;
+use App\Routines\Models\RoutineBlockExercise;
+use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Helpers\RoutineEditorPayload;
@@ -19,6 +24,7 @@ class UpdateRoutineControllerTest extends TestCase
     {
         parent::setUp();
         $this->seedUsers(false);
+        $this->seed(ExerciseProfileSeeder::class);
     }
 
     #[Test]
@@ -62,6 +68,131 @@ class UpdateRoutineControllerTest extends TestCase
         ])
             ->assertRedirect(route('dashboard'))
             ->assertSessionHas('success', 'Routine saved.');
+    }
+
+    #[Test]
+    public function owner_can_save_routine_and_block_profile_assignments(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+        $profile = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Profile Routine',
+            'default_exercise_profile_id' => $profile->id,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $profile->recipe()->fingerprint(),
+                    'floor_is_derived' => true,
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+                    'prescribed_reps' => $profile->target_reps,
+                    'working' => ['set_count' => 3, 'rest_seconds' => $profile->working_rest_seconds],
+                    'warm_up' => [
+                        'set_count' => count($profile->warm_up_steps),
+                        'rest_seconds' => 60,
+                        'steps' => $profile->warm_up_steps,
+                    ],
+                ]),
+            ],
+        ])->assertRedirect(route('dashboard'));
+
+        $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.sharedExerciseProfile']);
+        $savedBlock = $savedRoutine->blocks->firstOrFail();
+        $savedExercise = $savedBlock->blockExercises->firstOrFail();
+
+        $this->assertSame($profile->id, $savedRoutine->default_exercise_profile_id);
+        $this->assertSame($profile->id, $savedExercise->exercise_profile_id);
+        $this->assertSame($profile->id, $savedBlock->shared_exercise_profile_id);
+        $this->assertSame($profile->recipe()->fingerprint(), $savedExercise->exercise_profile_fingerprint);
+    }
+
+    #[Test]
+    public function owner_cannot_assign_another_users_profile_to_a_routine(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+        $otherProfile = ExerciseProfile::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Foreign Profile',
+            'default_exercise_profile_id' => $otherProfile->id,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'exercise_profile_id' => $otherProfile->id,
+                    'shared_profile_id' => $otherProfile->id,
+                ]),
+            ],
+        ])->assertSessionHasErrors('blocks');
+    }
+
+    #[Test]
+    public function owner_can_save_a_routine_with_an_outdated_profile_copy(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($this->user)->create([
+            'target_reps' => 6,
+            'floor_override' => null,
+            'working_rest_seconds' => 120,
+            'warm_up_steps' => [['percent' => 50, 'reps' => 5]],
+        ]);
+        $oldFingerprint = $profile->recipe()->fingerprint();
+        $oldSharedFingerprint = $profile->recipe()->sharedFingerprint();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Outdated Profile',
+            'default_exercise_profile_id' => $profile->id,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $oldFingerprint,
+                    'floor_is_derived' => true,
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $oldSharedFingerprint,
+                    'working' => ['set_count' => 3, 'rest_seconds' => 120],
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [['percent' => 50, 'reps' => 5]],
+                    ],
+                ]),
+            ],
+        ])->assertRedirect();
+
+        $profile->update([
+            'target_reps' => 10,
+            'working_rest_seconds' => 180,
+            'warm_up_steps' => [['percent' => 75, 'reps' => 3]],
+            'recipe_fingerprint' => $profile->recipe()->fingerprint(),
+        ]);
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Outdated Profile Saved',
+            'default_exercise_profile_id' => $profile->id,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $oldFingerprint,
+                    'floor_is_derived' => true,
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $oldSharedFingerprint,
+                    'prescribed_reps' => 6,
+                    'working' => ['set_count' => 3, 'rest_seconds' => 120],
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [['percent' => 50, 'reps' => 5]],
+                    ],
+                ]),
+            ],
+        ])->assertRedirect(route('dashboard'));
+
+        $saved = $routine->fresh(['blocks.blockExercises']);
+        $savedExercise = $saved->blocks->firstOrFail()->blockExercises->firstOrFail();
+        $this->assertSame(6, $savedExercise->prescribed_reps);
+        $this->assertSame($oldFingerprint, $savedExercise->exercise_profile_fingerprint);
     }
 
     #[Test]
@@ -285,5 +416,39 @@ class UpdateRoutineControllerTest extends TestCase
                 ->where('routine.blocks.0.working.dropsets.0.segments.0.weight_kg', 20)
                 ->where('routine.blocks.0.working.dropsets.0.segments.1.weight_kg', 8)
                 ->loadDeferredProps(fn ($page) => $page->has('exercises')));
+    }
+
+    #[Test]
+    public function edit_includes_archived_profiles_still_referenced_by_the_routine(): void
+    {
+        $archived = ExerciseProfile::factory()->forUser($this->user)->archived()->create(['name' => 'Old Push']);
+        $routine = Routine::factory()->withUser($this->user)->create([
+            'default_exercise_profile_id' => ExerciseProfile::query()->where('slug', 'preset-strength')->value('id'),
+        ]);
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'shared_exercise_profile_id' => $archived->id,
+            'shared_profile_fingerprint' => $archived->recipe()->sharedFingerprint(),
+        ]);
+        $exercise = Exercise::factory()->create();
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => $exercise->id,
+            'position' => 1,
+            'working_weight_g' => 60000,
+            'prescribed_reps' => 6,
+            'exercise_profile_id' => $archived->id,
+            'exercise_profile_fingerprint' => $archived->recipe()->fingerprint(),
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('routines.edit', $routine))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('routines/Edit')
+                ->where('exercise_profiles', fn ($profiles) => collect($profiles)->contains(
+                    fn ($profile): bool => $profile['id'] === $archived->id && $profile['status'] === ExerciseProfileStatus::Archived->value,
+                )));
     }
 }
