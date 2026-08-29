@@ -2,6 +2,7 @@
 
 namespace App\Settings\Http\Controllers;
 
+use App\ExerciseProfiles\Services\ExerciseProfileService;
 use App\Shared\Http\Controllers\Controller;
 use App\Users\Data\UpdateTrainingDefaultsData;
 use App\Users\Enums\ProgressionStyle;
@@ -16,7 +17,7 @@ use Inertia\Response;
 
 class TrainingDefaultsController extends Controller
 {
-    public function edit(Request $request, PlateProfileService $profiles): Response
+    public function edit(Request $request, PlateProfileService $profiles, ExerciseProfileService $exerciseProfiles): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -33,6 +34,7 @@ class TrainingDefaultsController extends Controller
             'deload_reps_factor_default' => (float) $user->deload_reps_factor_default,
             'deload_every_n_default' => (int) $user->deload_every_n_default,
             'plate_profile' => $profiles->profilePayloadFor($user),
+            'exercise_profiles' => $exerciseProfiles->pageDataFor($user)->toArray(),
         ]);
     }
 
