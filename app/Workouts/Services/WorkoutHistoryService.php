@@ -55,7 +55,7 @@ class WorkoutHistoryService
             return null;
         }
 
-        $session = $this->progressionService->reEvaluateProgression($workout);
+        $session = $this->progressionService->reEvaluateProgression($workout, collectNewBumps: false);
 
         if ($session->hasActions()) {
             $this->progressionService->storeProgressionSession($workout, $session);
