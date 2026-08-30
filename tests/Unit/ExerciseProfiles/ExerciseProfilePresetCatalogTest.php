@@ -54,12 +54,12 @@ class ExerciseProfilePresetCatalogTest extends TestCase
     public function preset_recipes_derive_the_expected_floors(): void
     {
         $floors = array_map(
-            static fn (array $definition): int => (new ExerciseProfileRecipe(
+            static fn (array $definition): int => new ExerciseProfileRecipe(
                 targetReps: $definition['target_reps'],
                 floorOverride: $definition['floor_override'],
                 workingRestSeconds: $definition['working_rest_seconds'],
                 warmUpSteps: $definition['warm_up_steps'],
-            ))->resolvedFloor(),
+            )->resolvedFloor(),
             ExerciseProfilePresetCatalog::definitions(),
         );
 
