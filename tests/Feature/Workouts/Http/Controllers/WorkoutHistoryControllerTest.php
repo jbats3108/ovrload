@@ -82,6 +82,62 @@ class WorkoutHistoryControllerTest extends TestCase
     }
 
     #[Test]
+    public function editing_after_confirmed_bump_does_not_propose_second_bump(): void
+    {
+        [$workout, $routineExercise] = $this->createFinishedWorkout(reps: 6, weightGrams: 80000);
+        $progressionService = app(WorkoutProgressionService::class);
+        $session = $progressionService->reEvaluateProgression($workout);
+        $progressionService->applyConfirmedBumps($workout, $session->bumps, [$routineExercise->id]);
+
+        $set = $this->firstWorkingSet($workout->id);
+
+        $this->actingAs($this->user)
+            ->put(route('history.sets.update', [$workout, $set]), [
+                'reps' => 6,
+                'weight_kg' => 82.5,
+            ])
+            ->assertRedirect()
+            ->assertSessionMissing("workout_progression.{$workout->id}");
+
+        $this->assertSame(82500, $routineExercise->fresh()->working_weight_g);
+    }
+
+    #[Test]
+    public function editing_before_confirming_finish_bump_does_not_propose_bump_from_carry_forward_baseline(): void
+    {
+        [$workout, $routineExercise] = $this->createFinishedWorkout(reps: 6, weightGrams: 80000);
+        $progressionService = app(WorkoutProgressionService::class);
+        $progressionService->storeProgressionSession(
+            $workout,
+            $progressionService->reEvaluateProgression($workout),
+        );
+
+        $set = $this->firstWorkingSet($workout->id);
+
+        $response = $this->actingAs($this->user)
+            ->put(route('history.sets.update', [$workout, $set]), [
+                'reps' => 6,
+                'weight_kg' => 82.5,
+            ]);
+
+        $response->assertRedirect();
+        $this->assertStringNotContainsString(
+            '/progression',
+            (string) $response->headers->get('Location'),
+            'History edit must not redirect to progression for a new bump',
+        );
+
+        $stored = session("workout_progression.{$workout->id}");
+        $this->assertIsArray($stored);
+        $this->assertSame(
+            80000,
+            $stored[0]['from_weight_g'] ?? $stored[0]['fromWeightG'] ?? null,
+            'Finish bump session must be preserved, not replaced by a carry-forward baseline bump',
+        );
+        $this->assertSame(82500, $routineExercise->fresh()->working_weight_g);
+    }
+
+    #[Test]
     public function eligible_set_edit_triggers_re_eval_and_progression_redirect(): void
     {
         [$workout, $routineExercise] = $this->createFinishedWorkout(reps: 6, weightGrams: 80000);
