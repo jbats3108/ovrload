@@ -2,7 +2,7 @@
 
 ## Cursor Cloud specific instructions
 
-This is **OVRLOAD** (repo: the-workout-planner): a Laravel 13 (PHP 8.5) backend with an Inertia + Vue 3 + TypeScript frontend bundled by Vite. Local development runs via **Laravel Sail** (Docker): PHP app, MySQL, Redis, Mailpit, queue worker, and Vite.
+This is **OVRLOAD** (repo: ovrload): a Laravel 13 (PHP 8.5) backend with an Inertia + Vue 3 + TypeScript frontend bundled by Vite. Local development runs via **Laravel Sail** (Docker): PHP app, MySQL, Redis, Mailpit, queue worker, and Vite.
 
 ### Running the app (development)
 - Primary: `npm run sail:up` — laptop-first Sail (`sail up -d --wait`, localhost Vite HMR). App http://localhost:8000; Vite HMR http://localhost:5173; Mailpit http://localhost:8025.
@@ -34,7 +34,7 @@ Path-scoped app conventions (Spatie Data, FE domain modules) live in `.cursor/ru
 
 ### Issue tracker
 
-Issues live in GitHub Issues for `jbats3108/the-workout-planner` (via `gh`). See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues for `jbats3108/ovrload` (via `gh`). See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

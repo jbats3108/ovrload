@@ -1,6 +1,6 @@
 {
     "schema": "https://getcomposer.org/schema.json",
-    "name": "jbats3108/the-workout-planner",
+    "name": "jbats3108/ovrload",
     "type": "project",
     "description": "OVRLOAD — workout planning and logging.",
     "keywords": [
