@@ -42,13 +42,13 @@ test.describe('admin exercise profiles', () => {
 
     test('creates and removes a preset draft', async ({ page }) => {
         await page.goto('/admin/exercise-profiles');
-        await page.getByRole('button', { name: 'New preset draft' }).click();
+        await page.getByRole('button', { name: 'New draft' }).click();
         await page.getByLabel(/base name/i).fill('E2E Preset');
         await page.getByRole('button', { name: 'Save draft' }).click();
 
         await expect(page.getByRole('heading', { name: 'E2E Preset' })).toBeVisible();
         await page.getByRole('button', { name: 'Delete' }).first().click();
         await page.getByRole('button', { name: 'Delete draft' }).click();
-        await expect(page.getByText('No unpublished preset drafts.')).toBeVisible();
+        await expect(page.getByText('No draft profiles yet.')).toBeVisible();
     });
 });
