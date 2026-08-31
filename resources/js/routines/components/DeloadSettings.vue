@@ -6,8 +6,9 @@ import { formatDeloadSummary } from '@/routines/lib/deload';
 import type { EditorDensity } from '@/routines/types';
 import { computed } from 'vue';
 
-const { variant = 'desktop' } = defineProps<{
+const { variant = 'desktop', flush = false } = defineProps<{
     variant?: EditorDensity;
+    flush?: boolean;
 }>();
 
 const { form, deloadExpanded, toggleDeloadExpanded } = useRoutineEditor();
@@ -16,13 +17,21 @@ const summary = computed(() => formatDeloadSummary(form.deload_weight_factor, fo
 </script>
 
 <template>
-    <section v-if="variant === 'desktop'" class="border-t border-border bg-card/40 px-4 py-3">
+    <section v-if="variant === 'desktop'" data-routine-deload class="border-b border-border bg-card/40 px-4 py-3">
         <h3 class="text-sm font-medium">Deload</h3>
         <p class="mt-1 max-w-3xl text-xs text-muted-foreground">Custom values for this routine. Defaults are in Preferences.</p>
         <DeloadMultiplierFields variant="desktop" />
     </section>
 
-    <EditorDisclosure v-else :expanded="deloadExpanded" label="Deload" :summary="summary" @toggle="toggleDeloadExpanded">
+    <EditorDisclosure
+        v-else
+        data-routine-deload
+        :expanded="deloadExpanded"
+        :flush="flush"
+        label="Deload"
+        :summary="summary"
+        @toggle="toggleDeloadExpanded"
+    >
         <template #label> Deload <span class="text-muted-foreground/80">(this routine)</span> </template>
         <p class="text-xs text-muted-foreground">Custom values for this routine. Defaults are in Preferences.</p>
         <DeloadMultiplierFields variant="mobile" />

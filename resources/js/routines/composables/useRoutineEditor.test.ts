@@ -128,8 +128,45 @@ describe('createRoutineEditor', () => {
             prescribed_reps: 6,
             floor_is_derived: true,
             exercise_profile_id: 1,
-            exercise_profile_fingerprint: 'recipe-strength',
+            exercise_profile_fingerprint: 'exercise-strength',
         });
+        expect(editor.form.blocks[0].exercises[0].exercise_profile_fingerprint).toBe('exercise-strength');
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 1)).toBe(false);
+    });
+
+    it('restores the recipe fingerprint when splitting a matching-profile superset', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile],
+        });
+        editor.addBlock(false);
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        expect(editor.form.blocks[0].is_superset).toBe(false);
+        expect(editor.form.blocks[0].exercises).toHaveLength(1);
+        expect(editor.form.blocks[0].exercises[0].exercise_profile_fingerprint).toBe('recipe-strength');
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
+    });
+
+    it('keeps the exercise fingerprint when splitting a mixed-profile superset', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+        });
+        editor.addBlock(false);
+        editor.toggleSuperset(editor.form.blocks[0]);
+        editor.applyProfile(editor.form.blocks[0], 2, 0);
+
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        expect(editor.form.blocks[0].exercises[0]).toMatchObject({
+            exercise_profile_id: 2,
+            exercise_profile_fingerprint: 'exercise-hypertrophy',
+        });
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
     });
 
     it('keeps a derived floor when a target override detaches the profile', () => {
@@ -289,6 +326,97 @@ describe('createRoutineEditor', () => {
         expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
     });
 
+    it('resolves floor placeholders from each superset exercise profile', () => {
+        const base = routinePayload().blocks[0].exercises[0];
+        const current = routinePayload({
+            blocks: [
+                {
+                    ...routinePayload().blocks[0],
+                    is_superset: true,
+                    shared_profile_id: 1,
+                    shared_profile_fingerprint: 'shared-strength',
+                    exercises: [
+                        {
+                            ...base,
+                            prescribed_reps: 6,
+                            achievement_floor: null,
+                            floor_is_derived: true,
+                            exercise_profile_id: 1,
+                            exercise_profile_fingerprint: 'exercise-strength',
+                        },
+                        {
+                            ...base,
+                            exercise_id: 2,
+                            prescribed_reps: 10,
+                            achievement_floor: null,
+                            floor_is_derived: true,
+                            exercise_profile_id: 2,
+                            exercise_profile_fingerprint: 'exercise-hypertrophy',
+                        },
+                    ],
+                },
+            ],
+        });
+        const editor = mountEditor({
+            routine: current,
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+            achievement_floor_default: 1,
+        });
+
+        expect(editor.exerciseFloorPlaceholder(editor.form.blocks[0], 0)).toBe('4');
+        expect(editor.exerciseFloorPlaceholder(editor.form.blocks[0], 1)).toBe('8');
+    });
+
+    it('resolves a custom derived floor from the current target', () => {
+        const current = routinePayload({
+            blocks: [
+                {
+                    ...routinePayload().blocks[0],
+                    exercises: [
+                        {
+                            ...routinePayload().blocks[0].exercises[0],
+                            prescribed_reps: 8,
+                            achievement_floor: null,
+                            floor_is_derived: true,
+                            exercise_profile_id: null,
+                        },
+                    ],
+                },
+            ],
+        });
+        const editor = mountEditor({
+            routine: current,
+            achievement_floor_default: 1,
+        });
+
+        expect(editor.exerciseFloorPlaceholder(editor.form.blocks[0], 0)).toBe('6');
+    });
+
+    it('falls back to the Preferences floor for a custom blank floor', () => {
+        const current = routinePayload({
+            blocks: [
+                {
+                    ...routinePayload().blocks[0],
+                    exercises: [
+                        {
+                            ...routinePayload().blocks[0].exercises[0],
+                            prescribed_reps: 6,
+                            achievement_floor: null,
+                            floor_is_derived: false,
+                            exercise_profile_id: null,
+                        },
+                    ],
+                },
+            ],
+        });
+        const editor = mountEditor({
+            routine: current,
+            achievement_floor_default: 1,
+        });
+
+        expect(editor.exerciseFloorPlaceholder(editor.form.blocks[0], 0)).toBe('1');
+    });
+
     it('leaves custom blocks unchanged when the routine profile changes', async () => {
         const customBlock = {
             ...routinePayload().blocks[0],
@@ -377,61 +505,6 @@ describe('createRoutineEditor', () => {
         editor.active.value = 1;
         await nextTick();
         expect(editor.dropsetsExpanded.value).toBe(false);
-    });
-
-    it('keeps progression collapsed by default and resets when changing blocks', async () => {
-        const editor = mountEditor({
-            routine: routinePayload({
-                blocks: [
-                    {
-                        is_superset: false,
-                        has_setup_after: false,
-                        has_setup_after_warm_up: false,
-                        exercises: [
-                            {
-                                exercise_id: 1,
-                                working_weight_kg: 60,
-                                prescribed_reps: 6,
-                                achievement_floor: null,
-                                progression_target: null,
-                                deload_exercise_id: null,
-                                deload_working_weight_kg: null,
-                            },
-                        ],
-                        working: { set_count: 3, rest_seconds: 120, dropsets: [] },
-                        warm_up: { set_count: 0, rest_seconds: 60, steps: [] },
-                    },
-                    {
-                        is_superset: false,
-                        has_setup_after: false,
-                        has_setup_after_warm_up: false,
-                        exercises: [
-                            {
-                                exercise_id: 2,
-                                working_weight_kg: 60,
-                                prescribed_reps: 6,
-                                achievement_floor: null,
-                                progression_target: null,
-                                deload_exercise_id: null,
-                                deload_working_weight_kg: null,
-                            },
-                        ],
-                        working: { set_count: 3, rest_seconds: 120, dropsets: [] },
-                        warm_up: { set_count: 0, rest_seconds: 60, steps: [] },
-                    },
-                ],
-            }),
-            achievement_floor_default: 1,
-            progression_target_default: 6,
-        });
-        expect(editor.progressionExpanded.value).toBe(false);
-        expect(editor.achievementFloorDefault.value).toBe(1);
-        expect(editor.progressionTargetDefault.value).toBe(6);
-        editor.toggleProgressionExpanded();
-        expect(editor.progressionExpanded.value).toBe(true);
-        editor.active.value = 1;
-        await nextTick();
-        expect(editor.progressionExpanded.value).toBe(false);
     });
 
     it('resolves exercise names from the catalog', () => {

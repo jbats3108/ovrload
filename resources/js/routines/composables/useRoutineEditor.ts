@@ -16,12 +16,15 @@ import {
     applyProfileToSupersetExercise,
     applySharedProfileToBlock,
     coerceProfileId,
+    editorFloorPlaceholder,
+    exerciseAssignmentFingerprint,
     markExerciseProfileCustom,
     markSharedProfileCustom,
     profileMatchesExerciseAssignment,
     profileMatchesSharedAssignment,
 } from '@/routines/lib/exerciseProfiles';
 import { formatRest, normalizeRestSeconds } from '@/routines/lib/formatRest';
+import { optionalRepsPlaceholder } from '@/routines/lib/optionalReps';
 import { deleteRoutine as deleteRoutineMutation, duplicateRoutine as duplicateRoutineMutation } from '@/routines/lib/routineMutations';
 import { addWarmUpStep, clearWarmUp, removeWarmUpStep, sanitizeWarmUpStepsForSave, setWarmUpText, warmUpText } from '@/routines/lib/warmUp';
 import type { Block, EquipmentOption, ExerciseOption, MuscleGroupOption, RoutinePayload, WarmUpStep } from '@/routines/types';
@@ -98,7 +101,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
     const activeExerciseIndex = ref(0);
     const warmUpExpanded = ref(false);
     const dropsetsExpanded = ref(false);
-    const progressionExpanded = ref(false);
     const deloadExpanded = ref(false);
     const mutating = ref(false);
 
@@ -108,10 +110,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
 
     const toggleDropsetsExpanded = () => {
         dropsetsExpanded.value = !dropsetsExpanded.value;
-    };
-
-    const toggleProgressionExpanded = () => {
-        progressionExpanded.value = !progressionExpanded.value;
     };
 
     const toggleDeloadExpanded = () => {
@@ -131,7 +129,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
     watch(active, () => {
         warmUpExpanded.value = false;
         dropsetsExpanded.value = false;
-        progressionExpanded.value = false;
         activeExerciseIndex.value = 0;
     });
 
@@ -186,12 +183,33 @@ export function createRoutineEditor(props: EditRoutineProps) {
         const wasSuperset = block.is_superset;
         const source = { ...block.exercises[0] };
         toggleSuperset(block, firstCatalogId(), defaultTargetReps());
-        if (!wasSuperset && block.is_superset && block.exercises[1]) {
-            block.exercises[1].prescribed_reps = source.prescribed_reps;
-            block.exercises[1].achievement_floor = source.achievement_floor;
-            block.exercises[1].floor_is_derived = source.floor_is_derived;
-            block.exercises[1].exercise_profile_id = source.exercise_profile_id;
-            block.exercises[1].exercise_profile_fingerprint = source.exercise_profile_fingerprint;
+
+        if (!wasSuperset && block.is_superset) {
+            const profile = profileById(source.exercise_profile_id ?? null);
+            const fingerprint =
+                profile === null
+                    ? source.exercise_profile_fingerprint
+                    : exerciseAssignmentFingerprint(profile, true, block.shared_profile_id === profile.id);
+
+            if (block.exercises[0] !== undefined && profile !== null) {
+                block.exercises[0].exercise_profile_fingerprint = fingerprint;
+            }
+
+            if (block.exercises[1]) {
+                block.exercises[1].prescribed_reps = source.prescribed_reps;
+                block.exercises[1].achievement_floor = source.achievement_floor;
+                block.exercises[1].floor_is_derived = source.floor_is_derived;
+                block.exercises[1].exercise_profile_id = source.exercise_profile_id;
+                block.exercises[1].exercise_profile_fingerprint = fingerprint;
+            }
+        }
+
+        if (wasSuperset && !block.is_superset) {
+            const exercise = block.exercises[0];
+            const profile = profileById(exercise?.exercise_profile_id ?? null);
+            if (exercise !== undefined && profile !== null) {
+                exercise.exercise_profile_fingerprint = exerciseAssignmentFingerprint(profile, false, block.shared_profile_id === profile.id);
+            }
         }
     };
 
@@ -320,6 +338,19 @@ export function createRoutineEditor(props: EditRoutineProps) {
         return profile !== null && !profileMatchesSharedAssignment(block, profile);
     };
 
+    const exerciseFloorPlaceholder = (block: Block, exerciseIndex: number): string => {
+        const exercise = block.exercises[exerciseIndex];
+        if (exercise === undefined) {
+            return optionalRepsPlaceholder(props.achievement_floor_default);
+        }
+
+        const profile = profileById(exercise.exercise_profile_id ?? null);
+        const assignmentCurrent =
+            profile !== null && profileMatchesExerciseAssignment(exercise, profile, block.is_superset, block.shared_profile_id === profile.id);
+
+        return editorFloorPlaceholder(exercise, profile, assignmentCurrent, props.achievement_floor_default);
+    };
+
     const rackStart = ref(20);
     const rackEnd = ref(10);
     const rackStep = ref(2.5);
@@ -436,8 +467,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
         toggleWarmUpExpanded,
         dropsetsExpanded,
         toggleDropsetsExpanded,
-        progressionExpanded,
-        toggleProgressionExpanded,
         deloadExpanded,
         toggleDeloadExpanded,
         achievementFloorDefault: computed(() => props.achievement_floor_default ?? null),
@@ -449,6 +478,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
         setRoutineProfile,
         setExerciseTarget,
         setExerciseFloor,
+        exerciseFloorPlaceholder,
         markSharedCustom,
         exerciseProfileIsOutdated,
         sharedProfileIsOutdated,

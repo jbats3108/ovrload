@@ -1,3 +1,4 @@
+import { optionalRepsPlaceholder } from '@/routines/lib/optionalReps';
 import type { Block, BlockExercise, ExerciseProfileOption, WarmUpStep } from '@/routines/types';
 
 export function coerceProfileId(id: number | string | null | undefined): number | null {
@@ -37,6 +38,27 @@ export function normalizeExerciseForEditor(exercise: BlockExercise): BlockExerci
 
 export function resolvedProfileFloor(profile: ExerciseProfileOption): number {
     return profile.floor;
+}
+
+export function derivedAchievementFloor(prescribedReps: number): number {
+    return Math.max(1, prescribedReps - 2);
+}
+
+export function editorFloorPlaceholder(
+    exercise: BlockExercise,
+    profile: ExerciseProfileOption | null,
+    assignmentCurrent: boolean,
+    userDefault: number | null | undefined,
+): string {
+    if (profile !== null && assignmentCurrent) {
+        return String(resolvedProfileFloor(profile));
+    }
+
+    if (exercise.floor_is_derived === true) {
+        return String(derivedAchievementFloor(exercise.prescribed_reps));
+    }
+
+    return optionalRepsPlaceholder(userDefault);
 }
 
 export function applySharedProfileToBlock(block: Block, profile: ExerciseProfileOption, includeWarmUp = true): void {
@@ -99,6 +121,10 @@ export function markSharedProfileCustom(block: Block): void {
     block.shared_profile_fingerprint = null;
 }
 
+export function exerciseAssignmentFingerprint(profile: ExerciseProfileOption, isSuperset: boolean, sharedProfileMatchesExercise = false): string {
+    return isSuperset || !sharedProfileMatchesExercise ? profile.exercise_fingerprint : profile.recipe_fingerprint;
+}
+
 export function profileMatchesExerciseAssignment(
     exercise: BlockExercise,
     profile: ExerciseProfileOption,
@@ -107,8 +133,7 @@ export function profileMatchesExerciseAssignment(
 ): boolean {
     return (
         exercise.exercise_profile_id === profile.id &&
-        exercise.exercise_profile_fingerprint ===
-            (isSuperset || !sharedProfileMatchesExercise ? profile.exercise_fingerprint : profile.recipe_fingerprint)
+        exercise.exercise_profile_fingerprint === exerciseAssignmentFingerprint(profile, isSuperset, sharedProfileMatchesExercise)
     );
 }
 

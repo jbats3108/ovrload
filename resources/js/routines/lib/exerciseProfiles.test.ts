@@ -3,6 +3,8 @@ import {
     applyProfileToBlock,
     applyProfileToSupersetExercise,
     coerceProfileId,
+    editorFloorPlaceholder,
+    exerciseAssignmentFingerprint,
     markExerciseProfileCustom,
     markSharedProfileCustom,
     normalizeExerciseForEditor,
@@ -186,6 +188,9 @@ describe('exercise profile helpers', () => {
 
         expect(profileMatchesExerciseAssignment(current.exercises[0], strength, true, true)).toBe(true);
         expect(profileMatchesExerciseAssignment(current.exercises[0], strength, false, true)).toBe(false);
+        expect(exerciseAssignmentFingerprint(strength, true, true)).toBe('exercise-strength');
+        expect(exerciseAssignmentFingerprint(strength, false, true)).toBe('recipe-strength');
+        expect(exerciseAssignmentFingerprint(strength, false, false)).toBe('exercise-strength');
     });
 
     it('coerces string profile ids from select inputs', () => {
@@ -193,6 +198,53 @@ describe('exercise profile helpers', () => {
         expect(coerceProfileId(2)).toBe(2);
         expect(coerceProfileId('')).toBeNull();
         expect(coerceProfileId(undefined)).toBeNull();
+    });
+
+    it('uses the assigned profile floor as the editor placeholder', () => {
+        const strengthExercise = {
+            ...block().exercises[0],
+            prescribed_reps: 6,
+            achievement_floor: null,
+            floor_is_derived: true,
+            exercise_profile_id: strength.id,
+            exercise_profile_fingerprint: strength.exercise_fingerprint,
+        };
+        const hypertrophyExercise = {
+            ...strengthExercise,
+            prescribed_reps: 10,
+            exercise_profile_id: hypertrophy.id,
+            exercise_profile_fingerprint: hypertrophy.exercise_fingerprint,
+        };
+
+        expect(editorFloorPlaceholder(strengthExercise, strength, true, 1)).toBe('4');
+        expect(editorFloorPlaceholder(hypertrophyExercise, hypertrophy, true, 1)).toBe('8');
+    });
+
+    it('uses target minus two when a derived floor is not on a current profile', () => {
+        const exercise = {
+            ...block().exercises[0],
+            prescribed_reps: 12,
+            achievement_floor: null,
+            floor_is_derived: true,
+            exercise_profile_id: hypertrophy.id,
+            exercise_profile_fingerprint: 'old-exercise',
+        };
+
+        expect(editorFloorPlaceholder(exercise, hypertrophy, false, 1)).toBe('10');
+        expect(editorFloorPlaceholder({ ...exercise, exercise_profile_id: null }, null, false, 1)).toBe('10');
+    });
+
+    it('uses the Preferences floor when a custom exercise has a blank floor', () => {
+        const exercise = {
+            ...block().exercises[0],
+            prescribed_reps: 6,
+            achievement_floor: null,
+            floor_is_derived: false,
+            exercise_profile_id: null,
+        };
+
+        expect(editorFloorPlaceholder(exercise, null, false, 1)).toBe('1');
+        expect(editorFloorPlaceholder(exercise, null, false, null)).toBe('default');
     });
 
     it('clears stored floors when a profile-derived floor is loaded in the editor', () => {
