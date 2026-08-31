@@ -331,6 +331,7 @@ class RoutineSeeder extends Seeder
                     'position' => $stepIndex + 1,
                     'weight_mode' => $normalized['mode'],
                     'percent_of_working' => $normalized['percent'],
+                    'weight_g' => $normalized['weight_g'],
                     'reps' => $normalized['reps'],
                 ]);
             }

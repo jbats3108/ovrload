@@ -10,7 +10,7 @@ import AdminLayout from '@/layouts/admin/Layout.vue';
 import { formatRest } from '@/routines/lib/formatRest';
 import type { ExerciseProfileWarmUpStep } from '@/settings/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
-import { formatProfileWarmUpSteps } from '@/shared/warmUpStep';
+import { formatProfileWarmUpSteps, setEditorWarmUpMode, type WarmUpWeightMode } from '@/shared/warmUpStep';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -82,13 +82,8 @@ const addWarmUpStep = () => {
     form.warm_up_steps.push({ mode: 'percent', percent: 50, reps: 5 });
 };
 
-const setWarmUpMode = (step: ExerciseProfileWarmUpStep, mode: 'percent' | 'bar') => {
-    step.mode = mode;
-    if (mode === 'bar') {
-        step.percent = undefined;
-    } else if (step.percent == null) {
-        step.percent = 50;
-    }
+const setWarmUpMode = (step: ExerciseProfileWarmUpStep, mode: WarmUpWeightMode) => {
+    setEditorWarmUpMode(step, mode);
 };
 
 const removeWarmUpStep = (index: number) => {
@@ -295,10 +290,11 @@ const remove = async (profile: AdminExerciseProfile) => {
                                     <select
                                         :value="step.mode ?? 'percent'"
                                         class="rounded border border-border bg-background px-2 py-1.5 text-foreground"
-                                        @change="setWarmUpMode(step, ($event.target as HTMLSelectElement).value as 'percent' | 'bar')"
+                                        @change="setWarmUpMode(step, ($event.target as HTMLSelectElement).value as WarmUpWeightMode)"
                                     >
                                         <option value="percent">Percent</option>
                                         <option value="bar">Empty bar</option>
+                                        <option value="fixed">Fixed weight</option>
                                     </select>
                                 </label>
                                 <label v-if="(step.mode ?? 'percent') === 'percent'" class="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
@@ -308,6 +304,21 @@ const remove = async (profile: AdminExerciseProfile) => {
                                         type="number"
                                         min="1"
                                         max="100"
+                                        class="rounded border border-border bg-background px-2 py-1.5 font-mono text-foreground"
+                                        required
+                                    />
+                                </label>
+                                <label
+                                    v-else-if="(step.mode ?? 'percent') === 'fixed'"
+                                    class="flex flex-1 flex-col gap-1 text-xs text-muted-foreground"
+                                >
+                                    kg
+                                    <input
+                                        v-model.number="step.weight_kg"
+                                        type="number"
+                                        min="0.25"
+                                        max="1000"
+                                        step="0.25"
                                         class="rounded border border-border bg-background px-2 py-1.5 font-mono text-foreground"
                                         required
                                     />

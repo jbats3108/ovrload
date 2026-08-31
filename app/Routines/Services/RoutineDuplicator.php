@@ -118,6 +118,7 @@ class RoutineDuplicator
                 'position' => $step->position,
                 'weight_mode' => $step->weight_mode,
                 'percent_of_working' => $step->percent_of_working,
+                'weight_g' => $step->weight_g,
                 'reps' => $step->reps,
                 'has_setup_after' => $step->has_setup_after,
             ]);

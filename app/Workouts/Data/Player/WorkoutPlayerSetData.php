@@ -74,6 +74,7 @@ class WorkoutPlayerSetData extends Data
                     $workingWeightG,
                     $defaultBarWeightG,
                     $equipment,
+                    $warmUpStep->weight_g,
                 );
             } else {
                 $targetWeightG = $workingWeightG;

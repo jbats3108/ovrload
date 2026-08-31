@@ -16,8 +16,9 @@ export type DraftWarmUpSet = {
     exercise_position: number;
     exercise_name: string;
     set_index: number;
-    weight_mode: 'percent' | 'bar';
+    weight_mode: 'percent' | 'bar' | 'fixed';
     percent_of_working: number | null;
+    preset_weight_kg: number | null;
     reps: number;
     weight_kg: number;
     equipment: string | null;
@@ -49,23 +50,6 @@ function defaultBarKg(plateProfile: PlateProfile | null | undefined): number | n
     return barG === null ? null : gramsToKg(barG);
 }
 
-function resolveWarmUpWeightKg(
-    recipe: Pick<HistoricalCreateWarmUp, 'weight_mode' | 'percent_of_working'>,
-    baseWeightKg: number,
-    equipment: string | null,
-    defaultBarKgValue: number | null,
-): number {
-    if (recipe.weight_mode === 'bar') {
-        if (usesBarbellPlates(equipment) && defaultBarKgValue != null) {
-            return defaultBarKgValue;
-        }
-
-        return 0;
-    }
-
-    return scaleWeight(baseWeightKg * ((recipe.percent_of_working ?? 0) / 100), 1);
-}
-
 export function firstWorkingWeightKg(block: DraftBlock, exercisePosition: number): number {
     const first = block.sets.find((set) => set.exercise_position === exercisePosition && set.set_index === 0);
     if (!first) {
@@ -79,9 +63,35 @@ export function firstWorkingWeightKg(block: DraftBlock, exercisePosition: number
     return first.weight_kg ?? 0;
 }
 
+function resolveWarmUpWeightKg(
+    recipe: Pick<HistoricalCreateWarmUp, 'weight_mode' | 'percent_of_working' | 'weight_kg'>,
+    baseWeightKg: number,
+    equipment: string | null,
+    defaultBarKgValue: number | null,
+): number {
+    if (recipe.weight_mode === 'fixed') {
+        return recipe.weight_kg ?? 0;
+    }
+
+    if (recipe.weight_mode === 'bar') {
+        if (usesBarbellPlates(equipment) && defaultBarKgValue != null) {
+            return defaultBarKgValue;
+        }
+
+        return 0;
+    }
+
+    return scaleWeight(baseWeightKg * ((recipe.percent_of_working ?? 0) / 100), 1);
+}
+
 export function syncWarmUpWeights(block: DraftBlock, plateProfile?: PlateProfile | null): void {
     const barKg = defaultBarKg(plateProfile);
     for (const warmUp of block.warm_ups) {
+        if (warmUp.weight_mode === 'fixed') {
+            warmUp.weight_kg = warmUp.preset_weight_kg ?? warmUp.weight_kg;
+            continue;
+        }
+
         const base = firstWorkingWeightKg(block, warmUp.exercise_position);
         warmUp.weight_kg = resolveWarmUpWeightKg(warmUp, base, warmUp.equipment, barKg);
     }
@@ -99,6 +109,7 @@ function warmUpFromRecipe(
         set_index: recipe.set_index,
         weight_mode: recipe.weight_mode,
         percent_of_working: recipe.percent_of_working,
+        preset_weight_kg: recipe.weight_kg,
         reps: recipe.reps,
         equipment,
         weight_kg: resolveWarmUpWeightKg(recipe, baseWeightKg, equipment, defaultBarKgValue),

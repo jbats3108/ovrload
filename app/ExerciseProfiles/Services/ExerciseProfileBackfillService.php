@@ -129,6 +129,7 @@ final class ExerciseProfileBackfillService
                     WarmUpStepSupport::normalize([
                         'mode' => ($step->weight_mode ?? WarmUpWeightMode::Percent)->value,
                         'percent' => $step->percent_of_working,
+                        'weight_g' => $step->weight_g,
                         'reps' => (int) ($step->reps ?? 5),
                     ]) ?? ['mode' => 'percent', 'percent' => 50, 'reps' => 5],
                 ))
@@ -242,7 +243,7 @@ final class ExerciseProfileBackfillService
             'target_reps' => $recipe->targetReps,
             'floor_override' => $recipe->floorOverride,
             'working_rest_seconds' => $recipe->workingRestSeconds,
-            'warm_up_steps' => $recipe->warmUpSteps,
+            'warm_up_steps' => $recipe->canonicalPayload()['warm_up_steps'],
             'recipe_fingerprint' => $recipe->fingerprint(),
             'published_at' => now(),
         ]);

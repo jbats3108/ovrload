@@ -11,16 +11,35 @@ use PHPUnit\Framework\TestCase;
 class WarmUpStepSupportTest extends TestCase
 {
     #[Test]
-    public function it_normalizes_percent_and_bar_steps(): void
+    public function it_normalizes_percent_bar_and_fixed_steps(): void
     {
         $this->assertSame(
-            ['mode' => WarmUpWeightMode::Percent, 'percent' => 50, 'reps' => 5],
+            ['mode' => WarmUpWeightMode::Percent, 'percent' => 50, 'weight_g' => null, 'reps' => 5],
             WarmUpStepSupport::normalize(['percent' => 50, 'reps' => 5]),
         );
         $this->assertSame(
-            ['mode' => WarmUpWeightMode::Bar, 'percent' => null, 'reps' => 10],
+            ['mode' => WarmUpWeightMode::Bar, 'percent' => null, 'weight_g' => null, 'reps' => 10],
             WarmUpStepSupport::normalize(['mode' => 'bar', 'reps' => 10]),
         );
+        $this->assertSame(
+            ['mode' => WarmUpWeightMode::Fixed, 'percent' => null, 'weight_g' => 60_000, 'reps' => 5],
+            WarmUpStepSupport::normalize(['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5]),
+        );
+    }
+
+    #[Test]
+    public function it_resolves_fixed_target_weight_without_using_working_weight(): void
+    {
+        $weight = WarmUpStepSupport::targetWeightG(
+            WarmUpWeightMode::Fixed,
+            null,
+            200_000,
+            20_000,
+            ExerciseEquipment::Barbell,
+            60_000,
+        );
+
+        $this->assertSame(60_000, $weight);
     }
 
     #[Test]

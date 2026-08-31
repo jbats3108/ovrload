@@ -491,6 +491,7 @@ class ExerciseProfileService
                     static fn (ExerciseProfileWarmUpStepData $step): array => [
                         'mode' => $step->mode->value,
                         'percent' => $step->percent,
+                        'weight_kg' => $step->weightKg,
                         'reps' => $step->reps,
                     ],
                     $steps,
@@ -685,6 +686,7 @@ class ExerciseProfileService
                 'position' => $index + 1,
                 'weight_mode' => $normalized['mode'],
                 'percent_of_working' => $normalized['percent'],
+                'weight_g' => $normalized['weight_g'],
                 'reps' => $normalized['reps'],
                 'has_setup_after' => $existingSetupFlags[$index] ?? false,
             ]);

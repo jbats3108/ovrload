@@ -19,6 +19,9 @@ class ExerciseProfileWarmUpStepData extends Data
         #[Nullable, Min(1), Max(100)]
         public readonly ?int $percent = null,
 
+        #[Nullable, Min(0.25), Max(1000)]
+        public readonly ?float $weightKg = null,
+
         #[Min(1), Max(100)]
         public readonly int $reps = 5,
     ) {}

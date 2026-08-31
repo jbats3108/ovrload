@@ -131,7 +131,8 @@ const toc = [
                 <p class="text-muted-foreground">
                     A profile gives each exercise an exact <strong class="text-foreground">Target</strong>. Its
                     <strong class="text-foreground">Floor</strong> starts two reps lower, creating an effective Floor-to-Target range; you can
-                    explicitly override Floor when needed. Profiles also carry working Rest and a complete warm-up ladder.
+                    explicitly override Floor when needed. Profiles also carry working Rest and a complete warm-up ladder. Warm-up steps can be a
+                    percent of working weight, your empty bar, or a fixed kg — useful when a 20&nbsp;kg bar does not suit a lift like deadlift.
                 </p>
                 <ul class="list-disc space-y-2 pl-6 text-muted-foreground">
                     <li><BrandName class="mr-1" />Strength — Target 6, Floor 4, 3-minute working Rest; Warm-up bar×10, 50%×5, 75%×3, 90%×1.</li>
