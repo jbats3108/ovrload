@@ -425,6 +425,72 @@ class UpdateRoutineControllerTest extends TestCase
     }
 
     #[Test]
+    public function owner_can_change_routine_default_profile_without_updating_blocks(): void
+    {
+        $custom = ExerciseProfile::factory()->forUser($this->user)->create([
+            'name' => 'My Custom 1',
+            'target_reps' => 12,
+            'floor_override' => 10,
+            'working_rest_seconds' => 90,
+            'warm_up_steps' => [],
+        ]);
+        $strength = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
+        $hypertrophy = ExerciseProfile::query()->where('slug', 'preset-hypertrophy')->firstOrFail();
+        $routine = Routine::factory()->withUser($this->user)->create([
+            'default_exercise_profile_id' => $custom->id,
+        ]);
+        $exerciseOne = Exercise::factory()->create();
+        $exerciseTwo = Exercise::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => $routine->name,
+            'default_exercise_profile_id' => $strength->id,
+            'blocks' => [
+                RoutineEditorPayload::block($exerciseOne->id, [
+                    'is_superset' => true,
+                    'shared_profile_id' => $custom->id,
+                    'shared_profile_fingerprint' => $custom->recipe()->sharedFingerprint(),
+                    'exercises' => [
+                        [
+                            'exercise_id' => $exerciseOne->id,
+                            'exercise_profile_id' => $custom->id,
+                            'exercise_profile_fingerprint' => $custom->recipe()->exerciseFingerprint(),
+                            'working_weight_kg' => 15,
+                            'prescribed_reps' => 12,
+                            'achievement_floor' => 10,
+                            'floor_is_derived' => false,
+                            'progression_target' => null,
+                            'deload_exercise_id' => null,
+                            'deload_working_weight_kg' => null,
+                        ],
+                        [
+                            'exercise_id' => $exerciseTwo->id,
+                            'exercise_profile_id' => $hypertrophy->id,
+                            'exercise_profile_fingerprint' => $hypertrophy->recipe()->exerciseFingerprint(),
+                            'working_weight_kg' => 15,
+                            'prescribed_reps' => 10,
+                            'achievement_floor' => null,
+                            'floor_is_derived' => true,
+                            'progression_target' => null,
+                            'deload_exercise_id' => null,
+                            'deload_working_weight_kg' => null,
+                        ],
+                    ],
+                    'working' => ['set_count' => 1, 'rest_seconds' => 90],
+                    'warm_up' => ['set_count' => 0, 'rest_seconds' => 60, 'steps' => []],
+                ]),
+            ],
+        ])->assertRedirect(route('dashboard'));
+
+        $saved = $routine->fresh(['blocks.blockExercises', 'blocks.sharedExerciseProfile']);
+        $block = $saved->blocks->firstOrFail();
+
+        $this->assertSame($strength->id, $saved->default_exercise_profile_id);
+        $this->assertSame($custom->id, $block->shared_exercise_profile_id);
+        $this->assertSame($custom->id, $block->blockExercises->firstWhere('position', 1)?->exercise_profile_id);
+    }
+
+    #[Test]
     public function edit_includes_archived_profiles_still_referenced_by_the_routine(): void
     {
         $archived = ExerciseProfile::factory()->forUser($this->user)->archived()->create(['name' => 'Old Push']);

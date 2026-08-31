@@ -25,7 +25,7 @@ const inertia = vi.hoisted(() => {
             clearErrors: vi.fn(),
             transform(fn: (data: object) => unknown) {
                 // Keep put/post(url, options) like Inertia; stash payload for assertions.
-                lastTransformed = fn(initial);
+                lastTransformed = fn({ ...(this as object) });
                 return { put: inertiaFormPut, post: inertiaFormPost };
             },
             put: inertiaFormPut,

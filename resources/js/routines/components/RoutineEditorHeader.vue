@@ -4,8 +4,16 @@ import ExerciseProfilePicker from '@/routines/components/ExerciseProfilePicker.v
 import RoutineEditorErrors from '@/routines/components/RoutineEditorErrors.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 const { form, profileOptions, setRoutineProfile, save, duplicateRoutine, deleteRoutine, mutating } = useRoutineEditor();
+
+const routineProfileModel = computed({
+    get: () => form.default_exercise_profile_id ?? null,
+    set: (profileId: number | null) => {
+        void setRoutineProfile(profileId);
+    },
+});
 </script>
 
 <template>
@@ -21,12 +29,7 @@ const { form, profileOptions, setRoutineProfile, save, duplicateRoutine, deleteR
                 <InputError :message="form.errors.name" />
             </div>
             <div class="w-full md:max-w-xs">
-                <ExerciseProfilePicker
-                    :model-value="form.default_exercise_profile_id ?? null"
-                    :profiles="profileOptions"
-                    label="Routine profile"
-                    @update:model-value="setRoutineProfile($event)"
-                />
+                <ExerciseProfilePicker v-model="routineProfileModel" :profiles="profileOptions" label="Routine profile" />
                 <p class="mt-1 text-xs text-muted-foreground">Used for new blocks; existing blocks stay unchanged.</p>
                 <InputError :message="form.errors.default_exercise_profile_id" />
             </div>
