@@ -75,7 +75,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
     const defaultTargetReps = () =>
         typeof props.progression_target_default === 'number' && props.progression_target_default >= 1 ? props.progression_target_default : 6;
 
-    const form = useForm(`EditRoutine:${props.routine.id}:${props.routine.updated_at}`, {
+    const form = useForm({
         name: props.routine.name,
         deload_weight_factor: props.routine.deload_weight_factor,
         deload_reps_factor: props.routine.deload_reps_factor,
@@ -393,6 +393,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
                 };
             }),
         })).put(route('routines.update', props.routine.slug), {
+            preserveState: false,
             onError: revealSaveErrors,
         });
     };

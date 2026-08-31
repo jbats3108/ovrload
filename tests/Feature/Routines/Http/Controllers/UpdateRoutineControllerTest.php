@@ -67,8 +67,28 @@ class UpdateRoutineControllerTest extends TestCase
                 ]),
             ],
         ])
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('routines.edit', $routine))
             ->assertSessionHas('success', 'Routine saved.');
+    }
+
+    #[Test]
+    public function owner_update_returns_inertia_location_for_inertia_requests(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->actingAs($this->user)
+            ->withHeaders(['X-Inertia' => 'true'])
+            ->put(route('routines.update', $routine), [
+                'name' => 'Saved Inertia',
+                'blocks' => [
+                    RoutineEditorPayload::block($exercise->id),
+                ],
+            ])
+            ->assertStatus(409)
+            ->assertHeader('X-Inertia-Location', route('routines.edit', $routine));
+
+        $this->assertSame('Saved Inertia', $routine->fresh()->name);
     }
 
     #[Test]
@@ -97,7 +117,7 @@ class UpdateRoutineControllerTest extends TestCase
                     ],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.sharedExerciseProfile', 'blocks.setGroups.warmUpSteps']);
         $savedBlock = $savedRoutine->blocks->firstOrFail();
@@ -193,7 +213,7 @@ class UpdateRoutineControllerTest extends TestCase
                     ],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $saved = $routine->fresh(['blocks.blockExercises']);
         $savedExercise = $saved->blocks->firstOrFail()->blockExercises->firstOrFail();
@@ -219,7 +239,7 @@ class UpdateRoutineControllerTest extends TestCase
                 ]),
             ],
         ])
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('routines.edit', $routine))
             ->assertSessionHas('success', 'Routine saved.');
 
         $block = $routine->fresh()->blocks()->first();
@@ -264,7 +284,7 @@ class UpdateRoutineControllerTest extends TestCase
                     'working' => ['set_count' => 3, 'rest_seconds' => 180],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $row = $routine->fresh()->blocks()->first()->blockExercises()->first();
         $this->assertSame(3, $row->achievement_floor_override);
@@ -290,7 +310,7 @@ class UpdateRoutineControllerTest extends TestCase
                     'working' => ['set_count' => 3, 'rest_seconds' => 180],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $row = $routine->fresh()->blocks()->first()->blockExercises()->first();
         $this->assertSame($alternate->id, $row->deload_exercise_id);
@@ -407,7 +427,7 @@ class UpdateRoutineControllerTest extends TestCase
                     ],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $this->actingAs($this->user)
             ->get(route('routines.edit', $routine))
@@ -480,7 +500,7 @@ class UpdateRoutineControllerTest extends TestCase
                     'warm_up' => ['set_count' => 0, 'rest_seconds' => 60, 'steps' => []],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $saved = $routine->fresh(['blocks.blockExercises', 'blocks.sharedExerciseProfile']);
         $block = $saved->blocks->firstOrFail();
