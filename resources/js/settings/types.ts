@@ -37,7 +37,6 @@ export type ExerciseProfileOption = {
     recipe_fingerprint: string;
     exercise_fingerprint: string;
     shared_fingerprint: string;
-    reference_count: number;
     stale_assignment_count: number;
     is_default: boolean;
     assigned_routines: ExerciseProfileAssignedRoutine[];

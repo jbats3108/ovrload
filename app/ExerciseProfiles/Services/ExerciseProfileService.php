@@ -56,7 +56,6 @@ class ExerciseProfileService
                 $profiles->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     $profile->id === $defaultId,
-                    count($assignedById[$profile->id] ?? []),
                     $staleAssignmentCounts[$profile->id] ?? 0,
                     $assignedById[$profile->id] ?? [],
                 )),
@@ -66,7 +65,6 @@ class ExerciseProfileService
                 $archived->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     false,
-                    count($assignedById[$profile->id] ?? []),
                     0,
                     $assignedById[$profile->id] ?? [],
                 )),

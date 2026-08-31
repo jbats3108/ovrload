@@ -305,7 +305,7 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
-    public function routine_reference_count_counts_distinct_routines_not_assignments(): void
+    public function assigned_routines_counts_distinct_routines_not_assignments(): void
     {
         $user = User::factory()->create();
         $profile = ExerciseProfile::factory()->forUser($user)->create();
@@ -315,11 +315,11 @@ class ExerciseProfileServiceTest extends TestCase
         $this->createAssignedBlock($routine, $profile);
         $this->createAssignedBlock($routine, $profile);
 
-        $this->assertSame(1, $this->referenceCountFor($user, $profile));
+        $this->assertSame(1, $this->assignedRoutineCountFor($user, $profile));
     }
 
     #[Test]
-    public function routine_reference_count_ignores_soft_deleted_routines(): void
+    public function assigned_routines_ignores_soft_deleted_routines(): void
     {
         $user = User::factory()->create();
         $profile = ExerciseProfile::factory()->forUser($user)->create();
@@ -330,11 +330,11 @@ class ExerciseProfileServiceTest extends TestCase
 
         $routine->delete();
 
-        $this->assertSame(0, $this->referenceCountFor($user, $profile));
+        $this->assertSame(0, $this->assignedRoutineCountFor($user, $profile));
     }
 
     #[Test]
-    public function routine_reference_count_ignores_other_users_routines(): void
+    public function assigned_routines_ignores_other_users_routines(): void
     {
         $user = User::factory()->create();
         $other = User::factory()->create();
@@ -344,7 +344,7 @@ class ExerciseProfileServiceTest extends TestCase
         ]);
         $this->createAssignedBlock($routine, $preset);
 
-        $this->assertSame(0, $this->referenceCountFor($user, $preset));
+        $this->assertSame(0, $this->assignedRoutineCountFor($user, $preset));
     }
 
     #[Test]
@@ -361,7 +361,7 @@ class ExerciseProfileServiceTest extends TestCase
         $match = collect($page->profiles->all())->firstWhere('id', $profile->id);
 
         $this->assertNotNull($match);
-        $this->assertSame(2, $match->referenceCount);
+        $this->assertCount(2, $match->assignedRoutines);
         $this->assertSame(
             [
                 ['name' => 'Alpha Day', 'slug' => $alpha->slug],
@@ -383,7 +383,6 @@ class ExerciseProfileServiceTest extends TestCase
         $match = collect($page->profiles->all())->firstWhere('id', $profile->id);
 
         $this->assertNotNull($match);
-        $this->assertSame(0, $match->referenceCount);
         $this->assertSame([], $match->assignedRoutines);
         $this->assertSame(0, $match->staleAssignmentCount);
     }
@@ -455,14 +454,14 @@ class ExerciseProfileServiceTest extends TestCase
         return $match->staleAssignmentCount;
     }
 
-    private function referenceCountFor(User $user, ExerciseProfile $profile): int
+    private function assignedRoutineCountFor(User $user, ExerciseProfile $profile): int
     {
         $page = $this->profiles->pageDataFor($user);
         $match = collect($page->profiles->all())->firstWhere('id', $profile->id);
 
         $this->assertNotNull($match);
 
-        return $match->referenceCount;
+        return count($match->assignedRoutines);
     }
 
     private function createSharedOnlyBlock(Routine $routine, ExerciseProfile $profile): RoutineBlock
