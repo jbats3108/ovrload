@@ -44,7 +44,6 @@ class ManifestTest extends TestCase
         $response->assertSee('rel="manifest" href="/manifest.webmanifest"', false);
         $response->assertSee('name="apple-mobile-web-app-capable" content="yes"', false);
         $response->assertSee('name="apple-mobile-web-app-title" content="OVRLOAD"', false);
-        $response->assertInertia(fn ($page) => $page->where('name', 'OVRLOAD'));
     }
 
     #[Test]

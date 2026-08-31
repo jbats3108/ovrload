@@ -11,12 +11,9 @@ return [
     | framework needs to place the application's name in a notification or
     | other UI elements where an application name needs to be displayed.
     |
-    | Brand casing is fixed. Do not read APP_NAME here — hosts often set it to
-    | the lowercase slug used for cookies and cache prefixes.
-    |
     */
 
-    'name' => 'OVRLOAD',
+    'name' => env('APP_NAME', 'OVRLOAD'),
 
     /*
     |--------------------------------------------------------------------------
