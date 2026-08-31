@@ -71,7 +71,8 @@ test.describe('workout player', () => {
 
     test('prompts setup after warm-up block', async ({ page }) => {
         await startBarbellStrength(page);
-        for (let i = 0; i < 2; i++) {
+        // Strength profile warm-ups: bar×10, 50%×5, 75%×3, 90%×1
+        for (let i = 0; i < 3; i++) {
             await completeCurrentSet(page);
             await skipRest(page);
         }
