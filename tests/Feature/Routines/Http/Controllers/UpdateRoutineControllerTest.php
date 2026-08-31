@@ -8,6 +8,7 @@ use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
+use App\Shared\Enums\WarmUpWeightMode;
 use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -98,14 +99,19 @@ class UpdateRoutineControllerTest extends TestCase
             ],
         ])->assertRedirect(route('dashboard'));
 
-        $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.sharedExerciseProfile']);
+        $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.sharedExerciseProfile', 'blocks.setGroups.warmUpSteps']);
         $savedBlock = $savedRoutine->blocks->firstOrFail();
         $savedExercise = $savedBlock->blockExercises->firstOrFail();
+        $savedWarmUps = $savedBlock->setGroups->firstWhere('type', 'warm_up')?->warmUpSteps;
 
         $this->assertSame($profile->id, $savedRoutine->default_exercise_profile_id);
         $this->assertSame($profile->id, $savedExercise->exercise_profile_id);
         $this->assertSame($profile->id, $savedBlock->shared_exercise_profile_id);
         $this->assertSame($profile->recipe()->fingerprint(), $savedExercise->exercise_profile_fingerprint);
+        $this->assertNotNull($savedWarmUps);
+        $this->assertCount(4, $savedWarmUps);
+        $this->assertSame(WarmUpWeightMode::Bar, $savedWarmUps->first()->weight_mode);
+        $this->assertSame(10, $savedWarmUps->first()->reps);
     }
 
     #[Test]

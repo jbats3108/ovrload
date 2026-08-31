@@ -1,4 +1,5 @@
 import type { Block, BlockExercise, WarmUpStep } from '@/routines/types';
+import { normalizeEditorWarmUpStep } from '@/shared/warmUpStep';
 
 export function emptyExercise(firstCatalogId: number | null = null, prescribedReps = 6): BlockExercise {
     return {
@@ -40,7 +41,7 @@ export function emptyBlock(
     } = {},
 ): Block {
     const { superset = false, seedWarmUp = true, warmUpDefaults = [], firstCatalogId = null, prescribedReps = 6 } = options;
-    const steps = seedWarmUp ? warmUpDefaults.map((s) => ({ percent: s.percent, reps: s.reps, has_setup_after: false })) : [];
+    const steps = seedWarmUp ? warmUpDefaults.map((s) => normalizeEditorWarmUpStep({ ...s, has_setup_after: false })) : [];
     return {
         is_superset: superset,
         has_setup_after: false,
@@ -73,11 +74,7 @@ export function canSetupAfterBlock(blockIndex: number, blockCount: number): bool
 }
 
 export function normalizeBlock(raw: Block): Block {
-    const steps = (raw.warm_up?.steps ?? []).map((s) => ({
-        percent: Number(s.percent),
-        reps: Number(s.reps ?? 5),
-        has_setup_after: Boolean(s.has_setup_after),
-    }));
+    const steps = (raw.warm_up?.steps ?? []).map((s) => normalizeEditorWarmUpStep(s));
     const dropsets = (raw.working?.dropsets ?? [])
         .map((d) => ({
             set_index: Number(d.set_index),

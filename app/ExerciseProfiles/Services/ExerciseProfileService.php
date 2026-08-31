@@ -479,14 +479,17 @@ class ExerciseProfileService
             targetReps: $data->targetReps,
             floorOverride: $data->floorOverride,
             workingRestSeconds: $data->workingRestSeconds,
-            warmUpSteps: WarmUpStepSupport::normalizeList(array_values(array_map(
-                static fn (ExerciseProfileWarmUpStepData $step): array => [
-                    'mode' => $step->mode->value,
-                    'percent' => $step->percent,
-                    'reps' => $step->reps,
-                ],
-                $steps,
-            ))),
+            warmUpSteps: array_values(array_map(
+                WarmUpStepSupport::toStorage(...),
+                WarmUpStepSupport::normalizeList(array_values(array_map(
+                    static fn (ExerciseProfileWarmUpStepData $step): array => [
+                        'mode' => $step->mode->value,
+                        'percent' => $step->percent,
+                        'reps' => $step->reps,
+                    ],
+                    $steps,
+                ))),
+            )),
         );
     }
 

@@ -18,7 +18,12 @@ describe('emptyExercise', () => {
 describe('emptyBlock', () => {
     it('seeds warm-up defaults', () => {
         const b = emptyBlock({ warmUpDefaults: [{ percent: 40, reps: 5 }] });
-        expect(b.warm_up.steps).toEqual([{ percent: 40, reps: 5, has_setup_after: false }]);
+        expect(b.warm_up.steps).toEqual([{ mode: 'percent', percent: 40, reps: 5, has_setup_after: false }]);
+    });
+
+    it('preserves bar warm-up defaults', () => {
+        const b = emptyBlock({ warmUpDefaults: [{ mode: 'bar', reps: 10 }] });
+        expect(b.warm_up.steps).toEqual([{ mode: 'bar', percent: undefined, reps: 10, has_setup_after: false }]);
     });
 
     it('creates superset with two exercises', () => {
@@ -34,6 +39,24 @@ describe('emptyBlock', () => {
 });
 
 describe('normalizeBlock', () => {
+    it('preserves bar warm-up mode from the server', () => {
+        const raw = block({
+            warm_up: {
+                set_count: 2,
+                rest_seconds: 60,
+                steps: [
+                    { mode: 'bar', reps: 10, has_setup_after: false },
+                    { mode: 'percent', percent: 50, reps: 5, has_setup_after: false },
+                ],
+            },
+        });
+
+        expect(normalizeBlock(raw).warm_up.steps).toEqual([
+            { mode: 'bar', percent: undefined, reps: 10, has_setup_after: false },
+            { mode: 'percent', percent: 50, reps: 5, has_setup_after: false },
+        ]);
+    });
+
     it('drops invalid dropsets and clears superset dropsets', () => {
         const raw = block({
             is_superset: true,
