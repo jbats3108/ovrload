@@ -186,6 +186,22 @@ describe('createRoutineEditor', () => {
             exercise_profile_id: null,
             exercise_profile_fingerprint: null,
         });
+        expect(editor.form.blocks[0].shared_profile_id).toBeNull();
+        expect(editor.form.blocks[0].shared_profile_fingerprint).toBeNull();
+    });
+
+    it('keeps a superset shared profile when one exercise target is customized', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile],
+        });
+        editor.addBlock(false);
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        editor.setExerciseTarget(editor.form.blocks[0].exercises[0], '8');
+
+        expect(editor.form.blocks[0].exercises[0].exercise_profile_id).toBeNull();
+        expect(editor.form.blocks[0].shared_profile_id).toBe(1);
     });
 
     it('can sync eligible blocks when changing the routine profile', async () => {

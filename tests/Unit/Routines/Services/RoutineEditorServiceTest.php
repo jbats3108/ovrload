@@ -517,6 +517,40 @@ class RoutineEditorServiceTest extends TestCase
     }
 
     #[Test]
+    public function sync_drops_shared_profile_when_the_exercise_is_custom(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $exercise = Exercise::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Custom exercise leftover shared',
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 2,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+                    'exercise_profile_id' => null,
+                    'exercise_profile_fingerprint' => null,
+                    'prescribed_reps' => 8,
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => 999,
+                    ],
+                ]),
+            ],
+        ]));
+
+        $block = $result->blocks->firstOrFail();
+        $this->assertNull($block->shared_exercise_profile_id);
+        $this->assertNull($block->shared_profile_fingerprint);
+        $this->assertNull($block->blockExercises->firstOrFail()->exercise_profile_id);
+        $this->assertSame(999, $block->workingSetGroup->rest_seconds);
+    }
+
+    #[Test]
     public function sync_keeps_a_shared_profile_when_fixed_warm_up_steps_match(): void
     {
         $user = User::factory()->create();

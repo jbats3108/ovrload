@@ -229,7 +229,7 @@ watch(profileSyncId, (profileId) => {
                             Used in
                             <!-- prettier-ignore -->
                             <template v-for="(routine, index) in profile.assigned_routines" :key="routine.slug"><TextLink :href="route('routines.edit', routine.slug)">{{ routine.name }}</TextLink><template v-if="index < profile.assigned_routines.length - 1">, </template></template>
-                            . Change the profile in those routines before deleting or archiving.
+                            . Check Routine profile and each exercise's profile selector before deleting or archiving.
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2">

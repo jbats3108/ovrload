@@ -15,6 +15,7 @@ use App\ExerciseProfiles\Exceptions\ExerciseProfileNotEditableException;
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
+use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Support\WarmUpStepSupport;
@@ -446,6 +447,8 @@ class ExerciseProfileService
     }
 
     /**
+     * Profile IDs shown by the routine profile picker or an exercise profile picker.
+     *
      * @return list<int>
      */
     private function profileIdsReferencedBy(Routine $routine): array
@@ -457,10 +460,6 @@ class ExerciseProfileService
         }
 
         foreach ($routine->blocks as $block) {
-            if ($block->shared_exercise_profile_id !== null) {
-                $ids[] = $block->shared_exercise_profile_id;
-            }
-
             foreach ($block->blockExercises as $exercise) {
                 if ($exercise->exercise_profile_id !== null) {
                     $ids[] = $exercise->exercise_profile_id;
@@ -504,7 +503,11 @@ class ExerciseProfileService
                 $sharedProfileId = $block->shared_exercise_profile_id;
                 $sharedAssignedToTrackedProfile = $sharedProfileId !== null && isset($counts[$sharedProfileId]);
 
-                if ($sharedAssignedToTrackedProfile) {
+                $exerciseUsesSharedProfile = $sharedAssignedToTrackedProfile && $block->blockExercises->contains(
+                    fn (RoutineBlockExercise $exercise): bool => $exercise->exercise_profile_id === $sharedProfileId,
+                );
+
+                if ($exerciseUsesSharedProfile) {
                     $sharedRecipe = $recipes[$sharedProfileId];
                     if ($block->shared_profile_fingerprint !== $sharedRecipe->sharedFingerprint()) {
                         $counts[$sharedProfileId]++;
