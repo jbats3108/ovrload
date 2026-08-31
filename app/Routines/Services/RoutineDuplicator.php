@@ -116,6 +116,7 @@ class RoutineDuplicator
             RoutineWarmUpStep::create([
                 'routine_set_group_id' => $newSetGroup->id,
                 'position' => $step->position,
+                'weight_mode' => $step->weight_mode,
                 'percent_of_working' => $step->percent_of_working,
                 'reps' => $step->reps,
                 'has_setup_after' => $step->has_setup_after,

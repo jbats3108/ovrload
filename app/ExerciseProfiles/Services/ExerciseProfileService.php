@@ -17,6 +17,7 @@ use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineSetGroup;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -478,13 +479,14 @@ class ExerciseProfileService
             targetReps: $data->targetReps,
             floorOverride: $data->floorOverride,
             workingRestSeconds: $data->workingRestSeconds,
-            warmUpSteps: array_values(array_map(
+            warmUpSteps: WarmUpStepSupport::normalizeList(array_values(array_map(
                 static fn (ExerciseProfileWarmUpStepData $step): array => [
+                    'mode' => $step->mode->value,
                     'percent' => $step->percent,
                     'reps' => $step->reps,
                 ],
                 $steps,
-            )),
+            ))),
         );
     }
 
@@ -665,10 +667,16 @@ class ExerciseProfileService
 
         $warmUp->warmUpSteps()->delete();
         foreach ($recipe->warmUpSteps as $index => $step) {
+            $normalized = WarmUpStepSupport::normalize($step);
+            if ($normalized === null) {
+                continue;
+            }
+
             $warmUp->warmUpSteps()->create([
                 'position' => $index + 1,
-                'percent_of_working' => $step['percent'],
-                'reps' => $step['reps'],
+                'weight_mode' => $normalized['mode'],
+                'percent_of_working' => $normalized['percent'],
+                'reps' => $normalized['reps'],
                 'has_setup_after' => $existingSetupFlags[$index] ?? false,
             ]);
         }

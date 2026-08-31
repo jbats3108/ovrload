@@ -2,6 +2,7 @@
 
 namespace App\Routines\Data\Editor;
 
+use App\Shared\Enums\WarmUpWeightMode;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
@@ -12,8 +13,10 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 class SyncWarmUpStepData extends Data
 {
     public function __construct(
+        public readonly WarmUpWeightMode $mode = WarmUpWeightMode::Percent,
+
         #[Min(1), Max(100)]
-        public readonly int $percent,
+        public readonly ?int $percent = null,
 
         #[Min(1), Max(100)]
         public readonly int $reps = 5,

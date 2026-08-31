@@ -20,6 +20,7 @@ use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Data\WeightKgSegmentData;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -185,7 +186,8 @@ class RoutineEditorService
             RoutineWarmUpStep::create([
                 'routine_set_group_id' => $warmUpGroup->id,
                 'position' => $stepIndex + 1,
-                'percent_of_working' => min(100, max(1, $step->percent)),
+                'weight_mode' => $step->mode,
+                'percent_of_working' => $step->mode === WarmUpWeightMode::Bar ? null : min(100, max(1, $step->percent ?? 1)),
                 'reps' => min(100, max(1, $step->reps)),
                 'has_setup_after' => $step->hasSetupAfter,
             ]);

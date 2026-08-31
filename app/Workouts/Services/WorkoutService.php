@@ -934,6 +934,7 @@ class WorkoutService
                     WorkoutWarmUpStep::create([
                         'workout_set_group_id' => $workoutSetGroup->id,
                         'position' => $warmUpStep->position,
+                        'weight_mode' => $warmUpStep->weight_mode,
                         'percent_of_working' => $warmUpStep->percent_of_working,
                         'reps' => $warmUpStep->reps,
                         'has_setup_after' => $warmUpStep->has_setup_after,

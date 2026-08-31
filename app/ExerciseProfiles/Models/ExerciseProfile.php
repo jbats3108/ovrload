@@ -8,6 +8,7 @@ use App\ExerciseProfiles\Services\ExerciseProfileRecipe;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Models\User;
 use Database\Factories\ExerciseProfiles\Models\ExerciseProfileFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -131,18 +132,15 @@ class ExerciseProfile extends Model
     }
 
     /**
-     * @return list<array{percent: int, reps: int}>
+     * @return list<array{mode: string, percent?: int, reps: int}>
      */
     public function warmUpStepList(): array
     {
         $steps = is_array($this->warm_up_steps) ? $this->warm_up_steps : [];
 
         return array_values(array_map(
-            static fn (mixed $step): array => [
-                'percent' => (int) (is_array($step) ? ($step['percent'] ?? 0) : 0),
-                'reps' => (int) (is_array($step) ? ($step['reps'] ?? 0) : 0),
-            ],
-            $steps,
+            WarmUpStepSupport::toStorage(...),
+            WarmUpStepSupport::normalizeList($steps),
         ));
     }
 

@@ -2,10 +2,12 @@
 
 namespace App\ExerciseProfiles\Services;
 
+use App\Shared\Support\WarmUpStepSupport;
+
 final readonly class ExerciseProfileRecipe
 {
     /**
-     * @param  list<array{percent: int, reps: int}>  $warmUpSteps
+     * @param  list<array{mode?: string, percent?: int|null, reps: int}>  $warmUpSteps
      */
     public function __construct(
         public int $targetReps,
@@ -24,7 +26,7 @@ final readonly class ExerciseProfileRecipe
      *     target_reps: int,
      *     floor_override: int|null,
      *     working_rest_seconds: int,
-     *     warm_up_steps: list<array{percent: int, reps: int}>
+     *     warm_up_steps: list<array{mode: string, percent?: int, reps: int}>
      * }
      */
     public function canonicalPayload(): array
@@ -34,11 +36,8 @@ final readonly class ExerciseProfileRecipe
             'floor_override' => $this->floorOverride,
             'working_rest_seconds' => $this->workingRestSeconds,
             'warm_up_steps' => array_values(array_map(
-                static fn (array $step): array => [
-                    'percent' => (int) $step['percent'],
-                    'reps' => (int) $step['reps'],
-                ],
-                $this->warmUpSteps,
+                static fn (array $step): array => WarmUpStepSupport::toStorage($step),
+                WarmUpStepSupport::normalizeList($this->warmUpSteps),
             )),
         ];
     }

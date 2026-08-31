@@ -144,6 +144,14 @@ class PlateProfileService
         });
     }
 
+    public function defaultBarWeightG(User $user): ?int
+    {
+        $profile = $this->ensureProfile($user);
+        $bar = $profile->bars->firstWhere('is_default', true) ?? $profile->bars->first();
+
+        return $bar?->weight_g;
+    }
+
     /**
      * @return array{
      *     exact: bool,

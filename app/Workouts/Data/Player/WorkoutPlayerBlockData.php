@@ -32,7 +32,7 @@ class WorkoutPlayerBlockData extends Data
         public readonly DataCollection $sets,
     ) {}
 
-    public static function fromBlock(WorkoutBlock $block): self
+    public static function fromBlock(WorkoutBlock $block, ?int $defaultBarWeightG = null): self
     {
         $block->loadMissing(['blockExercises', 'setGroups.sets.segments', 'setGroups.warmUpSteps']);
 
@@ -40,7 +40,7 @@ class WorkoutPlayerBlockData extends Data
 
         $setRows = $block->setGroups
             ->sortBy(fn ($group): int => $group->type === SetGroupType::WarmUp ? 0 : 1)
-            ->flatMap(function ($group) use ($exercisesById) {
+            ->flatMap(function ($group) use ($exercisesById, $defaultBarWeightG) {
                 $warmUpSteps = $group->warmUpSteps->keyBy('position');
 
                 return $group->sets
@@ -53,7 +53,7 @@ class WorkoutPlayerBlockData extends Data
                             $exercise !== null ? $exercise->position : 0,
                         );
                     })
-                    ->map(function (WorkoutSet $set) use ($group, $exercisesById, $warmUpSteps): WorkoutPlayerSetData {
+                    ->map(function (WorkoutSet $set) use ($group, $exercisesById, $warmUpSteps, $defaultBarWeightG): WorkoutPlayerSetData {
                         /** @var WorkoutBlockExercise $exercise */
                         $exercise = $exercisesById->get($set->workout_block_exercise_id);
 
@@ -70,6 +70,7 @@ class WorkoutPlayerBlockData extends Data
                             $group->type,
                             $group->rest_seconds ?? 0,
                             $warmUpStep,
+                            $defaultBarWeightG,
                         );
                     });
             })

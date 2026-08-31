@@ -11,7 +11,7 @@ final class ExerciseProfilePresetCatalog
      *     target_reps: int,
      *     floor_override: int|null,
      *     working_rest_seconds: int,
-     *     warm_up_steps: list<array{percent: int, reps: int}>
+     *     warm_up_steps: list<array{mode?: string, percent?: int, reps: int}>
      * }>
      */
     public static function definitions(): array
@@ -24,9 +24,10 @@ final class ExerciseProfilePresetCatalog
                 'floor_override' => null,
                 'working_rest_seconds' => 180,
                 'warm_up_steps' => [
-                    ['percent' => 50, 'reps' => 5],
-                    ['percent' => 75, 'reps' => 3],
-                    ['percent' => 90, 'reps' => 1],
+                    ['mode' => 'bar', 'reps' => 10],
+                    ['mode' => 'percent', 'percent' => 50, 'reps' => 5],
+                    ['mode' => 'percent', 'percent' => 75, 'reps' => 3],
+                    ['mode' => 'percent', 'percent' => 90, 'reps' => 1],
                 ],
             ],
             [

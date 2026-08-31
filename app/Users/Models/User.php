@@ -6,6 +6,7 @@ use App\Auth\Models\RegistrationInvite;
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Enums\ProgressionStyle;
 use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
@@ -80,21 +81,21 @@ class User extends Authenticatable
     /**
      * App-wide warm-up ladder when the user has not set prefs yet.
      *
-     * @return list<array{percent: int, reps: int}>
+     * @return list<array{mode: string, percent?: int, reps: int}>
      */
     public static function fallbackWarmUpSteps(): array
     {
         return [
-            ['percent' => 40, 'reps' => 5],
-            ['percent' => 60, 'reps' => 3],
-            ['percent' => 80, 'reps' => 1],
+            ['mode' => 'percent', 'percent' => 40, 'reps' => 5],
+            ['mode' => 'percent', 'percent' => 60, 'reps' => 3],
+            ['mode' => 'percent', 'percent' => 80, 'reps' => 1],
         ];
     }
 
     /**
      * Steps to seed into new routine blocks. Null column → app fallback; empty list → no warm-up.
      *
-     * @return list<array{percent: int, reps: int}>
+     * @return list<array{mode: string, percent?: int, reps: int}>
      */
     public function resolvedWarmUpStepsDefault(): array
     {
@@ -103,11 +104,8 @@ class User extends Authenticatable
         }
 
         return array_values(array_map(
-            static fn (mixed $step): array => [
-                'percent' => (int) (is_array($step) ? ($step['percent'] ?? 0) : 0),
-                'reps' => (int) (is_array($step) ? ($step['reps'] ?? 5) : 5),
-            ],
-            $this->warm_up_steps_default
+            WarmUpStepSupport::toStorage(...),
+            WarmUpStepSupport::normalizeList($this->warm_up_steps_default),
         ));
     }
 

@@ -7,6 +7,7 @@ use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Shared\Data\WeightKgSegmentData;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Shared\Support\Weight;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapName;
@@ -102,7 +103,8 @@ class RoutineEditorPageData extends Data
                     steps: SyncWarmUpStepData::collect(
                         $warmUp !== null
                             ? $warmUp->warmUpSteps->map(fn ($step): SyncWarmUpStepData => new SyncWarmUpStepData(
-                                percent: (int) $step->percent_of_working,
+                                mode: $step->weight_mode ?? WarmUpWeightMode::Percent,
+                                percent: $step->percent_of_working !== null ? (int) $step->percent_of_working : null,
                                 reps: (int) ($step->reps ?? 5),
                                 hasSetupAfter: (bool) $step->has_setup_after,
                             ))

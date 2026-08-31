@@ -3,7 +3,9 @@
 namespace App\Settings\Http\Controllers;
 
 use App\ExerciseProfiles\Services\ExerciseProfileService;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Shared\Http\Controllers\Controller;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Data\UpdateTrainingDefaultsData;
 use App\Users\Enums\ProgressionStyle;
 use App\Users\Enums\ProgressiveMidBlock;
@@ -46,10 +48,13 @@ class TrainingDefaultsController extends Controller
         $steps = $data->warmUpStepsDefault === null
             ? []
             : array_values(array_map(
-                static fn ($step): array => [
-                    'percent' => min(100, max(1, $step->percent)),
-                    'reps' => min(100, max(1, $step->reps)),
-                ],
+                static fn ($step): array => WarmUpStepSupport::toStorage(
+                    WarmUpStepSupport::normalize([
+                        'mode' => $step->mode->value,
+                        'percent' => $step->percent,
+                        'reps' => $step->reps,
+                    ]) ?? ['mode' => WarmUpWeightMode::Percent->value, 'percent' => 50, 'reps' => 5],
+                ),
                 $data->warmUpStepsDefault->all()
             ));
 

@@ -8,6 +8,8 @@ use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
+use App\Shared\Enums\WarmUpWeightMode;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -102,22 +104,13 @@ final class ExerciseProfileBackfillService
     {
         $warmUpSteps = $user->warm_up_steps_default === null
             ? User::fallbackWarmUpSteps()
-            : array_values(array_map(
-                static fn (mixed $step): array => [
-                    'percent' => (int) (is_array($step) ? ($step['percent'] ?? 0) : 0),
-                    'reps' => (int) (is_array($step) ? ($step['reps'] ?? 0) : 0),
-                ],
-                $user->warm_up_steps_default,
-            ));
+            : $user->warm_up_steps_default;
 
         $recipe = new ExerciseProfileRecipe(
             targetReps: $user->resolvedDefaultTargetReps(),
             floorOverride: $user->achievement_floor_default ?? 1,
             workingRestSeconds: 120,
-            warmUpSteps: array_values(array_filter(
-                $warmUpSteps,
-                static fn (array $step): bool => $step['percent'] > 0 && $step['reps'] > 0,
-            )),
+            warmUpSteps: WarmUpStepSupport::normalizeList($warmUpSteps),
         );
 
         return $this->profileForRecipe($user, $recipe);
@@ -134,10 +127,13 @@ final class ExerciseProfileBackfillService
 
         $warmUpSteps = $warmUp instanceof RoutineSetGroup
             ? array_values($warmUp->warmUpSteps
-                ->map(static fn ($step): array => [
-                    'percent' => (int) $step->percent_of_working,
-                    'reps' => (int) ($step->reps ?? 5),
-                ])
+                ->map(static fn ($step): array => WarmUpStepSupport::toStorage(
+                    WarmUpStepSupport::normalize([
+                        'mode' => ($step->weight_mode ?? WarmUpWeightMode::Percent)->value,
+                        'percent' => $step->percent_of_working,
+                        'reps' => (int) ($step->reps ?? 5),
+                    ]) ?? ['mode' => 'percent', 'percent' => 50, 'reps' => 5],
+                ))
                 ->all())
             : [];
 
