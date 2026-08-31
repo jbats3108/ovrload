@@ -255,7 +255,7 @@ class RoutineEditorService
             return false;
         }
 
-        if ($data->floorIsDerived === true) {
+        if ($data->floorIsDerived) {
             return true;
         }
 
