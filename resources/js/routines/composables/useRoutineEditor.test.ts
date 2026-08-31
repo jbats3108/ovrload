@@ -507,61 +507,6 @@ describe('createRoutineEditor', () => {
         expect(editor.dropsetsExpanded.value).toBe(false);
     });
 
-    it('keeps progression collapsed by default and resets when changing blocks', async () => {
-        const editor = mountEditor({
-            routine: routinePayload({
-                blocks: [
-                    {
-                        is_superset: false,
-                        has_setup_after: false,
-                        has_setup_after_warm_up: false,
-                        exercises: [
-                            {
-                                exercise_id: 1,
-                                working_weight_kg: 60,
-                                prescribed_reps: 6,
-                                achievement_floor: null,
-                                progression_target: null,
-                                deload_exercise_id: null,
-                                deload_working_weight_kg: null,
-                            },
-                        ],
-                        working: { set_count: 3, rest_seconds: 120, dropsets: [] },
-                        warm_up: { set_count: 0, rest_seconds: 60, steps: [] },
-                    },
-                    {
-                        is_superset: false,
-                        has_setup_after: false,
-                        has_setup_after_warm_up: false,
-                        exercises: [
-                            {
-                                exercise_id: 2,
-                                working_weight_kg: 60,
-                                prescribed_reps: 6,
-                                achievement_floor: null,
-                                progression_target: null,
-                                deload_exercise_id: null,
-                                deload_working_weight_kg: null,
-                            },
-                        ],
-                        working: { set_count: 3, rest_seconds: 120, dropsets: [] },
-                        warm_up: { set_count: 0, rest_seconds: 60, steps: [] },
-                    },
-                ],
-            }),
-            achievement_floor_default: 1,
-            progression_target_default: 6,
-        });
-        expect(editor.progressionExpanded.value).toBe(false);
-        expect(editor.achievementFloorDefault.value).toBe(1);
-        expect(editor.progressionTargetDefault.value).toBe(6);
-        editor.toggleProgressionExpanded();
-        expect(editor.progressionExpanded.value).toBe(true);
-        editor.active.value = 1;
-        await nextTick();
-        expect(editor.progressionExpanded.value).toBe(false);
-    });
-
     it('resolves exercise names from the catalog', () => {
         const editor = mountEditor();
         expect(editor.exerciseName(2)).toBe('Row');

@@ -22,8 +22,6 @@ const {
     toggleWarmUpExpanded,
     dropsetsExpanded,
     toggleDropsetsExpanded,
-    progressionExpanded,
-    toggleProgressionExpanded,
     selectBlockExercise,
     exerciseName,
     removeBlock,
@@ -128,6 +126,41 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                             @update:model-value="applyProfile(activeBlock, $event, ei)"
                         />
                     </div>
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                        <label class="block">
+                            <span class="text-xs text-muted-foreground">Target reps</span>
+                            <input
+                                :value="ex.prescribed_reps"
+                                type="number"
+                                min="1"
+                                max="100"
+                                data-exercise-target
+                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
+                            />
+                        </label>
+                        <label class="block">
+                            <span class="text-xs text-muted-foreground">Floor</span>
+                            <input
+                                :value="ex.achievement_floor ?? ''"
+                                type="number"
+                                min="1"
+                                max="100"
+                                data-exercise-floor
+                                :placeholder="exerciseFloorPlaceholder(activeBlock, ei)"
+                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
+                            />
+                        </label>
+                    </div>
+                    <button
+                        v-if="ex.exercise_profile_id == null"
+                        type="button"
+                        class="mt-2 text-left text-xs text-primary underline-offset-2 hover:underline"
+                        @click="openSaveProfile(activeBlock, ei)"
+                    >
+                        Save as profile
+                    </button>
                     <DeloadAlternateFields
                         :deload-exercise-id="ex.deload_exercise_id"
                         :deload-working-weight-kg="ex.deload_working_weight_kg"
@@ -137,6 +170,9 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                         @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
                     />
                 </div>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    Blank Floor uses that exercise's profile. Custom exercises fall back to Preferences. Weight bumps follow the exercise Target reps.
+                </p>
 
                 <div class="grid grid-cols-2 gap-2 border-t border-border pt-3">
                     <label>
@@ -177,56 +213,6 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                     @toggle="toggleDropsetsExpanded"
                 >
                     <DropsetEditor :block="activeBlock" variant="mobile" />
-                </EditorDisclosure>
-
-                <EditorDisclosure
-                    :expanded="progressionExpanded"
-                    label="Progression"
-                    summary="Target &amp; floor"
-                    @toggle="toggleProgressionExpanded"
-                >
-                    <div class="space-y-4">
-                        <div v-for="(ex, ei) in activeBlock.exercises" :key="ei" class="space-y-2">
-                            <p v-if="activeBlock.is_superset" class="font-mono text-xs text-muted-foreground">
-                                {{ ei === 0 ? 'A' : 'B' }}
-                            </p>
-                            <label class="block">
-                                <span class="text-xs text-muted-foreground">Target reps</span>
-                                <input
-                                    :value="ex.prescribed_reps"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                    @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
-                                />
-                            </label>
-                            <label class="block">
-                                <span class="text-xs text-muted-foreground">Floor</span>
-                                <input
-                                    :value="ex.achievement_floor ?? ''"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    :placeholder="exerciseFloorPlaceholder(activeBlock, ei)"
-                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                    @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
-                                />
-                            </label>
-                            <button
-                                v-if="ex.exercise_profile_id == null"
-                                type="button"
-                                class="text-left text-xs text-primary underline-offset-2 hover:underline"
-                                @click="openSaveProfile(activeBlock, ei)"
-                            >
-                                Save as profile
-                            </button>
-                        </div>
-                        <p class="text-xs text-muted-foreground">
-                            Blank Floor uses this exercise's profile. Custom exercises fall back to Preferences. Weight bumps follow the exercise
-                            Target reps.
-                        </p>
-                    </div>
                 </EditorDisclosure>
 
                 <EditorDisclosure

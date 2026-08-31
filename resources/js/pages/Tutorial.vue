@@ -140,10 +140,9 @@ const toc = [
                     <li><BrandName class="mr-1" />Endurance — Target 17, Floor 15, 1-minute working Rest; Warm-up 50%×10, 75%×5.</li>
                 </ul>
                 <p class="text-muted-foreground">
-                    In the routine editor, the profile selector stays compact and Target/Floor details are available under
-                    <strong class="text-foreground">Edit overrides</strong>. Selecting a different profile copies its Profile Details into the block.
-                    Editing a profile-owned value makes that block or exercise <strong class="text-foreground">Custom</strong>; saving those Profile
-                    Details as a profile is explicit.
+                    In the routine editor, each exercise has a profile selector with its own Target and Floor. Selecting a different profile copies
+                    its Profile Details into that exercise. Editing a profile-owned value makes that block or exercise
+                    <strong class="text-foreground">Custom</strong>; saving those Profile Details as a profile is explicit.
                 </p>
                 <p class="text-muted-foreground">
                     Supersets can use a different profile for A and B. Their Target/Floor values are separate, but warm-ups and working Rest are
@@ -179,7 +178,7 @@ const toc = [
                 <TutorialShot
                     name="editor"
                     alt="Routine editor with profile selectors, setup options, and deload alternate"
-                    caption="Editor: profile selectors keep Target and Rest compact; open overrides only when you need to edit them."
+                    caption="Editor: each exercise has a profile selector; Target and Floor sit with that exercise so a superset can differ."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>

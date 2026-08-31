@@ -101,7 +101,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
     const activeExerciseIndex = ref(0);
     const warmUpExpanded = ref(false);
     const dropsetsExpanded = ref(false);
-    const progressionExpanded = ref(false);
     const deloadExpanded = ref(false);
     const mutating = ref(false);
 
@@ -111,10 +110,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
 
     const toggleDropsetsExpanded = () => {
         dropsetsExpanded.value = !dropsetsExpanded.value;
-    };
-
-    const toggleProgressionExpanded = () => {
-        progressionExpanded.value = !progressionExpanded.value;
     };
 
     const toggleDeloadExpanded = () => {
@@ -134,7 +129,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
     watch(active, () => {
         warmUpExpanded.value = false;
         dropsetsExpanded.value = false;
-        progressionExpanded.value = false;
         activeExerciseIndex.value = 0;
     });
 
@@ -473,8 +467,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
         toggleWarmUpExpanded,
         dropsetsExpanded,
         toggleDropsetsExpanded,
-        progressionExpanded,
-        toggleProgressionExpanded,
         deloadExpanded,
         toggleDeloadExpanded,
         achievementFloorDefault: computed(() => props.achievement_floor_default ?? null),
