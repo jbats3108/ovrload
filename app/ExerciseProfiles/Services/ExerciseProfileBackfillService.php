@@ -243,7 +243,7 @@ final class ExerciseProfileBackfillService
             'target_reps' => $recipe->targetReps,
             'floor_override' => $recipe->floorOverride,
             'working_rest_seconds' => $recipe->workingRestSeconds,
-            'warm_up_steps' => $recipe->warmUpSteps,
+            'warm_up_steps' => $recipe->canonicalPayload()['warm_up_steps'],
             'recipe_fingerprint' => $recipe->fingerprint(),
             'published_at' => now(),
         ]);
