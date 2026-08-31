@@ -130,6 +130,8 @@ Public order matches `/beta-tester-faqs`.
 ### Code quality & security
 
 - **Dead code review (after profiles merge)** — sweep leftovers once exercise profiles land (v1 leftovers already shipped)
+- **PHPStan warmup-step / profile typing** — advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`; dead catch of `ExerciseProfileNotEditableException` in `UpdateRoutineController`
+- **Node 20 on git-auto-commit-action** — `stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24. Harmless until Node 20 is dropped
 - **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface
 - **Find N+1 queries (Sentry)** — triage / fix N+1s flagged in Sentry
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
