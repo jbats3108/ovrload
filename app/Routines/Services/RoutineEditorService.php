@@ -157,7 +157,7 @@ class RoutineEditorService
                 'deload_exercise_id' => $exerciseData->deloadExerciseId,
                 'deload_working_weight_g' => $exerciseData->deloadWorkingWeightGrams(),
                 'prescribed_reps' => $exerciseData->prescribedReps,
-                'achievement_floor_override' => $exerciseData->achievementFloor,
+                'achievement_floor_override' => $this->achievementFloorForStorage($exerciseData),
                 'floor_is_derived' => $this->floorDerivationForAssignment(
                     $exerciseProfile,
                     $exerciseData,
@@ -245,9 +245,21 @@ class RoutineEditorService
 
     private function exerciseValuesMatchProfile(SyncBlockExerciseData $data, ExerciseProfile $profile): bool
     {
-        return $data->prescribedReps === $profile->target_reps
-            && $data->achievementFloor === $profile->floor_override
-            && $data->floorIsDerived === ($profile->floor_override === null);
+        if ($data->prescribedReps !== $profile->target_reps) {
+            return false;
+        }
+
+        $profileFloorIsDerived = $profile->floor_override === null;
+
+        if ($data->floorIsDerived !== $profileFloorIsDerived) {
+            return false;
+        }
+
+        if ($data->floorIsDerived === true) {
+            return true;
+        }
+
+        return $data->achievementFloor === $profile->floor_override;
     }
 
     private function floorDerivationForAssignment(
@@ -260,6 +272,15 @@ class RoutineEditorService
         }
 
         return $profile->floor_override === null;
+    }
+
+    private function achievementFloorForStorage(SyncBlockExerciseData $data): ?int
+    {
+        if ($data->floorIsDerived === true) {
+            return null;
+        }
+
+        return $data->achievementFloor;
     }
 
     private function assignmentIsCurrent(?string $fingerprint, string $currentFingerprint): bool

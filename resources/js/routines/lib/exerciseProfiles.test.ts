@@ -1,9 +1,11 @@
 import {
+    achievementFloorForSave,
     applyProfileToBlock,
     applyProfileToSupersetExercise,
     coerceProfileId,
     markExerciseProfileCustom,
     markSharedProfileCustom,
+    normalizeExerciseForEditor,
     profileMatchesExerciseAssignment,
     profileMatchesSharedAssignment,
 } from '@/routines/lib/exerciseProfiles';
@@ -158,5 +160,23 @@ describe('exercise profile helpers', () => {
         expect(coerceProfileId(2)).toBe(2);
         expect(coerceProfileId('')).toBeNull();
         expect(coerceProfileId(undefined)).toBeNull();
+    });
+
+    it('clears stored floors when a profile-derived floor is loaded in the editor', () => {
+        const exercise = normalizeExerciseForEditor({
+            exercise_id: 1,
+            working_weight_kg: 30,
+            prescribed_reps: 10,
+            achievement_floor: 8,
+            floor_is_derived: true,
+            progression_target: null,
+            deload_exercise_id: null,
+            deload_working_weight_kg: null,
+            exercise_profile_id: 2,
+            exercise_profile_fingerprint: 'recipe-hypertrophy',
+        });
+
+        expect(exercise.achievement_floor).toBeNull();
+        expect(achievementFloorForSave(exercise)).toBeNull();
     });
 });
