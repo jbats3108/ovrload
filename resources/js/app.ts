@@ -26,7 +26,7 @@ if (typeof window !== 'undefined') {
     });
 }
 
-const appName = import.meta.env.VITE_APP_NAME || 'OVRLOAD';
+const appName = 'OVRLOAD';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
