@@ -64,15 +64,17 @@ export function createRoutineEditor(props: EditRoutineProps) {
 
     const defaultWarmUpSteps = (): WarmUpStep[] =>
         (props.warm_up_defaults?.length ? props.warm_up_defaults : []).map((s) => ({
-            percent: s.percent,
+            mode: s.mode ?? 'percent',
+            percent: s.mode === 'bar' ? undefined : s.percent,
             reps: s.reps,
+            has_setup_after: false,
         }));
 
     const firstCatalogId = () => catalog.value[0]?.id ?? null;
     const defaultTargetReps = () =>
         typeof props.progression_target_default === 'number' && props.progression_target_default >= 1 ? props.progression_target_default : 6;
 
-    const form = useForm(`EditRoutine:${props.routine.id}`, {
+    const form = useForm(`EditRoutine:${props.routine.id}:${props.routine.updated_at}`, {
         name: props.routine.name,
         deload_weight_factor: props.routine.deload_weight_factor,
         deload_reps_factor: props.routine.deload_reps_factor,
