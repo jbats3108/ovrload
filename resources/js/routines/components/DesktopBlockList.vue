@@ -7,7 +7,6 @@ import ExercisePicker from '@/routines/components/ExercisePicker.vue';
 import ExerciseProfilePicker from '@/routines/components/ExerciseProfilePicker.vue';
 import SaveExerciseProfileDialog from '@/routines/components/SaveExerciseProfileDialog.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
-import { optionalRepsPlaceholder } from '@/routines/lib/optionalReps';
 import type { Block, ExerciseProfileOption } from '@/routines/types';
 import { ref } from 'vue';
 
@@ -24,11 +23,11 @@ const {
     addBlock,
     trimDropsetsToSetCount,
     dropsetSummary,
-    achievementFloorDefault,
     profileOptions,
     applyProfile,
     setExerciseTarget,
     setExerciseFloor,
+    exerciseFloorPlaceholder,
     markSharedCustom,
     formatRest,
     exerciseProfileIsOutdated,
@@ -150,7 +149,7 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                                                 type="number"
                                                 min="1"
                                                 max="100"
-                                                :placeholder="optionalRepsPlaceholder(achievementFloorDefault)"
+                                                :placeholder="exerciseFloorPlaceholder(block, ei)"
                                                 class="w-20 rounded border border-border bg-card px-2 py-1 font-mono"
                                                 @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
                                             />

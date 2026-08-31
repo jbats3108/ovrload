@@ -9,7 +9,6 @@ import ExerciseProfilePicker from '@/routines/components/ExerciseProfilePicker.v
 import RoutineEditorErrors from '@/routines/components/RoutineEditorErrors.vue';
 import SaveExerciseProfileDialog from '@/routines/components/SaveExerciseProfileDialog.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
-import { optionalRepsPlaceholder } from '@/routines/lib/optionalReps';
 import type { Block, ExerciseProfileOption } from '@/routines/types';
 import { Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -37,11 +36,11 @@ const {
     removeWarmUpStep,
     clearWarmUp,
     dropsetSummary,
-    achievementFloorDefault,
     profileOptions,
     applyProfile,
     setExerciseTarget,
     setExerciseFloor,
+    exerciseFloorPlaceholder,
     markSharedCustom,
     exerciseProfileIsOutdated,
     sharedProfileIsOutdated,
@@ -209,7 +208,7 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                                     type="number"
                                     min="1"
                                     max="100"
-                                    :placeholder="optionalRepsPlaceholder(achievementFloorDefault)"
+                                    :placeholder="exerciseFloorPlaceholder(activeBlock, ei)"
                                     class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
                                     @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
                                 />
@@ -224,7 +223,8 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                             </button>
                         </div>
                         <p class="text-xs text-muted-foreground">
-                            Leave blank to use your Preferences default. Weight bumps follow the exercise target reps.
+                            Blank Floor uses this exercise's profile. Custom exercises fall back to Preferences. Weight bumps follow the exercise
+                            Target reps.
                         </p>
                     </div>
                 </EditorDisclosure>

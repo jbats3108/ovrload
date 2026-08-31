@@ -16,12 +16,14 @@ import {
     applyProfileToSupersetExercise,
     applySharedProfileToBlock,
     coerceProfileId,
+    editorFloorPlaceholder,
     markExerciseProfileCustom,
     markSharedProfileCustom,
     profileMatchesExerciseAssignment,
     profileMatchesSharedAssignment,
 } from '@/routines/lib/exerciseProfiles';
 import { formatRest, normalizeRestSeconds } from '@/routines/lib/formatRest';
+import { optionalRepsPlaceholder } from '@/routines/lib/optionalReps';
 import { deleteRoutine as deleteRoutineMutation, duplicateRoutine as duplicateRoutineMutation } from '@/routines/lib/routineMutations';
 import { addWarmUpStep, clearWarmUp, removeWarmUpStep, sanitizeWarmUpStepsForSave, setWarmUpText, warmUpText } from '@/routines/lib/warmUp';
 import type { Block, EquipmentOption, ExerciseOption, MuscleGroupOption, RoutinePayload, WarmUpStep } from '@/routines/types';
@@ -320,6 +322,19 @@ export function createRoutineEditor(props: EditRoutineProps) {
         return profile !== null && !profileMatchesSharedAssignment(block, profile);
     };
 
+    const exerciseFloorPlaceholder = (block: Block, exerciseIndex: number): string => {
+        const exercise = block.exercises[exerciseIndex];
+        if (exercise === undefined) {
+            return optionalRepsPlaceholder(props.achievement_floor_default);
+        }
+
+        const profile = profileById(exercise.exercise_profile_id ?? null);
+        const assignmentCurrent =
+            profile !== null && profileMatchesExerciseAssignment(exercise, profile, block.is_superset, block.shared_profile_id === profile.id);
+
+        return editorFloorPlaceholder(exercise, profile, assignmentCurrent, props.achievement_floor_default);
+    };
+
     const rackStart = ref(20);
     const rackEnd = ref(10);
     const rackStep = ref(2.5);
@@ -449,6 +464,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
         setRoutineProfile,
         setExerciseTarget,
         setExerciseFloor,
+        exerciseFloorPlaceholder,
         markSharedCustom,
         exerciseProfileIsOutdated,
         sharedProfileIsOutdated,
