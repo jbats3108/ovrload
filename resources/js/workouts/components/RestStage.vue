@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ExercisePicker from '@/routines/components/ExercisePicker.vue';
 import UpcomingCard from '@/workouts/components/UpcomingCard.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
 import { computed, ref } from 'vue';
@@ -12,17 +11,12 @@ const {
     canSkipRestOfBlock,
     skipRestOfBlock,
     mutating,
-    exerciseCatalog,
-    muscleGroups,
-    equipmentOptions,
-    addAdHocExercise,
     pendingMidBlockBump,
     acceptMidBlockBump,
     declineMidBlockBump,
 } = useWorkoutPlayer();
 
 const confirmingSkip = ref(false);
-const adHocExerciseId = ref<number | null>(null);
 
 const midBlockBumpDescription = computed(() => {
     if (!pendingMidBlockBump.value) {
@@ -31,11 +25,6 @@ const midBlockBumpDescription = computed(() => {
 
     return `Load ${pendingMidBlockBump.value.suggestedWeightKg}${workout.value.weight_unit} on the next working set?`;
 });
-
-const selectAdHocExercise = (exerciseId: number | null): void => {
-    adHocExerciseId.value = null;
-    addAdHocExercise(exerciseId);
-};
 
 function requestSkip() {
     confirmingSkip.value = true;
@@ -79,17 +68,6 @@ function confirmSkip() {
         </div>
         <div v-else class="flex flex-wrap items-center justify-center gap-3">
             <button type="button" class="rounded-full border border-border px-5 py-2 text-sm" @click="requestSkip">Skip</button>
-            <ExercisePicker
-                v-if="workout.status === 'in_progress'"
-                :model-value="adHocExerciseId"
-                :catalog="exerciseCatalog"
-                :muscle-groups="muscleGroups"
-                :equipment-options="equipmentOptions"
-                variant="action"
-                trigger-label="Add exercise to workout"
-                :disabled="mutating"
-                @update:model-value="selectAdHocExercise"
-            />
             <button
                 v-if="canSkipRestOfBlock"
                 type="button"

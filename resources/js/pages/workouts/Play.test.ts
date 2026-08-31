@@ -94,4 +94,31 @@ describe('Play', () => {
         expect(stage.text()).toContain('Warm-up 2 of 2');
         expect(stage.text()).not.toContain('Working 2 of 2');
     });
+
+    it('puts add exercise in the player header, not the set stage', () => {
+        const wrapper = mount(Play, {
+            props: {
+                workout: workoutPayload({
+                    blocks: [
+                        playerBlock({
+                            sets: [playerSet({ id: 1, completed: false })],
+                        }),
+                    ],
+                }),
+                plate_profile: plateProfile(),
+            },
+        });
+
+        const header = wrapper.findComponent(PlayerHeader);
+        const stage = wrapper.findComponent(SetStage);
+
+        expect(header.exists()).toBe(true);
+        expect(header.text()).toContain('Add exercise to session');
+        expect(header.text()).toContain('Finish');
+        expect(header.text()).toContain('Abandon');
+        expect(header.text()).toContain('Leave');
+        expect(stage.exists()).toBe(true);
+        expect(stage.text()).not.toContain('Add exercise to session');
+        expect(wrapper.element.className).toContain('overflow-x-hidden');
+    });
 });

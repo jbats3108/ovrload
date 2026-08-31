@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import ExercisePicker from '@/routines/components/ExercisePicker.vue';
 import LogSetSheet from '@/workouts/components/LogSetSheet.vue';
 import PlateGuideCard from '@/workouts/components/PlateGuideCard.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
 import { plannedSetCount } from '@/workouts/lib/sets';
-import { ref } from 'vue';
 
 const {
     stageWeightKg,
@@ -38,10 +36,6 @@ const {
     plateLoad,
     stagePlateLoad,
     workout,
-    exerciseCatalog,
-    muscleGroups,
-    equipmentOptions,
-    addAdHocExercise,
     current,
     setForm,
     mutating,
@@ -50,13 +44,6 @@ const {
     logProgressionHints,
     supersetNext,
 } = useWorkoutPlayer();
-
-const adHocExerciseId = ref<number | null>(null);
-
-const selectAdHocExercise = (exerciseId: number | null): void => {
-    adHocExerciseId.value = null;
-    addAdHocExercise(exerciseId);
-};
 
 const unlockInput = (event: PointerEvent) => {
     const input = event.currentTarget;
@@ -158,7 +145,7 @@ const unlockInput = (event: PointerEvent) => {
                         Set
                     </button>
                 </div>
-                <div class="flex flex-wrap items-center justify-center gap-3">
+                <div v-if="canSkipRestOfBlock || canRemoveAdHocBlock" class="flex flex-wrap items-center justify-center gap-3">
                     <button
                         v-if="canSkipRestOfBlock"
                         type="button"
@@ -168,17 +155,6 @@ const unlockInput = (event: PointerEvent) => {
                     >
                         Skip rest of group
                     </button>
-                    <ExercisePicker
-                        v-if="workout.status === 'in_progress'"
-                        :model-value="adHocExerciseId"
-                        :catalog="exerciseCatalog"
-                        :muscle-groups="muscleGroups"
-                        :equipment-options="equipmentOptions"
-                        variant="action"
-                        trigger-label="Add exercise to workout"
-                        :disabled="mutating || setForm.processing"
-                        @update:model-value="selectAdHocExercise"
-                    />
                     <button
                         v-if="canRemoveAdHocBlock"
                         type="button"
