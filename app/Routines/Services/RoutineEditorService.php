@@ -238,12 +238,16 @@ class RoutineEditorService
         }
 
         $warmUpSteps = array_values(array_map(
-            static fn (SyncWarmUpStepData $step): array => WarmUpStepSupport::toStorage([
-                'mode' => $step->mode,
-                'percent' => $step->percent,
-                'reps' => $step->reps,
-            ]),
-            $steps,
+            WarmUpStepSupport::toStorage(...),
+            WarmUpStepSupport::normalizeList(array_values(array_map(
+                static fn (SyncWarmUpStepData $step): array => [
+                    'mode' => $step->mode->value,
+                    'percent' => $step->percent,
+                    'weight_kg' => $step->weightKg,
+                    'reps' => $step->reps,
+                ],
+                $steps,
+            ))),
         ));
 
         return $warmUpSteps === $profile->warmUpStepList();

@@ -3,6 +3,7 @@
 namespace Tests\Unit\Routines\Services;
 
 use App\ExerciseProfiles\Models\ExerciseProfile;
+use App\ExerciseProfiles\Services\ExerciseProfileRecipe;
 use App\Exercises\Models\Exercise;
 use App\Routines\Data\Editor\SyncRoutineBlockData;
 use App\Routines\Data\Editor\SyncRoutineData;
@@ -513,6 +514,54 @@ class RoutineEditorServiceTest extends TestCase
                 RoutineEditorPayload::block($exercise->id),
             ],
         ]));
+    }
+
+    #[Test]
+    public function sync_keeps_a_shared_profile_when_fixed_warm_up_steps_match(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $exercise = Exercise::factory()->create();
+        $recipe = new ExerciseProfileRecipe(
+            targetReps: 6,
+            floorOverride: null,
+            workingRestSeconds: 120,
+            warmUpSteps: [
+                ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+            ],
+        );
+        $profile = ExerciseProfile::factory()->forUser($user)->withRecipe($recipe)->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Matching shared fixed warm-up',
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 2,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $profile->recipe()->fingerprint(),
+                    'prescribed_reps' => $profile->target_reps,
+                    'floor_is_derived' => true,
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => $profile->working_rest_seconds,
+                    ],
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => $profile->warmUpStepList(),
+                    ],
+                ]),
+            ],
+        ]));
+
+        $block = $result->blocks->firstOrFail();
+        $this->assertSame($profile->id, $block->shared_exercise_profile_id);
+        $step = $block->warmUpSetGroup->warmUpSteps->firstOrFail();
+        $this->assertSame(WarmUpWeightMode::Fixed, $step->weight_mode);
+        $this->assertSame(60_000, $step->weight_g);
     }
 
     #[Test]

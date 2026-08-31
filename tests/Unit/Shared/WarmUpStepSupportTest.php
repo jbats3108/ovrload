@@ -28,6 +28,20 @@ class WarmUpStepSupportTest extends TestCase
     }
 
     #[Test]
+    public function to_storage_uses_weight_kg_when_weight_g_is_absent(): void
+    {
+        $this->assertSame(
+            ['mode' => 'fixed', 'weight_kg' => 60.0, 'reps' => 5],
+            WarmUpStepSupport::toStorage([
+                'mode' => WarmUpWeightMode::Fixed,
+                'percent' => null,
+                'weight_kg' => 60,
+                'reps' => 5,
+            ]),
+        );
+    }
+
+    #[Test]
     public function it_resolves_fixed_target_weight_without_using_working_weight(): void
     {
         $weight = WarmUpStepSupport::targetWeightG(
