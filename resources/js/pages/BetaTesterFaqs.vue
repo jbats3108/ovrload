@@ -8,7 +8,7 @@ const backlogItems = [
     {
         title: 'Exercise profiles',
         description:
-            'Reusable Target, Floor, working Rest, and warm-up ladders — OVRLOAD presets plus your own custom profiles. Pick a default in Preferences, choose one when creating a routine, and assign per block or superset exercise in the editor.',
+            'Reusable Target, Floor, working Rest, and warm-up ladders — OVRLOAD presets plus your own custom profiles. Pick a default in Preferences, choose one when creating a routine, and assign per block or superset exercise in the editor. Preferences lists which of your routines still use each profile.',
         recentlyAdded: true,
     },
     {

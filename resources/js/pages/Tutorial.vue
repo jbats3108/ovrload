@@ -149,7 +149,7 @@ const toc = [
                     Supersets can use a different profile for A and B. Their Target/Floor values are separate, but warm-ups and working Rest are
                     shared by the pair. Changing a profile does not rewrite existing blocks. You can explicitly choose to update eligible existing
                     uses after editing a custom profile. Custom profiles in use cannot be deleted or archived until you choose a different profile in
-                    those routines.
+                    those routines. Preferences lists the routines that still use each profile.
                 </p>
                 <TutorialShot
                     name="training"

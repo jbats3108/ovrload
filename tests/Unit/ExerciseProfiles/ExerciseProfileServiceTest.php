@@ -292,6 +292,44 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
+    public function routine_reference_count_ignores_other_users_routines(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $preset = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
+        $routine = Routine::factory()->withUser($other)->create([
+            'default_exercise_profile_id' => $preset->id,
+        ]);
+        $this->createAssignedBlock($routine, $preset);
+
+        $this->assertSame(0, $this->referenceCountFor($user, $preset));
+    }
+
+    #[Test]
+    public function page_data_lists_assigned_routines_for_the_current_user(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $alpha = Routine::factory()->withUser($user)->create(['name' => 'Alpha Day']);
+        $beta = Routine::factory()->withUser($user)->create(['name' => 'Beta Day']);
+        $this->createAssignedBlock($alpha, $profile);
+        $beta->update(['default_exercise_profile_id' => $profile->id]);
+
+        $page = $this->profiles->pageDataFor($user);
+        $match = collect($page->profiles->all())->firstWhere('id', $profile->id);
+
+        $this->assertNotNull($match);
+        $this->assertSame(2, $match->referenceCount);
+        $this->assertSame(
+            [
+                ['name' => 'Alpha Day', 'slug' => $alpha->slug],
+                ['name' => 'Beta Day', 'slug' => $beta->slug],
+            ],
+            $match->assignedRoutines,
+        );
+    }
+
+    #[Test]
     public function delete_allows_profile_after_routine_is_soft_deleted(): void
     {
         $user = User::factory()->create();
