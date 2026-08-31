@@ -11,6 +11,7 @@ use App\Routines\Models\RoutineDropsetSegment;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Workouts\Enums\WorkoutStatus;
 use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Services\WorkoutService;
@@ -340,6 +341,55 @@ class PlayWorkoutControllerTest extends TestCase
                 ->component('workouts/Play')
                 ->where('workout.blocks.0.sets.0.has_setup_after', true)
                 ->where('workout.blocks.0.sets.1.has_setup_after', false)
+            );
+    }
+
+    #[Test]
+    public function it_uses_fixed_warm_up_weight_as_the_player_target(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 200_000,
+            'prescribed_reps' => 5,
+        ]);
+        $warmUpGroup = RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 1,
+            'rest_seconds' => 45,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUpGroup->id,
+            'position' => 1,
+            'weight_mode' => WarmUpWeightMode::Fixed,
+            'percent_of_working' => null,
+            'weight_g' => 60_000,
+            'reps' => 5,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 1,
+            'rest_seconds' => 90,
+        ]);
+
+        $workout = app(WorkoutService::class)->createWorkout($routine);
+
+        $this->actingAs($this->user)
+            ->get(route('workouts.play', $workout))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('workouts/Play')
+                ->where('workout.blocks.0.sets.0.group_type', 'warm_up')
+                ->where('workout.blocks.0.sets.0.target_weight_kg', 60)
+                ->where('workout.blocks.0.sets.0.target_reps', 5)
             );
     }
 
