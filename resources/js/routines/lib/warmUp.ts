@@ -1,6 +1,8 @@
 import type { Block, WarmUpStep } from '@/routines/types';
 import { formatWarmUpStepLabel, isValidWarmUpStep, resolvedWarmUpMode } from '@/shared/warmUpStep';
 
+type ParsedWarmUpStep = { mode: 'bar'; reps: number } | { mode: 'percent'; percent: number; reps: number };
+
 export function warmUpText(block: Block): string {
     return block.warm_up.steps.map(formatWarmUpStepLabel).join(', ');
 }
@@ -49,7 +51,7 @@ export function setWarmUpText(block: Block, value: string): void {
             }
             return null;
         })
-        .filter((s): s is Omit<WarmUpStep, 'has_setup_after'> => s !== null && isValidWarmUpStep(s))
+        .filter((s): s is ParsedWarmUpStep => s !== null && isValidWarmUpStep(s))
         .map((step, index) => normalizeWarmUpStep({ ...step, has_setup_after: previousFlags[index] ?? false }));
     syncWarmUpMeta(block);
 }
