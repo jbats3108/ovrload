@@ -8,10 +8,12 @@ use App\Routines\Models\Routine;
 use App\Routines\Services\RoutineDuplicator;
 use App\Routines\Services\RoutineEditorService;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Helpers\RoutineEditorPayload;
 use Tests\TestCase;
 
 class RoutineDuplicatorTest extends TestCase
@@ -170,6 +172,37 @@ class RoutineDuplicatorTest extends TestCase
 
         $this->assertSame('Push (copy)', $copy->name);
         $this->assertNotSame($source->slug, $copy->slug);
+    }
+
+    #[Test]
+    public function duplicate_copies_fixed_weight_warm_up_steps(): void
+    {
+        $owner = User::factory()->create();
+        $source = Routine::factory()->withUser($owner)->create(['name' => 'Deadlift']);
+        $exercise = Exercise::factory()->create();
+
+        $this->editor->sync($source, SyncRoutineData::from([
+            'name' => 'Deadlift',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [
+                            ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+                        ],
+                    ],
+                ]),
+            ],
+        ]));
+
+        $copy = $this->duplicator->duplicate($source->fresh(), $owner);
+        $step = $copy->blocks->first()->warmUpSetGroup->warmUpSteps->first();
+
+        $this->assertSame(WarmUpWeightMode::Fixed, $step->weight_mode);
+        $this->assertSame(60_000, $step->weight_g);
+        $this->assertNull($step->percent_of_working);
+        $this->assertSame(5, $step->reps);
     }
 
     #[Test]
