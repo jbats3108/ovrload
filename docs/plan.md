@@ -8,13 +8,14 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
-- **Add exercise button too prominent** — Play add-exercise control draws too much attention; tone down vs primary session actions
+-
 
 ## Shipped (recent)
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
-1. **Exercise profiles** — user defaults, OVRLOAD presets, custom recipes, routine/block assignment, explicit sync, and admin publication flow
+1. **Play add-exercise less prominent** — control moved into the player header vs primary session actions (#89)
+1. **Exercise profiles** — user defaults, OVRLOAD presets, custom recipes, routine/block assignment, explicit sync, and admin publication flow. Preferences “used in” is picker-visible routines only (#88 / #90 / #94)
 2. **Welcome email** — queued mail on register; tutorial + Beta FAQs links; reply-to Jamie / admin mailbox
 2. **Default Target reps in Training** — Preferences field; seeds new editor blocks and Play ad-hoc (fallback 6)
 3. **Demote dropset → single in Play** — incomplete dropset → clear segments back to a single (mirror of Promote)
@@ -121,7 +122,7 @@ Public order matches `/beta-tester-faqs`.
 
 ### Polish & mobile integration
 
--
+- **Editor vs Preferences density** — review what must live on the routine edit page vs what can stay in Preferences and appear only as an override. Current editor is cluttered and overwhelming on mobile
 
 ### Bugfixes
 
@@ -129,7 +130,11 @@ Public order matches `/beta-tester-faqs`.
 
 ### Code quality & security
 
-- **Dead code review (after profiles merge)** — sweep leftovers once exercise profiles land (v1 leftovers already shipped)
+- **Dead code review (after profiles merge)** — sweep leftovers now that #81 + follow-ups #84–#94 landed (v1 leftovers already shipped).
+  - Needed: #88 live-routine count (global rows / user-default / soft-delete were real); #90 named routine links (debug seam + product); #94 picker-visible assignments only (leftover `shared_exercise_profile_id` after Custom).
+  - Red herring: treating the leftover after #88 as another count-scope bug. #90’s PR restated #88’s scoping; the remaining mismatch was a hidden rest/warm-up FK with no picker.
+  - Extra hops (real bugs, split too thin): #85 then #86 for one save failure; #87 / #91 / #92 for fixed-kg warm-ups (#92 also mixed in `APP_NAME` brand lock).
+  - Sweep: dual FKs (`shared_exercise_profile_id` vs the exercise picker); `optionsForRoutineEditor` still includes shared IDs; `syncProfile` still rewrites shared rows and walks `withTrashed()`; dead catch of `ExerciseProfileNotEditableException` in `UpdateRoutineController` (see PHPStan item below)
 - **PHPStan warmup-step / profile typing** — advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`; dead catch of `ExerciseProfileNotEditableException` in `UpdateRoutineController`
 - **Node 20 on git-auto-commit-action** — `stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24. Harmless until Node 20 is dropped
 - **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface
