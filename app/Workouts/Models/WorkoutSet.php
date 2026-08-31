@@ -92,18 +92,6 @@ class WorkoutSet extends Model
         $this->segments()->delete();
     }
 
-    public function recordReps(int $reps): void
-    {
-        $this->reps = $reps;
-        $this->save();
-    }
-
-    public function recordWeight(int $weightGrams): void
-    {
-        $this->weight_g = $weightGrams;
-        $this->save();
-    }
-
     protected static function newFactory(): WorkoutSetFactory
     {
         return WorkoutSetFactory::new();

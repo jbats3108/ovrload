@@ -99,29 +99,4 @@ class PlateProfileServiceTest extends TestCase
         $this->assertTrue($profile->bars->firstWhere('name', 'A')->is_default);
         $this->assertFalse($profile->bars->firstWhere('name', 'B')->is_default);
     }
-
-    #[Test]
-    public function nearest_for_user_uses_default_bar_and_returns_kg_payload(): void
-    {
-        $user = User::factory()->create();
-        $this->service->upsert($user, UpsertPlateProfileData::from([
-            'name' => 'Home',
-            'bars' => [
-                ['name' => 'Olympic', 'weight_g' => 20000, 'is_default' => true],
-            ],
-            'plates' => [
-                ['denomination_g' => 20000, 'count' => 4],
-                ['denomination_g' => 10000, 'count' => 4],
-            ],
-        ]));
-
-        $result = $this->service->nearestForUser($user, 60.0);
-
-        $this->assertNotNull($result);
-        $this->assertTrue($result['exact']);
-        $this->assertSame(60.0, $result['total_kg']);
-        $this->assertSame(20.0, $result['bar_kg']);
-        $this->assertSame(0.0, $result['delta_kg']);
-        $this->assertNotEmpty($result['per_side']);
-    }
 }

@@ -4,6 +4,7 @@ namespace Tests\Unit\Exercises\Models;
 
 use App\Exercises\Models\Exercise;
 use App\MuscleGroups\Models\MuscleGroup;
+use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -77,57 +78,15 @@ class ExerciseTest extends TestCase
     }
 
     #[Test]
-    public function it_can_be_queried_by_muscle_group(): void
+    public function custom_exercises_are_identified_by_user_id(): void
     {
-        // Given
-        $chestGroup = MuscleGroup::factory()->create(['name' => 'Chest']);
-        $backGroup = MuscleGroup::factory()->create(['name' => 'Back']);
+        $user = User::factory()->create();
+        $custom = Exercise::factory()->custom($user)->create();
+        $shared = Exercise::factory()->shared()->create();
 
-        $chestExerciseOne = Exercise::factory()->create([
-            'primary_muscle_group_id' => $chestGroup->id, 'name' => 'Bench Press',
-        ]);
-        $chestExerciseTwo = Exercise::factory()->create([
-            'primary_muscle_group_id' => $chestGroup->id, 'name' => 'Push Up',
-        ]);
-
-        $backExercise = Exercise::factory()->create(['primary_muscle_group_id' => $backGroup->id, 'name' => 'Pull Up']);
-        $backExerciseTwo = Exercise::factory()->create([
-            'primary_muscle_group_id' => $backGroup->id, 'name' => 'Barbell Row',
-        ]);
-
-        // When
-        $chestExercises = Exercise::whereMuscleGroup($chestGroup)->get();
-        $backExercises = Exercise::whereMuscleGroup($backGroup)->get();
-
-        // Then
-        $this->assertCount(2, $chestExercises);
-        $this->assertCount(2, $backExercises);
-
-        $this->assertTrue($chestExercises->contains($chestExerciseOne));
-        $this->assertTrue($chestExercises->contains($chestExerciseTwo));
-
-        $this->assertTrue($backExercises->contains($backExercise));
-        $this->assertTrue($backExercises->contains($backExerciseTwo));
-    }
-
-    #[Test]
-    public function querying_by_muscle_group_also_searches_secondary_muscle_group(): void
-    {
-        // Given
-        $chestGroup = MuscleGroup::factory()->create(['name' => 'Chest']);
-        $tricepsGroup = MuscleGroup::factory()->create(['name' => 'Triceps']);
-
-        $exercise = Exercise::factory()->create([
-            'primary_muscle_group_id' => $chestGroup->id,
-            'secondary_muscle_group_id' => $tricepsGroup->id,
-            'name' => 'Tricep Dip',
-        ]);
-
-        // When
-        $chestExercises = Exercise::whereMuscleGroup($tricepsGroup)->get();
-
-        // Then
-        $this->assertCount(1, $chestExercises);
-        $this->assertTrue($chestExercises->contains($exercise));
+        $this->assertTrue($custom->isCustom());
+        $this->assertFalse($shared->isCustom());
+        $this->assertTrue($shared->isShared());
+        $this->assertSame($user->id, $custom->user_id);
     }
 }

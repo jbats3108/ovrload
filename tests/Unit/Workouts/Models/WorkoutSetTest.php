@@ -53,32 +53,6 @@ class WorkoutSetTest extends TestCase
     }
 
     #[Test]
-    public function it_allows_recording_reps(): void
-    {
-        // Given
-        $workoutSet = WorkoutSet::factory()->create();
-
-        // When
-        $workoutSet->recordReps(6);
-
-        // Then
-        $this->assertSame(6, $workoutSet->reps);
-    }
-
-    #[Test]
-    public function it_allows_recording_weight(): void
-    {
-        // Given
-        $workoutSet = WorkoutSet::factory()->create();
-
-        // When
-        $workoutSet->recordWeight(92500);
-
-        // Then
-        $this->assertSame(92500, $workoutSet->weight_g);
-    }
-
-    #[Test]
     public function it_is_not_a_dropset_with_zero_or_one_segment(): void
     {
         $workoutSet = WorkoutSet::factory()->create();
