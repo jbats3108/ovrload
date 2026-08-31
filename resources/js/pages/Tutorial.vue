@@ -134,7 +134,7 @@ const toc = [
                     explicitly override Floor when needed. Profiles also carry working Rest and a complete warm-up ladder.
                 </p>
                 <ul class="list-disc space-y-2 pl-6 text-muted-foreground">
-                    <li><BrandName class="mr-1" />Strength — Target 6, Floor 4, 3-minute working Rest; Warm-up 50%×5, 75%×3, 90%×1.</li>
+                    <li><BrandName class="mr-1" />Strength — Target 6, Floor 4, 3-minute working Rest; Warm-up bar×10, 50%×5, 75%×3, 90%×1.</li>
                     <li><BrandName class="mr-1" />Hypertrophy — Target 10, Floor 8, 90-second working Rest; Warm-up 50%×10, 80%×5.</li>
                     <li><BrandName class="mr-1" />Endurance — Target 17, Floor 15, 1-minute working Rest; Warm-up 50%×10, 75%×5.</li>
                 </ul>
@@ -147,7 +147,8 @@ const toc = [
                 <p class="text-muted-foreground">
                     Supersets can use a different profile for A and B. Their Target/Floor values are separate, but warm-ups and working Rest are
                     shared by the pair. Changing a profile does not rewrite existing blocks. You can explicitly choose to update eligible existing
-                    uses after editing a custom profile.
+                    uses after editing a custom profile. Custom profiles in use cannot be deleted or archived until you choose a different profile in
+                    those routines.
                 </p>
                 <TutorialShot
                     name="training"
