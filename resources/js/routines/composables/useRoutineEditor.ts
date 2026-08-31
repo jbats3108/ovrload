@@ -291,6 +291,15 @@ export function createRoutineEditor(props: EditRoutineProps) {
         });
     };
 
+    const detachSharedWhenExerciseBecomesCustom = (exercise: Block['exercises'][number]): void => {
+        const block = form.blocks.find((candidate) => candidate.exercises.includes(exercise));
+        if (block === undefined || block.is_superset) {
+            return;
+        }
+
+        markSharedProfileCustom(block);
+    };
+
     const setExerciseTarget = (exercise: Block['exercises'][number], raw: string): void => {
         const wasDerived = exercise.floor_is_derived === true || (exercise.exercise_profile_id != null && exercise.achievement_floor === null);
         exercise.prescribed_reps = Number(raw);
@@ -299,12 +308,14 @@ export function createRoutineEditor(props: EditRoutineProps) {
             exercise.floor_is_derived = true;
         }
         markExerciseProfileCustom(exercise);
+        detachSharedWhenExerciseBecomesCustom(exercise);
     };
 
     const setExerciseFloor = (exercise: Block['exercises'][number], raw: string): void => {
         exercise.achievement_floor = raw === '' ? null : Number(raw);
         exercise.floor_is_derived = raw === '' ? true : false;
         markExerciseProfileCustom(exercise);
+        detachSharedWhenExerciseBecomesCustom(exercise);
     };
 
     const markSharedCustom = (block: Block): void => {

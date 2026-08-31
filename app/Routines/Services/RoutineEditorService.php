@@ -94,6 +94,14 @@ class RoutineEditorService
             throw new InvalidArgumentException('A non-superset must have exactly one exercise.');
         }
 
+        if (! $blockData->isSuperset) {
+            /** @var SyncBlockExerciseData $single */
+            $single = $exercises[0];
+            if ($single->exerciseProfileId === null) {
+                $sharedProfile = null;
+            }
+        }
+
         $dropsets = $blockData->working->dropsetList();
 
         if ($blockData->isSuperset && $dropsets !== []) {

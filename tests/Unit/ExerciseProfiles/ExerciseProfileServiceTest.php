@@ -330,6 +330,52 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
+    public function page_data_ignores_shared_only_profile_assignments(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $routine = Routine::factory()->withUser($user)->create(['name' => 'Full Body B']);
+        $this->createSharedOnlyBlock($routine, $profile);
+
+        $page = $this->profiles->pageDataFor($user);
+        $match = collect($page->profiles->all())->firstWhere('id', $profile->id);
+
+        $this->assertNotNull($match);
+        $this->assertSame(0, $match->referenceCount);
+        $this->assertSame([], $match->assignedRoutines);
+        $this->assertSame(0, $match->staleAssignmentCount);
+    }
+
+    #[Test]
+    public function stale_count_ignores_shared_only_fingerprint_mismatch(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $this->createSharedOnlyBlock($routine, $profile);
+
+        $profile->update([
+            'working_rest_seconds' => 180,
+            'recipe_fingerprint' => $profile->recipe()->fingerprint(),
+        ]);
+
+        $this->assertSame(0, $this->staleCountFor($user, $profile->fresh()));
+    }
+
+    #[Test]
+    public function delete_allows_profile_when_only_a_shared_assignment_remains(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $this->createSharedOnlyBlock($routine, $profile);
+
+        $this->profiles->delete($user, $profile);
+
+        $this->assertDatabaseMissing('exercise_profiles', ['id' => $profile->id]);
+    }
+
+    #[Test]
     public function delete_allows_profile_after_routine_is_soft_deleted(): void
     {
         $user = User::factory()->create();
@@ -375,6 +421,28 @@ class ExerciseProfileServiceTest extends TestCase
         $this->assertNotNull($match);
 
         return $match->referenceCount;
+    }
+
+    private function createSharedOnlyBlock(Routine $routine, ExerciseProfile $profile): RoutineBlock
+    {
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => $routine->blocks()->count() + 1,
+            'shared_exercise_profile_id' => $profile->id,
+            'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+        ]);
+        $exercise = Exercise::factory()->create();
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => $exercise->id,
+            'position' => 1,
+            'working_weight_g' => 60000,
+            'prescribed_reps' => 6,
+            'exercise_profile_id' => null,
+            'exercise_profile_fingerprint' => null,
+        ]);
+
+        return $block;
     }
 
     private function createAssignedBlock(
