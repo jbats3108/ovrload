@@ -7,6 +7,7 @@ use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Users\Models\User;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\LocalBlankSlateUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -31,6 +32,10 @@ class LocalExerciseProfileSeederTest extends TestCase
 
         $this->assertSame(
             2,
+            $user->exerciseProfiles()->count(),
+        );
+        $this->assertSame(
+            3,
             ExerciseProfile::query()->where('kind', ExerciseProfileKind::Custom)->count(),
         );
         $this->assertSame(['Accessory Volume', 'Power Builder'], $customProfiles->sortBy('name')->pluck('name')->values()->all());
@@ -40,5 +45,20 @@ class LocalExerciseProfileSeederTest extends TestCase
         $this->assertTrue($routineExercises->every(
             static fn (RoutineBlockExercise $exercise): bool => $exercise->exerciseProfile !== null,
         ));
+    }
+
+    #[Test]
+    public function user2_is_a_blank_slate_fixture_for_profile_testing(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $user = User::query()->where('email', LocalBlankSlateUserSeeder::EMAIL)->firstOrFail();
+
+        $this->assertNull($user->default_exercise_profile_id);
+        $this->assertCount(0, $user->routines);
+        $this->assertSame(
+            ['Deletable Test'],
+            $user->exerciseProfiles()->orderBy('name')->pluck('name')->all(),
+        );
     }
 }

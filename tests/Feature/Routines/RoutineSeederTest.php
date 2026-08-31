@@ -7,8 +7,10 @@ use App\Exercises\Models\Exercise;
 use App\MuscleGroups\Models\MuscleGroup;
 use App\Routines\Models\Routine;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Models\User;
+use Database\Seeders\ExerciseProfileSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\RoutineSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,6 +26,7 @@ class RoutineSeederTest extends TestCase
     public function it_seeds_demo_routines_with_mixed_permutations_for_user1(): void
     {
         $this->seed(RoleSeeder::class);
+        $this->seed(ExerciseProfileSeeder::class);
         $this->seedCatalogExercises();
 
         $user = User::factory()->withRole('user')->create([
@@ -42,7 +45,10 @@ class RoutineSeederTest extends TestCase
         $barbell->load(['blocks.setGroups.warmUpSteps', 'blocks.blockExercises.exercise']);
         $this->assertCount(3, $barbell->blocks);
         $this->assertTrue($barbell->blocks[0]->has_setup_after_warm_up);
-        $this->assertCount(3, $barbell->blocks[0]->setGroups->firstWhere('type', SetGroupType::WarmUp)->warmUpSteps);
+        $warmUpSteps = $barbell->blocks[0]->setGroups->firstWhere('type', SetGroupType::WarmUp)->warmUpSteps;
+        $this->assertCount(4, $warmUpSteps);
+        $this->assertSame(WarmUpWeightMode::Bar, $warmUpSteps->first()->weight_mode);
+        $this->assertSame(10, $warmUpSteps->first()->reps);
         $this->assertCount(0, $barbell->blocks[1]->setGroups->firstWhere('type', SetGroupType::WarmUp)->warmUpSteps);
         $this->assertSame(ExerciseEquipment::Barbell, $barbell->blocks[0]->blockExercises[0]->exercise->equipment);
 

@@ -19,5 +19,7 @@ class E2eSeeder extends Seeder
         ]);
 
         app(ExerciseProfileBackfillService::class)->run();
+
+        $this->call(LocalBlankSlateUserSeeder::class);
     }
 }

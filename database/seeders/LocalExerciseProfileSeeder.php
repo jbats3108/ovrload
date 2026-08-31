@@ -17,7 +17,6 @@ class LocalExerciseProfileSeeder extends Seeder
         'admin1@test.com',
         'admin2@test.com',
         'user1@test.com',
-        'user2@test.com',
         'user3@test.com',
     ];
 

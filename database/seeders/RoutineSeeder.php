@@ -12,6 +12,7 @@ use App\Routines\Models\RoutineDropsetSegment;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Shared\Support\Weight;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Models\User;
@@ -221,7 +222,7 @@ class RoutineSeeder extends Seeder
 
     /**
      * @param  list<array{name: string, equipment: ExerciseEquipment, kg: float|int, reps: int, profile?: string}>  $exercises
-     * @param  list<array{percent: int, reps: int}>  $warmUps
+     * @param  list<array{mode?: string, percent?: int, reps: int}>  $warmUps
      * @param  array<int, list<float|int>>  $dropsets  set_index => kg weights
      */
     private function addBlock(
@@ -320,11 +321,17 @@ class RoutineSeeder extends Seeder
             ]);
 
             foreach (array_values($warmUps) as $stepIndex => $step) {
+                $normalized = WarmUpStepSupport::normalize($step);
+                if ($normalized === null) {
+                    continue;
+                }
+
                 RoutineWarmUpStep::create([
                     'routine_set_group_id' => $warmUpGroup->id,
                     'position' => $stepIndex + 1,
-                    'percent_of_working' => $step['percent'],
-                    'reps' => $step['reps'],
+                    'weight_mode' => $normalized['mode'],
+                    'percent_of_working' => $normalized['percent'],
+                    'reps' => $normalized['reps'],
                 ]);
             }
         });

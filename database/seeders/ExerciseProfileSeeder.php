@@ -21,7 +21,7 @@ class ExerciseProfileSeeder extends Seeder
                 warmUpSteps: $definition['warm_up_steps'],
             );
 
-            ExerciseProfile::query()->firstOrCreate(
+            ExerciseProfile::query()->updateOrCreate(
                 [
                     'slug_scope' => 'system',
                     'slug' => $definition['slug'],
