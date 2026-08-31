@@ -121,6 +121,10 @@ export function markSharedProfileCustom(block: Block): void {
     block.shared_profile_fingerprint = null;
 }
 
+export function exerciseAssignmentFingerprint(profile: ExerciseProfileOption, isSuperset: boolean, sharedProfileMatchesExercise = false): string {
+    return isSuperset || !sharedProfileMatchesExercise ? profile.exercise_fingerprint : profile.recipe_fingerprint;
+}
+
 export function profileMatchesExerciseAssignment(
     exercise: BlockExercise,
     profile: ExerciseProfileOption,
@@ -129,8 +133,7 @@ export function profileMatchesExerciseAssignment(
 ): boolean {
     return (
         exercise.exercise_profile_id === profile.id &&
-        exercise.exercise_profile_fingerprint ===
-            (isSuperset || !sharedProfileMatchesExercise ? profile.exercise_fingerprint : profile.recipe_fingerprint)
+        exercise.exercise_profile_fingerprint === exerciseAssignmentFingerprint(profile, isSuperset, sharedProfileMatchesExercise)
     );
 }
 

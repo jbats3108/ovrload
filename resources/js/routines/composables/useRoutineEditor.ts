@@ -17,6 +17,7 @@ import {
     applySharedProfileToBlock,
     coerceProfileId,
     editorFloorPlaceholder,
+    exerciseAssignmentFingerprint,
     markExerciseProfileCustom,
     markSharedProfileCustom,
     profileMatchesExerciseAssignment,
@@ -188,12 +189,33 @@ export function createRoutineEditor(props: EditRoutineProps) {
         const wasSuperset = block.is_superset;
         const source = { ...block.exercises[0] };
         toggleSuperset(block, firstCatalogId(), defaultTargetReps());
-        if (!wasSuperset && block.is_superset && block.exercises[1]) {
-            block.exercises[1].prescribed_reps = source.prescribed_reps;
-            block.exercises[1].achievement_floor = source.achievement_floor;
-            block.exercises[1].floor_is_derived = source.floor_is_derived;
-            block.exercises[1].exercise_profile_id = source.exercise_profile_id;
-            block.exercises[1].exercise_profile_fingerprint = source.exercise_profile_fingerprint;
+
+        if (!wasSuperset && block.is_superset) {
+            const profile = profileById(source.exercise_profile_id ?? null);
+            const fingerprint =
+                profile === null
+                    ? source.exercise_profile_fingerprint
+                    : exerciseAssignmentFingerprint(profile, true, block.shared_profile_id === profile.id);
+
+            if (block.exercises[0] !== undefined && profile !== null) {
+                block.exercises[0].exercise_profile_fingerprint = fingerprint;
+            }
+
+            if (block.exercises[1]) {
+                block.exercises[1].prescribed_reps = source.prescribed_reps;
+                block.exercises[1].achievement_floor = source.achievement_floor;
+                block.exercises[1].floor_is_derived = source.floor_is_derived;
+                block.exercises[1].exercise_profile_id = source.exercise_profile_id;
+                block.exercises[1].exercise_profile_fingerprint = fingerprint;
+            }
+        }
+
+        if (wasSuperset && !block.is_superset) {
+            const exercise = block.exercises[0];
+            const profile = profileById(exercise?.exercise_profile_id ?? null);
+            if (exercise !== undefined && profile !== null) {
+                exercise.exercise_profile_fingerprint = exerciseAssignmentFingerprint(profile, false, block.shared_profile_id === profile.id);
+            }
         }
     };
 

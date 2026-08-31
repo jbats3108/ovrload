@@ -4,6 +4,7 @@ import {
     applyProfileToSupersetExercise,
     coerceProfileId,
     editorFloorPlaceholder,
+    exerciseAssignmentFingerprint,
     markExerciseProfileCustom,
     markSharedProfileCustom,
     normalizeExerciseForEditor,
@@ -166,6 +167,9 @@ describe('exercise profile helpers', () => {
 
         expect(profileMatchesExerciseAssignment(current.exercises[0], strength, true, true)).toBe(true);
         expect(profileMatchesExerciseAssignment(current.exercises[0], strength, false, true)).toBe(false);
+        expect(exerciseAssignmentFingerprint(strength, true, true)).toBe('exercise-strength');
+        expect(exerciseAssignmentFingerprint(strength, false, true)).toBe('recipe-strength');
+        expect(exerciseAssignmentFingerprint(strength, false, false)).toBe('exercise-strength');
     });
 
     it('coerces string profile ids from select inputs', () => {

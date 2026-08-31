@@ -128,8 +128,45 @@ describe('createRoutineEditor', () => {
             prescribed_reps: 6,
             floor_is_derived: true,
             exercise_profile_id: 1,
-            exercise_profile_fingerprint: 'recipe-strength',
+            exercise_profile_fingerprint: 'exercise-strength',
         });
+        expect(editor.form.blocks[0].exercises[0].exercise_profile_fingerprint).toBe('exercise-strength');
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 1)).toBe(false);
+    });
+
+    it('restores the recipe fingerprint when splitting a matching-profile superset', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile],
+        });
+        editor.addBlock(false);
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        expect(editor.form.blocks[0].is_superset).toBe(false);
+        expect(editor.form.blocks[0].exercises).toHaveLength(1);
+        expect(editor.form.blocks[0].exercises[0].exercise_profile_fingerprint).toBe('recipe-strength');
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
+    });
+
+    it('keeps the exercise fingerprint when splitting a mixed-profile superset', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+        });
+        editor.addBlock(false);
+        editor.toggleSuperset(editor.form.blocks[0]);
+        editor.applyProfile(editor.form.blocks[0], 2, 0);
+
+        editor.toggleSuperset(editor.form.blocks[0]);
+
+        expect(editor.form.blocks[0].exercises[0]).toMatchObject({
+            exercise_profile_id: 2,
+            exercise_profile_fingerprint: 'exercise-hypertrophy',
+        });
+        expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 0)).toBe(false);
     });
 
     it('keeps a derived floor when a target override detaches the profile', () => {
