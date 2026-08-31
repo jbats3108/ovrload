@@ -21,6 +21,7 @@ use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Data\WeightKgSegmentData;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Enums\WarmUpWeightMode;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -230,15 +231,16 @@ class RoutineEditorService
             return false;
         }
 
-        $warmUpSteps = array_map(
-            static fn (SyncWarmUpStepData $step): array => [
+        $warmUpSteps = array_values(array_map(
+            static fn (SyncWarmUpStepData $step): array => WarmUpStepSupport::toStorage([
+                'mode' => $step->mode,
                 'percent' => $step->percent,
                 'reps' => $step->reps,
-            ],
+            ]),
             $steps,
-        );
+        ));
 
-        return $warmUpSteps === ($profile->warm_up_steps ?? []);
+        return $warmUpSteps === $profile->warmUpStepList();
     }
 
     private function exerciseValuesMatchProfile(SyncBlockExerciseData $data, ExerciseProfile $profile): bool

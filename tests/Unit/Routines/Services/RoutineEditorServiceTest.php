@@ -524,6 +524,43 @@ class RoutineEditorServiceTest extends TestCase
     }
 
     #[Test]
+    public function sync_rejects_tampered_warm_up_mode_when_the_profile_fingerprint_is_current(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $exercise = Exercise::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The shared profile values no longer match this block.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Tampered warm-up mode',
+            'deload_weight_factor' => 0.5,
+            'deload_reps_factor' => 2,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'shared_profile_id' => $profile->id,
+                    'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+                    'exercise_profile_id' => $profile->id,
+                    'exercise_profile_fingerprint' => $profile->recipe()->fingerprint(),
+                    'prescribed_reps' => $profile->target_reps,
+                    'floor_is_derived' => true,
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => $profile->working_rest_seconds,
+                    ],
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [['mode' => 'bar', 'reps' => 5]],
+                    ],
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
     public function sync_rejects_tampered_exercise_values_when_the_profile_fingerprint_is_current(): void
     {
         $user = User::factory()->create();

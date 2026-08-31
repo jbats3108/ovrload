@@ -43,7 +43,7 @@ class ExerciseProfileBackfillTest extends TestCase
         $this->assertSame(8, $profile->target_reps);
         $this->assertSame(6, $profile->floor_override);
         $this->assertSame(120, $profile->working_rest_seconds);
-        $this->assertSame([['percent' => 50, 'reps' => 5]], $profile->warm_up_steps);
+        $this->assertSame([['mode' => 'percent', 'percent' => 50, 'reps' => 5]], $profile->warm_up_steps);
         $this->assertSame($profile->id, $routine->fresh()->default_exercise_profile_id);
     }
 

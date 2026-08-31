@@ -98,22 +98,26 @@ class UserTest extends TestCase
     #[Test]
     public function resolved_warm_up_steps_default_returns_custom_steps(): void
     {
-        $custom = [
-            ['percent' => 50, 'reps' => 8],
-            ['percent' => 70, 'reps' => 4],
-        ];
-        $user = User::factory()->create(['warm_up_steps_default' => $custom]);
+        $user = User::factory()->create([
+            'warm_up_steps_default' => [
+                ['percent' => 50, 'reps' => 8],
+                ['percent' => 70, 'reps' => 4],
+            ],
+        ]);
 
-        $this->assertSame($custom, $user->resolvedWarmUpStepsDefault());
+        $this->assertSame([
+            ['mode' => 'percent', 'percent' => 50, 'reps' => 8],
+            ['mode' => 'percent', 'percent' => 70, 'reps' => 4],
+        ], $user->resolvedWarmUpStepsDefault());
     }
 
     #[Test]
     public function fallback_warm_up_steps_matches_expected_defaults(): void
     {
         $this->assertSame([
-            ['percent' => 40, 'reps' => 5],
-            ['percent' => 60, 'reps' => 3],
-            ['percent' => 80, 'reps' => 1],
+            ['mode' => 'percent', 'percent' => 40, 'reps' => 5],
+            ['mode' => 'percent', 'percent' => 60, 'reps' => 3],
+            ['mode' => 'percent', 'percent' => 80, 'reps' => 1],
         ], User::fallbackWarmUpSteps());
     }
 }
