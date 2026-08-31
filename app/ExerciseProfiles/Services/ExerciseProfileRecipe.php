@@ -36,7 +36,7 @@ final readonly class ExerciseProfileRecipe
             'floor_override' => $this->floorOverride,
             'working_rest_seconds' => $this->workingRestSeconds,
             'warm_up_steps' => array_values(array_map(
-                static fn (array $step): array => WarmUpStepSupport::toStorage($step),
+                WarmUpStepSupport::toStorage(...),
                 WarmUpStepSupport::normalizeList($this->warmUpSteps),
             )),
         ];

@@ -102,9 +102,7 @@ final class ExerciseProfileBackfillService
 
     private function profileForLegacyDefaults(User $user): ExerciseProfile
     {
-        $warmUpSteps = $user->warm_up_steps_default === null
-            ? User::fallbackWarmUpSteps()
-            : $user->warm_up_steps_default;
+        $warmUpSteps = $user->warm_up_steps_default ?? User::fallbackWarmUpSteps();
 
         $recipe = new ExerciseProfileRecipe(
             targetReps: $user->resolvedDefaultTargetReps(),
