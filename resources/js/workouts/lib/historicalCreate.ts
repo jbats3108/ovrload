@@ -1,3 +1,5 @@
+import { defaultBarG, gramsToKg, usesBarbellPlates } from '@/lib/plateCalculator';
+import type { PlateProfile } from '@/settings/types';
 import type { HistoricalCreateBlock, HistoricalCreateSet, HistoricalCreateWarmUp } from '@/workouts/types';
 
 export type DraftSet = {
@@ -14,9 +16,11 @@ export type DraftWarmUpSet = {
     exercise_position: number;
     exercise_name: string;
     set_index: number;
-    percent_of_working: number;
+    weight_mode: 'percent' | 'bar';
+    percent_of_working: number | null;
     reps: number;
     weight_kg: number;
+    equipment: string | null;
 };
 
 export type DraftBlock = {
@@ -36,6 +40,32 @@ function scaleReps(reps: number, factor: number): number {
     return Math.max(1, Math.round(reps * factor));
 }
 
+function defaultBarKg(plateProfile: PlateProfile | null | undefined): number | null {
+    if (!plateProfile) {
+        return null;
+    }
+
+    const barG = defaultBarG(plateProfile.bars);
+    return barG === null ? null : gramsToKg(barG);
+}
+
+function resolveWarmUpWeightKg(
+    recipe: Pick<HistoricalCreateWarmUp, 'weight_mode' | 'percent_of_working'>,
+    baseWeightKg: number,
+    equipment: string | null,
+    defaultBarKgValue: number | null,
+): number {
+    if (recipe.weight_mode === 'bar') {
+        if (usesBarbellPlates(equipment) && defaultBarKgValue != null) {
+            return defaultBarKgValue;
+        }
+
+        return 0;
+    }
+
+    return scaleWeight(baseWeightKg * ((recipe.percent_of_working ?? 0) / 100), 1);
+}
+
 export function firstWorkingWeightKg(block: DraftBlock, exercisePosition: number): number {
     const first = block.sets.find((set) => set.exercise_position === exercisePosition && set.set_index === 0);
     if (!first) {
@@ -49,27 +79,42 @@ export function firstWorkingWeightKg(block: DraftBlock, exercisePosition: number
     return first.weight_kg ?? 0;
 }
 
-export function syncWarmUpWeights(block: DraftBlock): void {
+export function syncWarmUpWeights(block: DraftBlock, plateProfile?: PlateProfile | null): void {
+    const barKg = defaultBarKg(plateProfile);
     for (const warmUp of block.warm_ups) {
         const base = firstWorkingWeightKg(block, warmUp.exercise_position);
-        warmUp.weight_kg = scaleWeight(base * (warmUp.percent_of_working / 100), 1);
+        warmUp.weight_kg = resolveWarmUpWeightKg(warmUp, base, warmUp.equipment, barKg);
     }
 }
 
-function warmUpFromRecipe(recipe: HistoricalCreateWarmUp, baseWeightKg: number): DraftWarmUpSet {
+function warmUpFromRecipe(
+    recipe: HistoricalCreateWarmUp,
+    baseWeightKg: number,
+    equipment: string | null,
+    defaultBarKgValue: number | null,
+): DraftWarmUpSet {
     return {
         exercise_position: recipe.exercise_position,
         exercise_name: recipe.exercise_name,
         set_index: recipe.set_index,
+        weight_mode: recipe.weight_mode,
         percent_of_working: recipe.percent_of_working,
         reps: recipe.reps,
-        weight_kg: scaleWeight(baseWeightKg * (recipe.percent_of_working / 100), 1),
+        equipment,
+        weight_kg: resolveWarmUpWeightKg(recipe, baseWeightKg, equipment, defaultBarKgValue),
     };
 }
 
-export function buildDraftBlocks(blocks: HistoricalCreateBlock[], deload: boolean, weightFactor: number, repsFactor: number): DraftBlock[] {
+export function buildDraftBlocks(
+    blocks: HistoricalCreateBlock[],
+    deload: boolean,
+    weightFactor: number,
+    repsFactor: number,
+    plateProfile?: PlateProfile | null,
+): DraftBlock[] {
     const w = deload ? weightFactor : 1;
     const r = deload ? repsFactor : 1;
+    const barKg = defaultBarKg(plateProfile);
 
     return blocks.map((block) => {
         const sets = block.working_sets.map((set) => scaleSet(set, block, deload, w, r));
@@ -83,7 +128,11 @@ export function buildDraftBlocks(blocks: HistoricalCreateBlock[], deload: boolea
         };
 
         if (!deload) {
-            draft.warm_ups = (block.warm_ups ?? []).map((recipe) => warmUpFromRecipe(recipe, firstWorkingWeightKg(draft, recipe.exercise_position)));
+            draft.warm_ups = (block.warm_ups ?? []).map((recipe) => {
+                const exercise = block.exercises.find((row) => row.position === recipe.exercise_position);
+
+                return warmUpFromRecipe(recipe, firstWorkingWeightKg(draft, recipe.exercise_position), exercise?.equipment ?? null, barKg);
+            });
         }
 
         return draft;

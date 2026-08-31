@@ -22,9 +22,10 @@ const strength: ExerciseProfileOption = {
     floor_override: null,
     working_rest_seconds: 180,
     warm_up_steps: [
-        { percent: 50, reps: 5 },
-        { percent: 75, reps: 3 },
-        { percent: 90, reps: 1 },
+        { mode: 'bar', reps: 10 },
+        { mode: 'percent', percent: 50, reps: 5 },
+        { mode: 'percent', percent: 75, reps: 3 },
+        { mode: 'percent', percent: 90, reps: 1 },
     ],
     recipe_fingerprint: 'recipe-strength',
     exercise_fingerprint: 'exercise-strength',
@@ -75,9 +76,10 @@ describe('exercise profile helpers', () => {
         expect(current.shared_profile_id).toBe(1);
         expect(current.shared_profile_fingerprint).toBe('shared-strength');
         expect(current.warm_up.steps).toEqual([
-            { percent: 50, reps: 5, has_setup_after: true },
-            { percent: 75, reps: 3, has_setup_after: false },
-            { percent: 90, reps: 1, has_setup_after: false },
+            { mode: 'bar', reps: 10, has_setup_after: true },
+            { mode: 'percent', percent: 50, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 75, reps: 3, has_setup_after: false },
+            { mode: 'percent', percent: 90, reps: 1, has_setup_after: false },
         ]);
     });
 

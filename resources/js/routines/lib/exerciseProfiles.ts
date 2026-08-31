@@ -13,7 +13,8 @@ export function applySharedProfileToBlock(block: Block, profile: ExerciseProfile
         block.shared_profile_fingerprint = profile.shared_fingerprint;
         block.warm_up.steps = profile.warm_up_steps.map(
             (step, index): WarmUpStep => ({
-                percent: step.percent,
+                mode: step.mode ?? 'percent',
+                percent: step.mode === 'bar' ? undefined : step.percent,
                 reps: step.reps,
                 has_setup_after: existingSetupFlags[index] ?? false,
             }),
