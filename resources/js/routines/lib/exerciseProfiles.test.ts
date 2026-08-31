@@ -86,6 +86,17 @@ describe('exercise profile helpers', () => {
         ]);
     });
 
+    it('treats legacy percent-only profile warm-up steps as percent mode', () => {
+        const current = block();
+
+        applyProfileToBlock(current, hypertrophy);
+
+        expect(current.warm_up.steps).toEqual([
+            { mode: 'percent', percent: 50, reps: 10, has_setup_after: false },
+            { mode: 'percent', percent: 80, reps: 5, has_setup_after: false },
+        ]);
+    });
+
     it('applies only exercise values when changing one Superset profile', () => {
         const current = block({
             is_superset: true,

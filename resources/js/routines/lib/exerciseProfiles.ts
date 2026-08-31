@@ -46,15 +46,17 @@ export function applySharedProfileToBlock(block: Block, profile: ExerciseProfile
     if (includeWarmUp) {
         block.shared_profile_id = profile.id;
         block.shared_profile_fingerprint = profile.shared_fingerprint;
-        block.warm_up.steps = profile.warm_up_steps.map(
-            (step, index): WarmUpStep => ({
-                mode: step.mode ?? 'percent',
-                percent: step.mode === 'percent' ? step.percent : undefined,
-                weight_kg: step.mode === 'fixed' ? step.weight_kg : undefined,
+        block.warm_up.steps = profile.warm_up_steps.map((step, index): WarmUpStep => {
+            const mode = step.mode ?? 'percent';
+
+            return {
+                mode,
+                percent: mode === 'percent' ? step.percent : undefined,
+                weight_kg: mode === 'fixed' ? step.weight_kg : undefined,
                 reps: step.reps,
                 has_setup_after: existingSetupFlags[index] ?? false,
-            }),
-        );
+            };
+        });
         block.warm_up.set_count = block.warm_up.steps.length;
     } else {
         markSharedProfileCustom(block);
