@@ -52,6 +52,7 @@ class TrainingDefaultsController extends Controller
                     WarmUpStepSupport::normalize([
                         'mode' => $step->mode->value,
                         'percent' => $step->percent,
+                        'weight_kg' => $step->weightKg,
                         'reps' => $step->reps,
                     ]) ?? ['mode' => WarmUpWeightMode::Percent->value, 'percent' => 50, 'reps' => 5],
                 ),

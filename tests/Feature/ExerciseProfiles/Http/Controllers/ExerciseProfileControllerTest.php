@@ -11,6 +11,7 @@ use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Models\User;
 use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -94,6 +95,32 @@ class ExerciseProfileControllerTest extends TestCase
         $this->assertSame('Heavy Pull', $profile->name);
         $this->assertSame('heavy-pull', $profile->slug);
         $this->assertSame(4, $profile->resolvedFloor());
+    }
+
+    #[Test]
+    public function a_custom_profile_can_store_fixed_weight_warm_up_steps(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('exercise-profiles.store'), [
+                'name' => 'Deadlift Ladder',
+                'target_reps' => 5,
+                'floor_override' => null,
+                'working_rest_seconds' => 180,
+                'warm_up_steps' => [
+                    ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+                ],
+            ])
+            ->assertRedirect(route('training.edit'));
+
+        $profile = $user->fresh()->exerciseProfiles()->firstOrFail();
+        $this->assertEquals(
+            [
+                ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+            ],
+            $profile->warmUpStepList()
+        );
     }
 
     #[Test]
@@ -367,6 +394,72 @@ class ExerciseProfileControllerTest extends TestCase
         $this->assertSame(8, $updatedExercise->prescribed_reps);
         $this->assertSame(180, $updatedBlock->setGroups->firstWhere('type', SetGroupType::Working)->rest_seconds);
         $this->assertSame(75, $updatedBlock->setGroups->firstWhere('type', SetGroupType::WarmUp)->warmUpSteps->first()->percent_of_working);
+    }
+
+    #[Test]
+    public function syncing_a_profile_copies_fixed_warm_up_weight_onto_the_block(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create([
+            'target_reps' => 6,
+            'floor_override' => null,
+            'working_rest_seconds' => 120,
+            'warm_up_steps' => [['percent' => 50, 'reps' => 5]],
+        ]);
+        $routine = Routine::factory()->withUser($user)->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'shared_exercise_profile_id' => $profile->id,
+            'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+        ]);
+        $exercise = Exercise::factory()->create();
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => $exercise->id,
+            'position' => 1,
+            'working_weight_g' => 60000,
+            'prescribed_reps' => 6,
+            'exercise_profile_id' => $profile->id,
+            'exercise_profile_fingerprint' => $profile->recipe()->fingerprint(),
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 3,
+            'rest_seconds' => 120,
+        ]);
+        $warmUp = RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 1,
+            'rest_seconds' => 60,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUp->id,
+            'position' => 1,
+            'percent_of_working' => 50,
+            'reps' => 5,
+        ]);
+
+        $profile->update([
+            'warm_up_steps' => [['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5]],
+            'recipe_fingerprint' => $profile->recipe()->fingerprint(),
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('exercise-profiles.sync', $profile))
+            ->assertRedirect(route('training.edit'));
+
+        $step = $block->fresh(['setGroups.warmUpSteps'])
+            ->setGroups
+            ->firstWhere('type', SetGroupType::WarmUp)
+            ->warmUpSteps
+            ->first();
+        $this->assertSame(WarmUpWeightMode::Fixed, $step->weight_mode);
+        $this->assertNull($step->percent_of_working);
+        $this->assertSame(60_000, $step->weight_g);
+        $this->assertSame(5, $step->reps);
     }
 
     /**

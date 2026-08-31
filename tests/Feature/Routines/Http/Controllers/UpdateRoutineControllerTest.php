@@ -445,6 +445,38 @@ class UpdateRoutineControllerTest extends TestCase
     }
 
     #[Test]
+    public function edit_page_renders_fixed_warm_up_step_props_for_owner(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Deadlift',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [
+                            ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+                        ],
+                    ],
+                ]),
+            ],
+        ])->assertRedirect(route('routines.edit', $routine));
+
+        $this->actingAs($this->user)
+            ->get(route('routines.edit', $routine))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('routines/Edit')
+                ->where('routine.blocks.0.warm_up.steps.0.mode', WarmUpWeightMode::Fixed->value)
+                ->where('routine.blocks.0.warm_up.steps.0.weight_kg', 60)
+                ->where('routine.blocks.0.warm_up.steps.0.percent', null)
+                ->where('routine.blocks.0.warm_up.steps.0.reps', 5));
+    }
+
+    #[Test]
     public function owner_can_change_routine_default_profile_without_updating_blocks(): void
     {
         $custom = ExerciseProfile::factory()->forUser($this->user)->create([

@@ -98,6 +98,27 @@ describe('exercise profile helpers', () => {
         ]);
     });
 
+    it('applies fixed-weight warm-up steps from a profile', () => {
+        const deadlift: ExerciseProfileOption = {
+            ...strength,
+            id: 3,
+            slug: 'custom-deadlift',
+            name: 'Deadlift',
+            display_name: 'Deadlift',
+            kind: 'custom',
+            warm_up_steps: [{ mode: 'fixed', weight_kg: 60, reps: 5 }],
+            recipe_fingerprint: 'recipe-deadlift',
+            exercise_fingerprint: 'exercise-deadlift',
+            shared_fingerprint: 'shared-deadlift',
+        };
+        const current = block();
+
+        applyProfileToBlock(current, deadlift);
+
+        expect(current.warm_up.steps).toEqual([{ mode: 'fixed', weight_kg: 60, reps: 5, has_setup_after: false }]);
+        expect(current.shared_profile_id).toBe(3);
+    });
+
     it('applies only exercise values when changing one Superset profile', () => {
         const current = block({
             is_superset: true,

@@ -9,6 +9,7 @@ use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Workouts\Enums\WorkoutMode;
 use App\Workouts\Enums\WorkoutStatus;
 use App\Workouts\Models\Workout;
@@ -62,6 +63,37 @@ class HistoricalWorkoutControllerTest extends TestCase
                 ->has('form.blocks', 1)
                 ->where('form.blocks.0.working_set_count', 2)
                 ->has('form.blocks.0.working_sets', 2));
+    }
+
+    #[Test]
+    public function create_form_prefills_fixed_warm_up_weight(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        [, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, workingWeightG: 200000, prescribedReps: 5);
+        $warmUp = RoutineSetGroup::create([
+            'routine_block_id' => $routineExercise->block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 1,
+            'rest_seconds' => 45,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUp->id,
+            'position' => 1,
+            'weight_mode' => WarmUpWeightMode::Fixed,
+            'percent_of_working' => null,
+            'weight_g' => 60_000,
+            'reps' => 5,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get(route('history.create', $routine))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('history/Create')
+                ->where('form.blocks.0.warm_ups.0.weight_mode', 'fixed')
+                ->where('form.blocks.0.warm_ups.0.weight_kg', 60)
+                ->where('form.blocks.0.warm_ups.0.percent_of_working', null)
+                ->where('form.blocks.0.warm_ups.0.reps', 5));
     }
 
     #[Test]
@@ -160,6 +192,66 @@ class HistoricalWorkoutControllerTest extends TestCase
 
         $this->assertSame(5, $warmUpSet->reps);
         $this->assertSame(40000, $warmUpSet->weight_g);
+        $this->assertNotNull($warmUpSet->completed_at);
+    }
+
+    #[Test]
+    public function store_logs_fixed_warm_up_weight_from_payload(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        [, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, workingWeightG: 200000, prescribedReps: 5);
+        $warmUp = RoutineSetGroup::create([
+            'routine_block_id' => $routineExercise->block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 1,
+            'rest_seconds' => 45,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUp->id,
+            'position' => 1,
+            'weight_mode' => WarmUpWeightMode::Fixed,
+            'percent_of_working' => null,
+            'weight_g' => 60_000,
+            'reps' => 5,
+        ]);
+
+        $this->actingAs($this->user)
+            ->post(route('history.store', $routine), [
+                'finished_at' => now()->subHour()->toDateTimeString(),
+                'mode' => 'standard',
+                'blocks' => [
+                    [
+                        'position' => 1,
+                        'working_set_count' => 1,
+                        'sets' => [
+                            [
+                                'exercise_position' => 1,
+                                'set_index' => 0,
+                                'reps' => 5,
+                                'weight_kg' => 200,
+                            ],
+                        ],
+                        'warm_up_sets' => [
+                            [
+                                'exercise_position' => 1,
+                                'set_index' => 0,
+                                'reps' => 5,
+                                'weight_kg' => 60,
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $workout = Workout::query()->where('routine_id', $routine->id)->firstOrFail();
+        $warmUpSet = WorkoutSet::query()
+            ->whereHas('setGroup', fn ($q) => $q->where('type', SetGroupType::WarmUp))
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->firstOrFail();
+
+        $this->assertSame(5, $warmUpSet->reps);
+        $this->assertSame(60_000, $warmUpSet->weight_g);
         $this->assertNotNull($warmUpSet->completed_at);
     }
 
