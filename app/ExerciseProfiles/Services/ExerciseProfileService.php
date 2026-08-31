@@ -47,6 +47,7 @@ class ExerciseProfileService
             ->where('status', ExerciseProfileStatus::Archived)
             ->orderBy('name')
             ->get();
+        $assignedById = $this->assignedRoutinesByProfileId($user, $profiles->concat($archived));
 
         return new ExerciseProfilePageData(
             defaultProfileId: $defaultId,
@@ -54,8 +55,9 @@ class ExerciseProfileService
                 $profiles->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     $profile->id === $defaultId,
-                    $this->routineReferenceCount($profile),
+                    count($assignedById[$profile->id] ?? []),
                     $staleAssignmentCounts[$profile->id] ?? 0,
+                    $assignedById[$profile->id] ?? [],
                 )),
                 DataCollection::class,
             ),
@@ -63,7 +65,9 @@ class ExerciseProfileService
                 $archived->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     false,
-                    $this->routineReferenceCount($profile),
+                    count($assignedById[$profile->id] ?? []),
+                    0,
+                    $assignedById[$profile->id] ?? [],
                 )),
                 DataCollection::class,
             ),
@@ -295,7 +299,7 @@ class ExerciseProfileService
             throw new InvalidArgumentException('The user default profile cannot be archived.');
         }
 
-        if ($this->routineReferenceCount($profile) > 0) {
+        if ($this->liveRoutineCountFor($user, $profile) > 0) {
             throw new InvalidArgumentException('This profile is still used by routines. Choose a different profile in the routine editor first.');
         }
 
@@ -313,7 +317,7 @@ class ExerciseProfileService
     {
         $this->assertOwnedCustom($user, $profile);
 
-        if ($profile->defaultedByUsers()->exists() || $this->routineReferenceCount($profile) > 0) {
+        if ($profile->defaultedByUsers()->exists() || $this->liveRoutineCountFor($user, $profile) > 0) {
             throw new ExerciseProfileInUseException('This profile is still used by routines. Choose a different profile in the routine editor first.');
         }
 
@@ -397,23 +401,74 @@ class ExerciseProfileService
         );
     }
 
-    private function routineReferenceCount(ExerciseProfile $profile): int
+    private function liveRoutineCountFor(User $user, ExerciseProfile $profile): int
     {
-        $routineIds = $profile->defaultedByRoutines()->pluck('id');
+        return count($this->assignedRoutinesByProfileId($user, new Collection([$profile]))[$profile->id] ?? []);
+    }
 
-        $routineIds = $routineIds->merge(
-            Routine::query()
-                ->whereHas('blocks', fn ($query) => $query->where('shared_exercise_profile_id', $profile->id))
-                ->pluck('id'),
-        );
+    /**
+     * @param  Collection<int, ExerciseProfile>  $profiles
+     * @return array<int, list<array{name: string, slug: string}>>
+     */
+    private function assignedRoutinesByProfileId(User $user, Collection $profiles): array
+    {
+        /** @var array<int, list<array{name: string, slug: string}>> $map */
+        $map = [];
+        foreach ($profiles as $profile) {
+            $map[$profile->id] = [];
+        }
 
-        $routineIds = $routineIds->merge(
-            Routine::query()
-                ->whereHas('blocks.blockExercises', fn ($query) => $query->where('exercise_profile_id', $profile->id))
-                ->pluck('id'),
-        );
+        if ($map === []) {
+            return $map;
+        }
 
-        return $routineIds->unique()->count();
+        $routines = $user->routines()
+            ->with(['blocks.blockExercises'])
+            ->orderBy('name')
+            ->get();
+
+        foreach ($routines as $routine) {
+            $summary = [
+                'name' => $routine->name,
+                'slug' => (string) $routine->slug,
+            ];
+
+            foreach ($this->profileIdsReferencedBy($routine) as $profileId) {
+                if (! array_key_exists($profileId, $map)) {
+                    continue;
+                }
+
+                $map[$profileId][] = $summary;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function profileIdsReferencedBy(Routine $routine): array
+    {
+        $ids = [];
+
+        if ($routine->default_exercise_profile_id !== null) {
+            $ids[] = $routine->default_exercise_profile_id;
+        }
+
+        foreach ($routine->blocks as $block) {
+            if ($block->shared_exercise_profile_id !== null) {
+                $ids[] = $block->shared_exercise_profile_id;
+            }
+
+            foreach ($block->blockExercises as $exercise) {
+                if ($exercise->exercise_profile_id !== null) {
+                    $ids[] = $exercise->exercise_profile_id;
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     /**

@@ -2,6 +2,7 @@
 import BrandName from '@/components/BrandName.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
+import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatRest } from '@/routines/lib/formatRest';
@@ -224,9 +225,11 @@ watch(profileSyncId, (profileId) => {
                             <span v-if="profile.is_default" class="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">Default</span>
                         </div>
                         <p class="mt-1 text-sm text-muted-foreground">{{ profileSummary(profile) }}</p>
-                        <p v-if="profile.reference_count" class="mt-1 text-xs text-muted-foreground">
-                            Used in {{ profile.reference_count }} routine{{ profile.reference_count === 1 ? '' : 's' }}. Change profile in the routine
-                            editor before deleting or archiving.
+                        <p v-if="profile.assigned_routines.length" class="mt-1 text-xs text-muted-foreground">
+                            Used in
+                            <!-- prettier-ignore -->
+                            <template v-for="(routine, index) in profile.assigned_routines" :key="routine.slug"><TextLink :href="route('routines.edit', routine.slug)">{{ routine.name }}</TextLink><template v-if="index < profile.assigned_routines.length - 1">, </template></template>
+                            . Change the profile in those routines before deleting or archiving.
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2">

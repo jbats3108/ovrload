@@ -36,6 +36,7 @@ const strength: ExerciseProfileOption = {
     reference_count: 0,
     stale_assignment_count: 0,
     is_default: false,
+    assigned_routines: [],
 };
 
 const hypertrophy: ExerciseProfileOption = {

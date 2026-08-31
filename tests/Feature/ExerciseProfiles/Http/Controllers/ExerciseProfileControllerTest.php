@@ -47,6 +47,32 @@ class ExerciseProfileControllerTest extends TestCase
     }
 
     #[Test]
+    public function training_page_lists_routines_assigned_to_a_profile(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create(['name' => 'Push']);
+        $routine = Routine::factory()->withUser($user)->create([
+            'name' => 'Upper A',
+            'default_exercise_profile_id' => $profile->id,
+        ]);
+        $user->refresh();
+
+        $this->actingAs($user)
+            ->get(route('training.edit'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('exercise_profiles.profiles', function ($profiles) use ($profile, $routine): bool {
+                    $match = collect($profiles)->firstWhere('id', $profile->id);
+
+                    return $match !== null
+                        && $match['reference_count'] === 1
+                        && $match['assigned_routines'] === [
+                            ['name' => 'Upper A', 'slug' => $routine->slug],
+                        ];
+                }));
+    }
+
+    #[Test]
     public function a_user_can_create_a_custom_profile(): void
     {
         $user = User::factory()->create();

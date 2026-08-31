@@ -11,7 +11,8 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 class ExerciseProfileOptionData extends Data
 {
     /**
-     * @param  list<array{percent: int, reps: int}>  $warmUpSteps
+     * @param  list<array{mode?: string, percent?: int, reps: int}>  $warmUpSteps
+     * @param  list<array{name: string, slug: string}>  $assignedRoutines
      */
     public function __construct(
         public readonly int $id,
@@ -31,13 +32,18 @@ class ExerciseProfileOptionData extends Data
         public readonly int $referenceCount = 0,
         public readonly int $staleAssignmentCount = 0,
         public readonly bool $isDefault = false,
+        public readonly array $assignedRoutines = [],
     ) {}
 
+    /**
+     * @param  list<array{name: string, slug: string}>  $assignedRoutines
+     */
     public static function fromProfile(
         ExerciseProfile $profile,
         bool $isDefault = false,
         int $referenceCount = 0,
         int $staleAssignmentCount = 0,
+        array $assignedRoutines = [],
     ): self {
         return new self(
             id: $profile->id,
@@ -57,6 +63,7 @@ class ExerciseProfileOptionData extends Data
             referenceCount: $referenceCount,
             staleAssignmentCount: $staleAssignmentCount,
             isDefault: $isDefault,
+            assignedRoutines: $assignedRoutines,
         );
     }
 }

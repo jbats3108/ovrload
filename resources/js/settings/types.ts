@@ -17,6 +17,11 @@ export type ExerciseProfileWarmUpStep = {
     reps: number;
 };
 
+export type ExerciseProfileAssignedRoutine = {
+    name: string;
+    slug: string;
+};
+
 export type ExerciseProfileOption = {
     id: number;
     slug: string;
@@ -35,6 +40,7 @@ export type ExerciseProfileOption = {
     reference_count: number;
     stale_assignment_count: number;
     is_default: boolean;
+    assigned_routines: ExerciseProfileAssignedRoutine[];
 };
 
 export type ExerciseProfilePage = {
