@@ -8,13 +8,14 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
-- **Add exercise button too prominent** — Play add-exercise control draws too much attention; tone down vs primary session actions
+-
 
 ## Shipped (recent)
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
-1. **Exercise profiles** — user defaults, OVRLOAD presets, custom recipes, routine/block assignment, explicit sync, and admin publication flow
+1. **Play add-exercise less prominent** — control moved into the player header vs primary session actions (#89)
+1. **Exercise profiles** — user defaults, OVRLOAD presets, custom recipes, routine/block assignment, explicit sync, and admin publication flow. Preferences “used in” is picker-visible routines only (#88 / #90 / #94)
 2. **Welcome email** — queued mail on register; tutorial + Beta FAQs links; reply-to Jamie / admin mailbox
 2. **Default Target reps in Training** — Preferences field; seeds new editor blocks and Play ad-hoc (fallback 6)
 3. **Demote dropset → single in Play** — incomplete dropset → clear segments back to a single (mirror of Promote)
@@ -121,7 +122,7 @@ Public order matches `/beta-tester-faqs`.
 
 ### Polish & mobile integration
 
--
+- **Editor vs Preferences density** — review what must live on the routine edit page vs what can stay in Preferences and appear only as an override. Current editor is cluttered and overwhelming on mobile
 
 ### Bugfixes
 
@@ -129,8 +130,11 @@ Public order matches `/beta-tester-faqs`.
 
 ### Code quality & security
 
-- **Dead code review (after profiles merge)** — sweep leftovers once exercise profiles land (v1 leftovers already shipped)
-- **PHPStan warmup-step / profile typing** — advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`; dead catch of `ExerciseProfileNotEditableException` in `UpdateRoutineController`
+- **Dead code review (after profiles merge)** — cull leftovers now that #81 + follow-ups #84–#94 landed (v1 leftovers already shipped).
+  - Cull: unused `ExerciseProfile` relations (`defaultedByRoutines`, `sharedByBlocks`, `assignedToExercises`, `createdBy` — keep the `created_by_user_id` column); unreachable `ExerciseProfileNotEditableException` catch in `UpdateRoutineController` (parent `InvalidArgumentException` already catches it — delete, or move above if the error should stay on `default_exercise_profile_id`); drop shared IDs from `optionsForRoutineEditor` `referencedIds` and unused `blocks.sharedExerciseProfile` eager load; collapse `referenceCount` to `assigned_routines.length` (DTO, TS, Preferences Archive/Delete); unused enum helpers (`ExerciseProfileKind::isPreset`, `ExerciseProfileStatus::isPublished` / `isArchived`).
+  - Optional: drop `->withTrashed()` in `syncProfile` (soft-deleted routines are not in-use).
+  - Keep: dual FKs (`shared_exercise_profile_id` = rest/warm-up, exercise FK = Target/Floor; ADR-0007); `syncProfile` rewriting shared rows; JSON store/set-default (`useHttp` on Create + Save-as-profile); backfill service (migration, seeders, tests).
+- **PHPStan warmup-step / profile typing** — advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`; unreachable `ExerciseProfileNotEditableException` catch in `UpdateRoutineController` (see dead code review)
 - **Node 20 on git-auto-commit-action** — `stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24. Harmless until Node 20 is dropped
 - **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface
 - **Find N+1 queries (Sentry)** — triage / fix N+1s flagged in Sentry
