@@ -108,9 +108,9 @@ describe('createRoutineEditor', () => {
         });
         expect(editor.form.blocks[0].working.rest_seconds).toBe(180);
         expect(editor.form.blocks[0].warm_up.steps).toEqual([
-            { percent: 50, reps: 5, has_setup_after: false },
-            { percent: 75, reps: 3, has_setup_after: false },
-            { percent: 90, reps: 1, has_setup_after: false },
+            { mode: 'percent', percent: 50, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 75, reps: 3, has_setup_after: false },
+            { mode: 'percent', percent: 90, reps: 1, has_setup_after: false },
         ]);
     });
 
