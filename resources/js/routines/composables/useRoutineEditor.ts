@@ -10,6 +10,7 @@ import {
     trimDropsetsToSetCount,
 } from '@/routines/lib/dropsets';
 import {
+    achievementFloorForSave,
     applyProfileToBlock,
     applyProfileToExercise,
     applyProfileToSupersetExercise,
@@ -75,7 +76,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
     const defaultTargetReps = () =>
         typeof props.progression_target_default === 'number' && props.progression_target_default >= 1 ? props.progression_target_default : 6;
 
-    const form = useForm(`EditRoutine:${props.routine.id}:${props.routine.updated_at}`, {
+    const form = useForm({
         name: props.routine.name,
         deload_weight_factor: props.routine.deload_weight_factor,
         deload_reps_factor: props.routine.deload_reps_factor,
@@ -338,9 +339,6 @@ export function createRoutineEditor(props: EditRoutineProps) {
         },
     );
 
-    const normalizeOptionalReps = (value: number | null | undefined): number | null =>
-        typeof value === 'number' && Number.isFinite(value) && value >= 1 ? value : null;
-
     const revealSaveErrors = (): void => {
         requestAnimationFrame(() => {
             document.querySelector<HTMLElement>('[data-routine-save-errors]')?.scrollIntoView({
@@ -368,7 +366,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
                         exercise_profile_id: exercise.exercise_profile_id ?? null,
                         exercise_profile_fingerprint: exercise.exercise_profile_fingerprint ?? null,
                         floor_is_derived: exercise.floor_is_derived ?? null,
-                        achievement_floor: normalizeOptionalReps(exercise.achievement_floor),
+                        achievement_floor: achievementFloorForSave(exercise),
                         progression_target: null,
                         deload_exercise_id: exercise.deload_exercise_id,
                         deload_working_weight_kg: exercise.deload_exercise_id != null ? exercise.deload_working_weight_kg : null,
@@ -393,6 +391,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
                 };
             }),
         })).put(route('routines.update', props.routine.slug), {
+            preserveState: false,
             onError: revealSaveErrors,
         });
     };

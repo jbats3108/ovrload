@@ -1,3 +1,4 @@
+import { normalizeExerciseForEditor } from '@/routines/lib/exerciseProfiles';
 import type { Block, BlockExercise, WarmUpStep } from '@/routines/types';
 import { normalizeEditorWarmUpStep } from '@/shared/warmUpStep';
 
@@ -86,15 +87,13 @@ export function normalizeBlock(raw: Block): Block {
         shared_profile_id: raw.shared_profile_id ?? null,
         shared_profile_fingerprint: raw.shared_profile_fingerprint ?? null,
         has_setup_after_warm_up: Boolean(raw.has_setup_after_warm_up) && steps.length > 0,
-        exercises: (raw.exercises ?? []).map((exercise) => ({
-            ...emptyExercise(),
-            ...exercise,
-            exercise_profile_id: exercise.exercise_profile_id ?? null,
-            exercise_profile_fingerprint: exercise.exercise_profile_fingerprint ?? null,
-            floor_is_derived: exercise.floor_is_derived ?? null,
-            deload_exercise_id: exercise.deload_exercise_id ?? null,
-            deload_working_weight_kg: exercise.deload_exercise_id != null ? (exercise.deload_working_weight_kg ?? null) : null,
-        })),
+        exercises: (raw.exercises ?? []).map((exercise) =>
+            normalizeExerciseForEditor({
+                ...emptyExercise(),
+                ...exercise,
+                deload_working_weight_kg: exercise.deload_exercise_id != null ? (exercise.deload_working_weight_kg ?? null) : null,
+            }),
+        ),
         working: {
             set_count: raw.working?.set_count ?? 3,
             rest_seconds: raw.working?.rest_seconds ?? 120,

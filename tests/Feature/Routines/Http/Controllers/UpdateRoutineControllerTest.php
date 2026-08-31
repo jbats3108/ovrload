@@ -67,8 +67,28 @@ class UpdateRoutineControllerTest extends TestCase
                 ]),
             ],
         ])
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('routines.edit', $routine))
             ->assertSessionHas('success', 'Routine saved.');
+    }
+
+    #[Test]
+    public function owner_update_returns_inertia_location_for_inertia_requests(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->actingAs($this->user)
+            ->withHeaders(['X-Inertia' => 'true'])
+            ->put(route('routines.update', $routine), [
+                'name' => 'Saved Inertia',
+                'blocks' => [
+                    RoutineEditorPayload::block($exercise->id),
+                ],
+            ])
+            ->assertStatus(409)
+            ->assertHeader('X-Inertia-Location', route('routines.edit', $routine));
+
+        $this->assertSame('Saved Inertia', $routine->fresh()->name);
     }
 
     #[Test]
@@ -97,7 +117,7 @@ class UpdateRoutineControllerTest extends TestCase
                     ],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.sharedExerciseProfile', 'blocks.setGroups.warmUpSteps']);
         $savedBlock = $savedRoutine->blocks->firstOrFail();
@@ -193,7 +213,7 @@ class UpdateRoutineControllerTest extends TestCase
                     ],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $saved = $routine->fresh(['blocks.blockExercises']);
         $savedExercise = $saved->blocks->firstOrFail()->blockExercises->firstOrFail();
@@ -219,7 +239,7 @@ class UpdateRoutineControllerTest extends TestCase
                 ]),
             ],
         ])
-            ->assertRedirect(route('dashboard'))
+            ->assertRedirect(route('routines.edit', $routine))
             ->assertSessionHas('success', 'Routine saved.');
 
         $block = $routine->fresh()->blocks()->first();
@@ -264,7 +284,7 @@ class UpdateRoutineControllerTest extends TestCase
                     'working' => ['set_count' => 3, 'rest_seconds' => 180],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $row = $routine->fresh()->blocks()->first()->blockExercises()->first();
         $this->assertSame(3, $row->achievement_floor_override);
@@ -290,7 +310,7 @@ class UpdateRoutineControllerTest extends TestCase
                     'working' => ['set_count' => 3, 'rest_seconds' => 180],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $row = $routine->fresh()->blocks()->first()->blockExercises()->first();
         $this->assertSame($alternate->id, $row->deload_exercise_id);
@@ -407,7 +427,7 @@ class UpdateRoutineControllerTest extends TestCase
                     ],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $this->actingAs($this->user)
             ->get(route('routines.edit', $routine))
@@ -480,7 +500,7 @@ class UpdateRoutineControllerTest extends TestCase
                     'warm_up' => ['set_count' => 0, 'rest_seconds' => 60, 'steps' => []],
                 ]),
             ],
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('routines.edit', $routine));
 
         $saved = $routine->fresh(['blocks.blockExercises', 'blocks.sharedExerciseProfile']);
         $block = $saved->blocks->firstOrFail();
@@ -488,6 +508,63 @@ class UpdateRoutineControllerTest extends TestCase
         $this->assertSame($strength->id, $saved->default_exercise_profile_id);
         $this->assertSame($custom->id, $block->shared_exercise_profile_id);
         $this->assertSame($custom->id, $block->blockExercises->firstWhere('position', 1)?->exercise_profile_id);
+    }
+
+    #[Test]
+    public function owner_can_save_superset_exercises_with_derived_floors_and_current_profile_fingerprints(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exerciseOne = Exercise::factory()->create();
+        $exerciseTwo = Exercise::factory()->create();
+        $hypertrophy = ExerciseProfile::query()->where('slug', 'preset-hypertrophy')->firstOrFail();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Full Body A',
+            'blocks' => [
+                RoutineEditorPayload::block($exerciseOne->id, [
+                    'is_superset' => true,
+                    'shared_profile_id' => null,
+                    'shared_profile_fingerprint' => null,
+                    'exercises' => [
+                        [
+                            'exercise_id' => $exerciseOne->id,
+                            'exercise_profile_id' => $hypertrophy->id,
+                            'exercise_profile_fingerprint' => $hypertrophy->recipe()->exerciseFingerprint(),
+                            'working_weight_kg' => 32.5,
+                            'prescribed_reps' => 10,
+                            'achievement_floor' => 8,
+                            'floor_is_derived' => true,
+                            'progression_target' => null,
+                            'deload_exercise_id' => null,
+                            'deload_working_weight_kg' => null,
+                        ],
+                        [
+                            'exercise_id' => $exerciseTwo->id,
+                            'exercise_profile_id' => ExerciseProfile::query()->where('slug', 'preset-strength')->value('id'),
+                            'exercise_profile_fingerprint' => ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail()->recipe()->exerciseFingerprint(),
+                            'working_weight_kg' => 120,
+                            'prescribed_reps' => 6,
+                            'achievement_floor' => null,
+                            'floor_is_derived' => true,
+                            'progression_target' => null,
+                            'deload_exercise_id' => null,
+                            'deload_working_weight_kg' => null,
+                        ],
+                    ],
+                    'working' => ['set_count' => 3, 'rest_seconds' => 120],
+                    'warm_up' => ['set_count' => 0, 'rest_seconds' => 60, 'steps' => []],
+                ]),
+            ],
+        ])->assertRedirect(route('routines.edit', $routine));
+
+        $saved = $routine->fresh(['blocks.blockExercises']);
+        $block = $saved->blocks->firstOrFail();
+        $hypertrophyExercise = $block->blockExercises->firstWhere('position', 1);
+
+        $this->assertNotNull($hypertrophyExercise);
+        $this->assertSame($hypertrophy->id, $hypertrophyExercise->exercise_profile_id);
+        $this->assertNull($hypertrophyExercise->achievement_floor_override);
+        $this->assertTrue($hypertrophyExercise->floor_is_derived);
     }
 
     #[Test]
