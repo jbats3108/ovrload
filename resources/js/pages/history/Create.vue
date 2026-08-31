@@ -287,7 +287,7 @@ const submit = () => {
                                 <p class="font-mono text-xs tracking-wide text-muted-foreground uppercase">Warm-up</p>
                                 <p class="mt-1 text-xs text-muted-foreground">
                                     Percent steps scale from Set 1 for each exercise. Empty-bar steps use your plate-profile bar weight on barbell
-                                    lifts.
+                                    lifts. Fixed-weight steps keep the kg you set in the profile or routine.
                                 </p>
                             </div>
                             <div v-for="round in warmUpRoundsForBlock(block)" :key="`wu-${round.setIndex}`" class="space-y-2">
@@ -299,6 +299,7 @@ const submit = () => {
                                             formatWarmUpStepLabel({
                                                 mode: round.sets[0].weight_mode,
                                                 percent: round.sets[0].percent_of_working ?? undefined,
+                                                weight_kg: round.sets[0].preset_weight_kg ?? round.sets[0].weight_kg,
                                                 reps: round.sets[0].reps,
                                             })
                                         }}

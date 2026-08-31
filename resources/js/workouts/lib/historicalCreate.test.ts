@@ -86,6 +86,7 @@ describe('historicalCreate', () => {
                         set_index: 0,
                         weight_mode: 'percent',
                         percent_of_working: 40,
+                        weight_kg: null,
                         reps: 5,
                     },
                 ],
@@ -109,6 +110,7 @@ describe('historicalCreate', () => {
                         set_index: 0,
                         weight_mode: 'bar',
                         percent_of_working: null,
+                        weight_kg: null,
                         reps: 10,
                     },
                 ],
@@ -116,6 +118,30 @@ describe('historicalCreate', () => {
         ];
         const [block] = buildDraftBlocks(withBarWarmUp, false, 1, 1, plateProfile());
         expect(block!.warm_ups[0]?.weight_kg).toBe(20);
+    });
+
+    it('keeps fixed warm-up weight independent of working weight', () => {
+        const withFixedWarmUp: HistoricalCreateBlock[] = [
+            {
+                ...sampleBlocks[0]!,
+                warm_ups: [
+                    {
+                        exercise_position: 1,
+                        exercise_name: 'Deadlift',
+                        set_index: 0,
+                        weight_mode: 'fixed',
+                        percent_of_working: null,
+                        weight_kg: 60,
+                        reps: 5,
+                    },
+                ],
+            },
+        ];
+        const [block] = buildDraftBlocks(withFixedWarmUp, false, 1, 1);
+        expect(block!.warm_ups[0]?.weight_kg).toBe(60);
+        block!.sets[0]!.weight_kg = 180;
+        syncWarmUpWeights(block!);
+        expect(block!.warm_ups[0]?.weight_kg).toBe(60);
     });
 
     it('omits warm-ups when building a deload draft', () => {
@@ -129,6 +155,7 @@ describe('historicalCreate', () => {
                         set_index: 0,
                         weight_mode: 'percent',
                         percent_of_working: 40,
+                        weight_kg: null,
                         reps: 5,
                     },
                 ],

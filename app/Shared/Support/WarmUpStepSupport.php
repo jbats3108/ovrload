@@ -9,7 +9,7 @@ final class WarmUpStepSupport
 {
     /**
      * @param  array<string, mixed>  $step
-     * @return array{mode: WarmUpWeightMode, percent: ?int, reps: int}|null
+     * @return array{mode: WarmUpWeightMode, percent: ?int, weight_g: ?int, reps: int}|null
      */
     public static function normalize(mixed $step): ?array
     {
@@ -28,6 +28,21 @@ final class WarmUpStepSupport
         } else {
             $mode = WarmUpWeightMode::tryFrom((string) $modeValue) ?? WarmUpWeightMode::Percent;
         }
+
+        if ($mode === WarmUpWeightMode::Fixed) {
+            $weightG = self::weightGFromStep($step);
+            if ($weightG === null || $weightG < 1) {
+                return null;
+            }
+
+            return [
+                'mode' => $mode,
+                'percent' => null,
+                'weight_g' => $weightG,
+                'reps' => $reps,
+            ];
+        }
+
         $percent = array_key_exists('percent', $step) ? (int) $step['percent'] : null;
 
         if ($mode === WarmUpWeightMode::Percent && ($percent === null || $percent < 1)) {
@@ -37,13 +52,14 @@ final class WarmUpStepSupport
         return [
             'mode' => $mode,
             'percent' => $mode === WarmUpWeightMode::Bar ? null : $percent,
+            'weight_g' => null,
             'reps' => $reps,
         ];
     }
 
     /**
      * @param  list<mixed>  $steps
-     * @return list<array{mode: WarmUpWeightMode, percent: ?int, reps: int}>
+     * @return list<array{mode: WarmUpWeightMode, percent: ?int, weight_g: ?int, reps: int}>
      */
     public static function normalizeList(array $steps): array
     {
@@ -54,14 +70,22 @@ final class WarmUpStepSupport
     }
 
     /**
-     * @param  array{mode: WarmUpWeightMode, percent: ?int, reps: int}  $step
-     * @return array{mode: string, percent?: int, reps: int}
+     * @param  array{mode: WarmUpWeightMode, percent: ?int, weight_g: ?int, reps: int}  $step
+     * @return array{mode: string, percent?: int, weight_kg?: float, reps: int}
      */
     public static function toStorage(array $step): array
     {
         if ($step['mode'] === WarmUpWeightMode::Bar) {
             return [
                 'mode' => WarmUpWeightMode::Bar->value,
+                'reps' => $step['reps'],
+            ];
+        }
+
+        if ($step['mode'] === WarmUpWeightMode::Fixed) {
+            return [
+                'mode' => WarmUpWeightMode::Fixed->value,
+                'weight_kg' => Weight::gramsToKg((int) $step['weight_g']),
                 'reps' => $step['reps'],
             ];
         }
@@ -79,7 +103,12 @@ final class WarmUpStepSupport
         int $workingWeightG,
         ?int $defaultBarWeightG,
         ?ExerciseEquipment $equipment,
+        ?int $fixedWeightG = null,
     ): ?int {
+        if ($mode === WarmUpWeightMode::Fixed) {
+            return $fixedWeightG !== null && $fixedWeightG > 0 ? $fixedWeightG : null;
+        }
+
         if ($mode === WarmUpWeightMode::Bar) {
             if ($equipment?->usesBarbellPlates() !== true || $defaultBarWeightG === null) {
                 return null;
@@ -93,5 +122,21 @@ final class WarmUpStepSupport
         }
 
         return (int) round($workingWeightG * ($percentOfWorking / 100));
+    }
+
+    /**
+     * @param  array<string, mixed>  $step
+     */
+    private static function weightGFromStep(array $step): ?int
+    {
+        if (array_key_exists('weight_g', $step) && $step['weight_g'] !== null) {
+            return (int) $step['weight_g'];
+        }
+
+        if (array_key_exists('weight_kg', $step) && $step['weight_kg'] !== null && $step['weight_kg'] !== '') {
+            return Weight::kgToGrams((float) $step['weight_kg']);
+        }
+
+        return null;
     }
 }

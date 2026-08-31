@@ -19,6 +19,19 @@ describe('warmUpText', () => {
 });
 
 describe('setWarmUpText', () => {
+    it('parses bar, fixed, and percent steps', () => {
+        const b = block();
+        setWarmUpText(b, 'bar×10, 60kg×5, 40%×5, 60%, 80x1');
+        expect(b.warm_up.steps).toEqual([
+            { mode: 'bar', reps: 10, has_setup_after: false },
+            { mode: 'fixed', weight_kg: 60, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 40, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 60, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 80, reps: 1, has_setup_after: false },
+        ]);
+        expect(b.warm_up.set_count).toBe(5);
+    });
+
     it('parses bar and percent steps', () => {
         const b = block();
         setWarmUpText(b, 'bar×10, 40%×5, 60%, 80x1');

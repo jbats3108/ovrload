@@ -107,8 +107,9 @@ export type HistoricalCreateWarmUp = {
     exercise_position: number;
     exercise_name: string;
     set_index: number;
-    weight_mode: 'percent' | 'bar';
+    weight_mode: 'percent' | 'bar' | 'fixed';
     percent_of_working: number | null;
+    weight_kg: number | null;
     reps: number;
 };
 

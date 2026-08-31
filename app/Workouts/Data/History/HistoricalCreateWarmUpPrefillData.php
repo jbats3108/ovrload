@@ -4,6 +4,7 @@ namespace App\Workouts\Data\History;
 
 use App\Routines\Models\RoutineBlockExercise;
 use App\Shared\Enums\WarmUpWeightMode;
+use App\Shared\Support\Weight;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -17,6 +18,7 @@ class HistoricalCreateWarmUpPrefillData extends Data
         public readonly int $setIndex,
         public readonly WarmUpWeightMode $weightMode,
         public readonly ?int $percentOfWorking,
+        public readonly ?float $weightKg,
         public readonly int $reps,
     ) {}
 
@@ -25,6 +27,7 @@ class HistoricalCreateWarmUpPrefillData extends Data
         int $setIndex,
         WarmUpWeightMode $weightMode,
         ?int $percentOfWorking,
+        ?int $weightG,
         int $reps,
     ): self {
         return new self(
@@ -33,6 +36,7 @@ class HistoricalCreateWarmUpPrefillData extends Data
             setIndex: $setIndex,
             weightMode: $weightMode,
             percentOfWorking: $percentOfWorking,
+            weightKg: $weightG !== null ? Weight::gramsToKg($weightG) : null,
             reps: $reps,
         );
     }

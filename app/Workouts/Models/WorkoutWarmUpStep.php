@@ -15,6 +15,7 @@ class WorkoutWarmUpStep extends Model
         'position',
         'weight_mode',
         'percent_of_working',
+        'weight_g',
         'reps',
         'has_setup_after',
     ];
@@ -27,6 +28,7 @@ class WorkoutWarmUpStep extends Model
             'position' => 'integer',
             'weight_mode' => WarmUpWeightMode::class,
             'percent_of_working' => 'integer',
+            'weight_g' => 'integer',
             'reps' => 'integer',
             'has_setup_after' => 'boolean',
         ];

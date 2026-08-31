@@ -11,6 +11,7 @@ use App\Routines\Data\Editor\SyncWarmUpStepData;
 use App\Routines\Exceptions\RoutineStaleException;
 use App\Routines\Models\Routine;
 use App\Routines\Services\RoutineEditorService;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
@@ -143,6 +144,34 @@ class RoutineEditorServiceTest extends TestCase
 
         $this->assertCount(1, $result->blocks);
         $this->assertCount(0, $result->blocks->first()->warmUpSetGroup->warmUpSteps);
+    }
+
+    #[Test]
+    public function sync_persists_fixed_weight_warm_up_steps(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Deadlift warm-up',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [
+                            ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+                        ],
+                    ],
+                ]),
+            ],
+        ]));
+
+        $step = $result->blocks->first()->warmUpSetGroup->warmUpSteps->first();
+        $this->assertSame(WarmUpWeightMode::Fixed, $step->weight_mode);
+        $this->assertNull($step->percent_of_working);
+        $this->assertSame(60_000, $step->weight_g);
+        $this->assertSame(5, $step->reps);
     }
 
     #[Test]

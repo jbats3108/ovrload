@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatRest } from '@/routines/lib/formatRest';
 import type { Block, ExerciseProfileOption } from '@/routines/types';
+import type { ExerciseProfileWarmUpStep } from '@/settings/types';
+import { formatProfileWarmUpSteps } from '@/shared/warmUpStep';
 import { useHttp } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -23,15 +25,16 @@ const form = useHttp({
     target_reps: 6,
     floor_override: null as number | null,
     working_rest_seconds: 120,
-    warm_up_steps: [] as { mode?: 'percent' | 'bar'; percent?: number; reps: number }[],
+    warm_up_steps: [] as ExerciseProfileWarmUpStep[],
 });
 
 const exercise = computed(() => props.block.exercises[props.exerciseIndex] ?? props.block.exercises[0]);
 const floorOverride = computed(() => (exercise.value?.floor_is_derived === true ? null : (exercise.value?.achievement_floor ?? null)));
-const warmUpSteps = computed(() =>
+const warmUpSteps = computed((): ExerciseProfileWarmUpStep[] =>
     props.block.warm_up.steps.map((step) => ({
         mode: step.mode ?? 'percent',
-        percent: step.mode === 'bar' ? undefined : step.percent,
+        percent: step.mode === 'percent' ? step.percent : undefined,
+        weight_kg: step.mode === 'fixed' ? step.weight_kg : undefined,
         reps: step.reps,
     })),
 );
@@ -95,7 +98,7 @@ const submit = () => {
                     <p class="mt-1">Working rest: {{ formatRest(props.block.working.rest_seconds) }}</p>
                     <p class="mt-1">
                         Warm-up:
-                        {{ form.warm_up_steps.length ? form.warm_up_steps.map((step) => `${step.percent}%×${step.reps}`).join(', ') : 'None' }}
+                        {{ form.warm_up_steps.length ? formatProfileWarmUpSteps(form.warm_up_steps) : 'None' }}
                     </p>
                 </div>
 

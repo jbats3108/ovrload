@@ -49,7 +49,8 @@ export function applySharedProfileToBlock(block: Block, profile: ExerciseProfile
         block.warm_up.steps = profile.warm_up_steps.map(
             (step, index): WarmUpStep => ({
                 mode: step.mode ?? 'percent',
-                percent: step.mode === 'bar' ? undefined : step.percent,
+                percent: step.mode === 'percent' ? step.percent : undefined,
+                weight_kg: step.mode === 'fixed' ? step.weight_kg : undefined,
                 reps: step.reps,
                 has_setup_after: existingSetupFlags[index] ?? false,
             }),

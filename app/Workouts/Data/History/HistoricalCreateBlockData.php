@@ -75,6 +75,7 @@ class HistoricalCreateBlockData extends Data
                         $setIndex,
                         $step->weight_mode ?? WarmUpWeightMode::Percent,
                         $step->percent_of_working !== null ? (int) $step->percent_of_working : null,
+                        $step->weight_g !== null ? (int) $step->weight_g : null,
                         (int) $step->reps,
                     ));
                 }

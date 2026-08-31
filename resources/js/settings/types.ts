@@ -1,8 +1,9 @@
-export type WarmUpWeightMode = 'percent' | 'bar';
+export type WarmUpWeightMode = 'percent' | 'bar' | 'fixed';
 
 export type WarmUpStep = {
     mode?: WarmUpWeightMode;
     percent?: number;
+    weight_kg?: number;
     reps: number;
     has_setup_after?: boolean;
 };
@@ -12,6 +13,7 @@ export type WarmUpDefaultsScope = 'all_blocks' | 'first_block';
 export type ExerciseProfileWarmUpStep = {
     mode?: WarmUpWeightMode;
     percent?: number;
+    weight_kg?: number;
     reps: number;
 };
 

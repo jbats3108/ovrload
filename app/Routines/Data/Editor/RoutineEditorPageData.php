@@ -105,6 +105,7 @@ class RoutineEditorPageData extends Data
                             ? $warmUp->warmUpSteps->map(fn ($step): SyncWarmUpStepData => new SyncWarmUpStepData(
                                 mode: $step->weight_mode ?? WarmUpWeightMode::Percent,
                                 percent: $step->percent_of_working !== null ? (int) $step->percent_of_working : null,
+                                weightKg: $step->weight_g !== null ? Weight::gramsToKg((int) $step->weight_g) : null,
                                 reps: (int) ($step->reps ?? 5),
                                 hasSetupAfter: (bool) $step->has_setup_after,
                             ))

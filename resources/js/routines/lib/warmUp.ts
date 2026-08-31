@@ -1,13 +1,16 @@
 import type { Block, WarmUpStep } from '@/routines/types';
 import { formatWarmUpStepLabel, isValidWarmUpStep, resolvedWarmUpMode } from '@/shared/warmUpStep';
 
-type ParsedWarmUpStep = { mode: 'bar'; reps: number } | { mode: 'percent'; percent: number; reps: number };
+type ParsedWarmUpStep =
+    | { mode: 'bar'; reps: number }
+    | { mode: 'percent'; percent: number; reps: number }
+    | { mode: 'fixed'; weight_kg: number; reps: number };
 
 export function warmUpText(block: Block): string {
     return block.warm_up.steps.map(formatWarmUpStepLabel).join(', ');
 }
 
-export function formatWarmUpStep(step: Pick<WarmUpStep, 'mode' | 'percent' | 'reps'>): string {
+export function formatWarmUpStep(step: Pick<WarmUpStep, 'mode' | 'percent' | 'weight_kg' | 'reps'>): string {
     return formatWarmUpStepLabel(step);
 }
 
@@ -24,12 +27,13 @@ function normalizeWarmUpStep(step: WarmUpStep): WarmUpStep {
     return {
         mode,
         percent: mode === 'percent' ? step.percent : undefined,
+        weight_kg: mode === 'fixed' ? step.weight_kg : undefined,
         reps: step.reps,
         has_setup_after: step.has_setup_after ?? false,
     };
 }
 
-/** Compact editor string: `bar×10, 40%×5, 60%×3` (also accepts legacy `40, 60, 80`). */
+/** Compact editor string: `bar×10, 60kg×5, 40%×5` (also accepts legacy `40, 60, 80`). */
 export function setWarmUpText(block: Block, value: string): void {
     const previousFlags = block.warm_up.steps.map((s) => s.has_setup_after ?? false);
     block.warm_up.steps = value
@@ -41,14 +45,26 @@ export function setWarmUpText(block: Block, value: string): void {
             if (barWithReps) {
                 return { mode: 'bar' as const, reps: parseInt(barWithReps[1], 10) };
             }
+
+            const fixedWithReps = part.match(/^(\d+(?:\.\d+)?)\s*kg\s*[x×]\s*(\d+)$/i);
+            if (fixedWithReps) {
+                return {
+                    mode: 'fixed' as const,
+                    weight_kg: parseFloat(fixedWithReps[1]),
+                    reps: parseInt(fixedWithReps[2], 10),
+                };
+            }
+
             const withReps = part.match(/^(\d+)\s*%?\s*[x×]\s*(\d+)$/i);
             if (withReps) {
                 return { mode: 'percent' as const, percent: parseInt(withReps[1], 10), reps: parseInt(withReps[2], 10) };
             }
+
             const percentOnly = part.match(/^(\d+)\s*%?$/);
             if (percentOnly) {
                 return { mode: 'percent' as const, percent: parseInt(percentOnly[1], 10), reps: 5 };
             }
+
             return null;
         })
         .filter((s): s is ParsedWarmUpStep => s !== null && isValidWarmUpStep(s))
