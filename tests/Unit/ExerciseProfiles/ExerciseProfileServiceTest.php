@@ -146,6 +146,31 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
+    public function sync_skips_soft_deleted_routines(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create([
+            'target_reps' => 6,
+            'working_rest_seconds' => 120,
+            'warm_up_steps' => [['percent' => 50, 'reps' => 5]],
+        ]);
+        $routine = Routine::factory()->withUser($user)->create();
+        $linked = $this->createAssignedBlock($routine, $profile);
+
+        $routine->delete();
+
+        $profile->update([
+            'target_reps' => 8,
+            'recipe_fingerprint' => $profile->recipe()->fingerprint(),
+        ]);
+
+        $updated = $this->profiles->syncProfile($user, $profile->fresh());
+
+        $this->assertSame(0, $updated);
+        $this->assertSame(6, $linked->fresh()->blockExercises->firstOrFail()->prescribed_reps);
+    }
+
+    #[Test]
     public function it_counts_only_the_exercise_assignment_on_mixed_shared_and_exercise_profiles(): void
     {
         $user = User::factory()->create();
@@ -221,6 +246,23 @@ class ExerciseProfileServiceTest extends TestCase
             collect($options)->contains(fn ($option): bool => $option->kind === ExerciseProfileKind::Custom->value
                 && $option->status === ExerciseProfileStatus::Archived->value
                 && $option->id !== $archived->id),
+        );
+    }
+
+    #[Test]
+    public function options_for_routine_editor_ignores_archived_profiles_only_on_shared_assignment(): void
+    {
+        $user = User::factory()->create();
+        $archived = ExerciseProfile::factory()->forUser($user)->archived()->create(['name' => 'Old Shared']);
+        $routine = Routine::factory()->withUser($user)->create([
+            'default_exercise_profile_id' => ExerciseProfile::query()->where('slug', 'preset-strength')->value('id'),
+        ]);
+        $this->createSharedOnlyBlock($routine, $archived);
+
+        $options = $this->profiles->optionsForRoutineEditor($user, $routine->fresh(['blocks.blockExercises']));
+
+        $this->assertFalse(
+            collect($options)->contains(fn ($option): bool => $option->id === $archived->id),
         );
     }
 

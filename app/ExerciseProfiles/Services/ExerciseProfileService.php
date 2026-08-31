@@ -104,20 +104,8 @@ class ExerciseProfileService
      */
     public function optionsForRoutineEditor(User $user, Routine $routine): array
     {
-        $routine->loadMissing([
-            'blocks.blockExercises',
-            'blocks.sharedExerciseProfile',
-        ]);
-
-        $referencedIds = $routine->blocks
-            ->flatMap(fn ($block): array => array_merge(
-                [$block->shared_exercise_profile_id],
-                $block->blockExercises->pluck('exercise_profile_id')->all(),
-            ))
-            ->push($routine->default_exercise_profile_id)
-            ->filter()
-            ->unique()
-            ->values();
+        $routine->loadMissing(['blocks.blockExercises']);
+        $referencedIds = $this->profileIdsReferencedBy($routine);
 
         $profiles = $user->exerciseProfiles()
             ->whereIn('status', [ExerciseProfileStatus::Published, ExerciseProfileStatus::Archived])
@@ -336,7 +324,6 @@ class ExerciseProfileService
             $updated = 0;
 
             $routines = $user->routines()
-                ->withTrashed()
                 ->with([
                     'blocks.blockExercises',
                     'blocks.setGroups.warmUpSteps',
