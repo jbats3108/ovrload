@@ -8,7 +8,7 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
--
+- **Add exercise button too prominent** — Play add-exercise control draws too much attention; tone down vs primary session actions
 
 ## Shipped (recent)
 
@@ -129,6 +129,7 @@ Public order matches `/beta-tester-faqs`.
 
 ### Code quality & security
 
+- **Dead code review (after profiles merge)** — sweep leftovers once exercise profiles land (v1 leftovers already shipped)
 - **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface
 - **Find N+1 queries (Sentry)** — triage / fix N+1s flagged in Sentry
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done

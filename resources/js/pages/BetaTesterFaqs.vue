@@ -26,7 +26,7 @@ const backlogItems = [
     {
         title: 'Add exercise in Play',
         description:
-            'Add an extra lift mid-workout from the player — pick from the catalog (or a custom), log it for this session only without changing the routine.',
+            'Add an extra lift mid-workout from Add exercise to session in the player header — pick from the catalog (or a custom), log it for this session only without changing the routine.',
         recentlyAdded: true,
     },
     {

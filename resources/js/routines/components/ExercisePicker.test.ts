@@ -124,7 +124,7 @@ describe('ExercisePicker', () => {
                 muscleGroups: [],
                 equipmentOptions: [],
                 variant: 'action',
-                triggerLabel: 'Add exercise to workout',
+                triggerLabel: 'Add exercise to session',
                 'onUpdate:modelValue': (id: number | null) => {
                     exerciseId.value = id;
                 },
@@ -132,8 +132,13 @@ describe('ExercisePicker', () => {
         });
 
         const trigger = wrapper.get('button[aria-haspopup="dialog"]');
-        expect(trigger.text()).toContain('Add exercise to workout');
-        expect(trigger.classes()).toContain('bg-primary/10');
+        expect(trigger.text()).toContain('Add exercise to session');
+        expect(trigger.classes()).toContain('text-primary');
+        expect(trigger.classes()).toContain('border-primary/40');
+        expect(trigger.classes()).toContain('w-full');
+        expect(trigger.classes()).toContain('justify-center');
+        expect(trigger.classes()).not.toContain('rounded-full');
+        expect(trigger.find('svg').exists()).toBe(false);
 
         await trigger.trigger('click');
         await nextTick();
