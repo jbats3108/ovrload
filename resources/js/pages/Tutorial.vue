@@ -199,10 +199,10 @@ const toc = [
                     you log it. Keep the tab open if you can; wake lock tries to stop the phone sleeping.
                 </p>
                 <p class="text-muted-foreground">
-                    Need an extra lift? Tap <strong class="text-foreground">Add exercise to workout</strong> in the action row. Choose a catalog or
-                    private custom exercise and it is appended as a single, three-set block on this workout only. It does not change the routine or
-                    offer progression; its Target and working Rest come from your user default exercise profile. You can remove the new block before
-                    logging a set.
+                    Need an extra lift? Tap <strong class="text-foreground">Add exercise to session</strong> in the header, under Finish / Abandon /
+                    Leave. Choose a catalog or private custom exercise and it is appended as a single, three-set block on this workout only. It does
+                    not change the routine or offer progression; its Target and working Rest come from your user default exercise profile. You can
+                    remove the new block before logging a set.
                 </p>
                 <p class="text-muted-foreground">
                     On the log sheet you will see <strong class="text-foreground">Floor</strong> and
@@ -211,8 +211,8 @@ const toc = [
                 </p>
                 <TutorialShot
                     name="play"
-                    alt="Play screen showing set actions, including Add exercise to workout"
-                    caption="Play: set actions (+/− Set, Promote/Demote dropset), Skip rest of group, and Add exercise to workout; Done opens the log sheet."
+                    alt="Play screen with Add exercise to session in the header under Finish, Abandon, and Leave"
+                    caption="Play: Add exercise to session spans the header under Finish / Abandon / Leave; set actions (+/− Set, Promote/Demote dropset) and Skip rest of group stay on the stage; Done opens the log sheet."
                 />
             </section>
 
