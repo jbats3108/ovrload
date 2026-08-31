@@ -147,4 +147,16 @@ describe('MobileStage', () => {
 
         wrapper.unmount();
     });
+
+    it('places the routine Deload recipe above the dropset editor', () => {
+        const { wrapper } = mountStage();
+        const deload = document.body.querySelector('[data-routine-deload]');
+        const dropsets = document.body.querySelector('[data-dropset-editor]');
+
+        expect(deload).toBeTruthy();
+        expect(dropsets).toBeTruthy();
+        expect(deload!.compareDocumentPosition(dropsets!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+        wrapper.unmount();
+    });
 });

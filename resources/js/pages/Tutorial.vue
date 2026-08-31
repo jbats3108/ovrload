@@ -261,7 +261,7 @@ const toc = [
                     Warm-ups are omitted; the working weights are already light.
                 </p>
                 <p class="text-muted-foreground">
-                    Preferences holds the defaults new routines copy. Each routine can then set its own factors and
+                    Preferences holds the defaults new routines copy. In the editor, above the exercise list, each routine can set its own factors and
                     <strong class="text-foreground">Deload Velocity</strong> — how many finished standard sessions on that routine before Dashboard
                     softly hints at a Deload. Set velocity to 0 to never hint (handy for rare or one-off routines). The hint is not a calendar and it
                     does not start the session for you.

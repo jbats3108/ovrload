@@ -57,6 +57,7 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
 
 <template>
     <div class="hidden min-h-0 flex-1 flex-col md:flex">
+        <DeloadSettings variant="desktop" />
         <div class="overflow-x-auto px-2 py-3">
             <table class="w-full min-w-[60rem] border-collapse text-left text-sm">
                 <thead>
@@ -269,10 +270,7 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
             </table>
             <p v-if="!form.blocks.length" class="px-4 py-8 text-center text-muted-foreground">No exercises yet. Add one below.</p>
 
-            <!-- Keep Deload inside the same horizontal scroll region as the table, so the scrollbar sits below it. -->
-            <DeloadSettings variant="desktop" />
-
-            <div v-if="activeBlock && !activeBlock.is_superset" class="min-w-0 border-t border-border bg-card/40 px-4 py-3">
+            <div v-if="activeBlock && !activeBlock.is_superset" data-dropset-editor class="min-w-0 border-t border-border bg-card/40 px-4 py-3">
                 <div class="mb-2 flex min-w-0 items-baseline justify-between gap-2">
                     <h3 class="text-sm font-medium">Dropsets · Exercise {{ active + 1 }}</h3>
                     <p v-if="dropsetSummary(activeBlock)" class="truncate font-mono text-xs text-muted-foreground">

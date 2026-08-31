@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { ChevronDown } from 'lucide-vue-next';
 
-defineProps<{
+const {
+    expanded,
+    label,
+    summary,
+    flush = false,
+} = defineProps<{
     expanded: boolean;
     label: string;
     summary: string;
+    flush?: boolean;
 }>();
 
 defineEmits<{
@@ -13,7 +19,7 @@ defineEmits<{
 </script>
 
 <template>
-    <div class="mt-3 border-t border-border pt-3">
+    <div :class="flush ? '' : 'mt-3 border-t border-border pt-3'">
         <button type="button" class="flex w-full items-center justify-between gap-2 text-left" :aria-expanded="expanded" @click="$emit('toggle')">
             <span class="min-w-0">
                 <span class="block text-xs text-muted-foreground">

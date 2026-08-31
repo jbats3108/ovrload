@@ -70,18 +70,26 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
 
 <template>
     <div class="flex flex-col md:hidden">
-        <div class="flex gap-2 overflow-x-auto px-4 py-3">
-            <button
-                v-for="(b, i) in form.blocks"
-                :key="i"
-                type="button"
-                class="shrink-0 rounded-lg border px-3 py-2 text-left text-sm"
-                :class="i === active ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'"
-                @click="selectBlockExercise(i, 0)"
-            >
-                <div class="font-mono text-xs">{{ i + 1 }}{{ b.is_superset ? ' SS' : '' }}</div>
-                <div class="max-w-28 truncate">{{ exerciseName(b.exercises[0]?.exercise_id) }}</div>
-            </button>
+        <div class="px-4 pt-3 pb-4">
+            <div class="flex gap-2 overflow-x-auto pb-1">
+                <button
+                    v-for="(b, i) in form.blocks"
+                    :key="i"
+                    type="button"
+                    class="shrink-0 rounded-lg border px-3 py-2 text-left text-sm"
+                    :class="i === active ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'"
+                    @click="selectBlockExercise(i, 0)"
+                >
+                    <div class="font-mono text-xs">{{ i + 1 }}{{ b.is_superset ? ' SS' : '' }}</div>
+                    <div class="max-w-28 truncate">{{ exerciseName(b.exercises[0]?.exercise_id) }}</div>
+                </button>
+            </div>
+        </div>
+
+        <div class="mx-auto w-full max-w-lg px-4 pb-4">
+            <div class="rounded-2xl border border-border bg-card p-4">
+                <DeloadSettings variant="mobile" flush />
+            </div>
         </div>
 
         <main v-if="activeBlock" class="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-4">
@@ -207,6 +215,7 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
 
                 <EditorDisclosure
                     v-if="!activeBlock.is_superset"
+                    data-dropset-editor
                     :expanded="dropsetsExpanded"
                     label="Dropsets"
                     :summary="dropsetSummary(activeBlock) || 'None'"
@@ -322,8 +331,6 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                         </div>
                     </div>
                 </EditorDisclosure>
-
-                <DeloadSettings variant="mobile" />
 
                 <div class="mt-3 border-t border-border pt-3">
                     <BlockSetupOptions :block-index="active" variant="mobile" />
