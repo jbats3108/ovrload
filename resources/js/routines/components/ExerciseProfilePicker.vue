@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import BrandName from '@/components/BrandName.vue';
+import { coerceProfileId } from '@/routines/lib/exerciseProfiles';
 import { formatRest } from '@/routines/lib/formatRest';
 import type { ExerciseProfileOption } from '@/settings/types';
 import { formatProfileWarmUpSteps } from '@/shared/warmUpStep';
 import { computed } from 'vue';
 
 const model = defineModel<number | null>({ required: true });
+
+const onSelectChange = (event: Event): void => {
+    const raw = (event.target as HTMLSelectElement).value;
+    model.value = coerceProfileId(raw);
+};
 
 const props = withDefaults(
     defineProps<{
@@ -38,11 +44,12 @@ const optionLabel = (profile: ExerciseProfileOption): string =>
         <label class="flex flex-col gap-1 text-sm text-muted-foreground">
             {{ props.label }}
             <select
-                v-model="model"
+                :value="model ?? ''"
                 :required="props.required"
                 :disabled="props.disabled"
                 class="rounded-xl border border-border bg-card px-3 py-2 text-foreground outline-none focus:border-primary"
                 :class="props.variant === 'compact' ? 'w-full text-sm' : 'w-full text-base'"
+                @change="onSelectChange"
             >
                 <option v-if="!props.required" :value="null">Custom settings</option>
                 <option v-for="profile in visibleProfiles" :key="profile.id" :value="profile.id" :disabled="profile.status === 'archived'">

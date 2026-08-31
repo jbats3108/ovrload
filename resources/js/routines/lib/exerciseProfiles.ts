@@ -1,5 +1,15 @@
 import type { Block, BlockExercise, ExerciseProfileOption, WarmUpStep } from '@/routines/types';
 
+export function coerceProfileId(id: number | string | null | undefined): number | null {
+    if (id === null || id === undefined || id === '') {
+        return null;
+    }
+
+    const parsed = typeof id === 'number' ? id : Number(id);
+
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function resolvedProfileFloor(profile: ExerciseProfileOption): number {
     return profile.floor;
 }

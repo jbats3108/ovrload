@@ -1,6 +1,7 @@
 import {
     applyProfileToBlock,
     applyProfileToSupersetExercise,
+    coerceProfileId,
     markExerciseProfileCustom,
     markSharedProfileCustom,
     profileMatchesExerciseAssignment,
@@ -150,5 +151,12 @@ describe('exercise profile helpers', () => {
 
         expect(profileMatchesExerciseAssignment(current.exercises[0], strength, true, true)).toBe(true);
         expect(profileMatchesExerciseAssignment(current.exercises[0], strength, false, true)).toBe(false);
+    });
+
+    it('coerces string profile ids from select inputs', () => {
+        expect(coerceProfileId('2')).toBe(2);
+        expect(coerceProfileId(2)).toBe(2);
+        expect(coerceProfileId('')).toBeNull();
+        expect(coerceProfileId(undefined)).toBeNull();
     });
 });

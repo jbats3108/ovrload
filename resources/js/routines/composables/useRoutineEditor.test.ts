@@ -189,6 +189,53 @@ describe('createRoutineEditor', () => {
         expect(editor.form.blocks[0].working.rest_seconds).toBe(90);
     });
 
+    it('coerces string routine profile ids when syncing blocks', async () => {
+        const current = routinePayload({
+            default_exercise_profile_id: 1,
+            blocks: [
+                {
+                    ...routinePayload().blocks[0],
+                    shared_profile_id: 1,
+                    shared_profile_fingerprint: 'shared-strength',
+                    exercises: [
+                        {
+                            ...routinePayload().blocks[0].exercises[0],
+                            exercise_profile_id: 1,
+                            exercise_profile_fingerprint: 'recipe-strength',
+                            floor_is_derived: true,
+                        },
+                    ],
+                },
+            ],
+        });
+        const editor = mountEditor({
+            routine: current,
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+        });
+
+        await editor.setRoutineProfile('2');
+
+        expect(editor.form.default_exercise_profile_id).toBe(2);
+        expect(editor.form.blocks[0].shared_profile_id).toBe(2);
+    });
+
+    it('save payload includes the updated routine default profile', async () => {
+        const editor = mountEditor({
+            routine: routinePayload({
+                default_exercise_profile_id: 2,
+                blocks: [],
+            }),
+            exercise_profiles: [strengthProfile, hypertrophyProfile],
+        });
+
+        await editor.setRoutineProfile(1);
+        editor.save();
+
+        expect(inertiaMocks().lastTransformed).toMatchObject({
+            default_exercise_profile_id: 1,
+        });
+    });
+
     it('detects outdated shared and exercise profile assignments', () => {
         const current = routinePayload({
             blocks: [

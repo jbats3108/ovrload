@@ -14,6 +14,7 @@ import {
     applyProfileToExercise,
     applyProfileToSupersetExercise,
     applySharedProfileToBlock,
+    coerceProfileId,
     markExerciseProfileCustom,
     markSharedProfileCustom,
     profileMatchesExerciseAssignment,
@@ -79,7 +80,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
         deload_weight_factor: props.routine.deload_weight_factor,
         deload_reps_factor: props.routine.deload_reps_factor,
         deload_every_n: props.routine.deload_every_n,
-        default_exercise_profile_id: props.routine.default_exercise_profile_id,
+        default_exercise_profile_id: coerceProfileId(props.routine.default_exercise_profile_id),
         expected_updated_at: props.routine.updated_at,
         // Inertia props are nested reactive proxies — structuredClone cannot clone them
         blocks: props.routine.blocks.length
@@ -135,8 +136,14 @@ export function createRoutineEditor(props: EditRoutineProps) {
 
     const activeBlock = computed(() => form.blocks[active.value] ?? null);
     const profileOptions = ref<ExerciseProfileOption[]>([...(props.exercise_profiles ?? [])]);
-    const profileById = (profileId: number | null): ExerciseProfileOption | null =>
-        profileOptions.value.find((profile) => profile.id === profileId) ?? null;
+    const profileById = (profileId: number | string | null | undefined): ExerciseProfileOption | null => {
+        const id = coerceProfileId(profileId);
+        if (id === null) {
+            return null;
+        }
+
+        return profileOptions.value.find((profile) => profile.id === id) ?? null;
+    };
 
     const registerProfile = (profile: ExerciseProfileOption): void => {
         if (profileOptions.value.some((item) => item.id === profile.id)) {
@@ -213,15 +220,16 @@ export function createRoutineEditor(props: EditRoutineProps) {
         applyProfileToBlock(block, profile);
     };
 
-    const setRoutineProfile = async (profileId: number | null): Promise<void> => {
-        const previousProfileId = form.default_exercise_profile_id ?? null;
-        form.default_exercise_profile_id = profileId;
+    const setRoutineProfile = async (profileId: number | string | null): Promise<void> => {
+        const previousProfileId = coerceProfileId(form.default_exercise_profile_id);
+        const nextProfileId = coerceProfileId(profileId);
+        form.default_exercise_profile_id = nextProfileId;
 
-        if (profileId === null || previousProfileId === null || previousProfileId === profileId) {
+        if (nextProfileId === null || previousProfileId === null || previousProfileId === nextProfileId) {
             return;
         }
 
-        const profile = profileById(profileId);
+        const profile = profileById(nextProfileId);
         if (profile === null || form.blocks.length === 0) {
             return;
         }
@@ -346,7 +354,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
         syncSetupAfterBlockFlags(form.blocks);
         form.transform((data) => ({
             ...data,
-            default_exercise_profile_id: data.default_exercise_profile_id,
+            default_exercise_profile_id: coerceProfileId(data.default_exercise_profile_id),
             blocks: data.blocks.map((block) => {
                 const warmUpSteps = sanitizeWarmUpStepsForSave(block.warm_up.steps);
 
