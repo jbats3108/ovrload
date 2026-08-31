@@ -262,6 +262,50 @@ class ExerciseProfileServiceTest extends TestCase
         $this->profiles->publishPreset($this->adminUser, $draft);
     }
 
+    #[Test]
+    public function routine_reference_count_counts_distinct_routines_not_assignments(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $routine = Routine::factory()->withUser($user)->create([
+            'default_exercise_profile_id' => $profile->id,
+        ]);
+        $this->createAssignedBlock($routine, $profile);
+        $this->createAssignedBlock($routine, $profile);
+
+        $this->assertSame(1, $this->referenceCountFor($user, $profile));
+    }
+
+    #[Test]
+    public function routine_reference_count_ignores_soft_deleted_routines(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $routine = Routine::factory()->withUser($user)->create([
+            'default_exercise_profile_id' => $profile->id,
+        ]);
+        $this->createAssignedBlock($routine, $profile);
+
+        $routine->delete();
+
+        $this->assertSame(0, $this->referenceCountFor($user, $profile));
+    }
+
+    #[Test]
+    public function delete_allows_profile_after_routine_is_soft_deleted(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $this->createAssignedBlock($routine, $profile);
+
+        $routine->delete();
+
+        $this->profiles->delete($user, $profile);
+
+        $this->assertDatabaseMissing('exercise_profiles', ['id' => $profile->id]);
+    }
+
     private function assignedProfile(User $user): ExerciseProfile
     {
         $profile = ExerciseProfile::factory()->forUser($user)->create([
@@ -283,6 +327,16 @@ class ExerciseProfileServiceTest extends TestCase
         $this->assertNotNull($match);
 
         return $match->staleAssignmentCount;
+    }
+
+    private function referenceCountFor(User $user, ExerciseProfile $profile): int
+    {
+        $page = $this->profiles->pageDataFor($user);
+        $match = collect($page->profiles->all())->firstWhere('id', $profile->id);
+
+        $this->assertNotNull($match);
+
+        return $match->referenceCount;
     }
 
     private function createAssignedBlock(

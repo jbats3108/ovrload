@@ -54,7 +54,7 @@ class ExerciseProfileService
                 $profiles->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     $profile->id === $defaultId,
-                    $this->referenceCount($profile),
+                    $this->routineReferenceCount($profile),
                     $staleAssignmentCounts[$profile->id] ?? 0,
                 )),
                 DataCollection::class,
@@ -63,7 +63,7 @@ class ExerciseProfileService
                 $archived->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     false,
-                    $this->referenceCount($profile),
+                    $this->routineReferenceCount($profile),
                 )),
                 DataCollection::class,
             ),
@@ -295,7 +295,7 @@ class ExerciseProfileService
             throw new InvalidArgumentException('The user default profile cannot be archived.');
         }
 
-        if ($this->referenceCount($profile) > 0) {
+        if ($this->routineReferenceCount($profile) > 0) {
             throw new InvalidArgumentException('This profile is still used by routines. Choose a different profile in the routine editor first.');
         }
 
@@ -313,12 +313,7 @@ class ExerciseProfileService
     {
         $this->assertOwnedCustom($user, $profile);
 
-        if (
-            $profile->defaultedByUsers()->exists()
-            || $profile->defaultedByRoutines()->exists()
-            || $profile->sharedByBlocks()->exists()
-            || $profile->assignedToExercises()->exists()
-        ) {
+        if ($profile->defaultedByUsers()->exists() || $this->routineReferenceCount($profile) > 0) {
             throw new ExerciseProfileInUseException('This profile is still used by routines. Choose a different profile in the routine editor first.');
         }
 
@@ -402,12 +397,23 @@ class ExerciseProfileService
         );
     }
 
-    private function referenceCount(ExerciseProfile $profile): int
+    private function routineReferenceCount(ExerciseProfile $profile): int
     {
-        return $profile->defaultedByUsers()->count()
-            + $profile->defaultedByRoutines()->count()
-            + $profile->sharedByBlocks()->count()
-            + $profile->assignedToExercises()->count();
+        $routineIds = $profile->defaultedByRoutines()->pluck('id');
+
+        $routineIds = $routineIds->merge(
+            Routine::query()
+                ->whereHas('blocks', fn ($query) => $query->where('shared_exercise_profile_id', $profile->id))
+                ->pluck('id'),
+        );
+
+        $routineIds = $routineIds->merge(
+            Routine::query()
+                ->whereHas('blocks.blockExercises', fn ($query) => $query->where('exercise_profile_id', $profile->id))
+                ->pluck('id'),
+        );
+
+        return $routineIds->unique()->count();
     }
 
     /**
