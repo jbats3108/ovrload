@@ -8,7 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import AppLayout from '@/layouts/AppLayout.vue';
 import AdminLayout from '@/layouts/admin/Layout.vue';
 import { formatRest } from '@/routines/lib/formatRest';
+import type { ExerciseProfileWarmUpStep } from '@/settings/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
+import { formatProfileWarmUpSteps } from '@/shared/warmUpStep';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -17,7 +19,7 @@ type PresetFormData = {
     target_reps: number;
     floor_override: number | null;
     working_rest_seconds: number;
-    warm_up_steps: { percent: number; reps: number }[];
+    warm_up_steps: ExerciseProfileWarmUpStep[];
 };
 
 const props = defineProps<{
@@ -77,7 +79,16 @@ const setFloorOverride = (raw: string) => {
 };
 
 const addWarmUpStep = () => {
-    form.warm_up_steps.push({ percent: 50, reps: 5 });
+    form.warm_up_steps.push({ mode: 'percent', percent: 50, reps: 5 });
+};
+
+const setWarmUpMode = (step: ExerciseProfileWarmUpStep, mode: 'percent' | 'bar') => {
+    step.mode = mode;
+    if (mode === 'bar') {
+        step.percent = undefined;
+    } else if (step.percent == null) {
+        step.percent = 50;
+    }
 };
 
 const removeWarmUpStep = (index: number) => {
@@ -105,7 +116,7 @@ const publish = async (profile: AdminExerciseProfile) => {
     const confirmed = await confirmDialog({
         title: `Publish preset "${profile.name}"?`,
         description: `Target ${profile.target_reps} · Floor ${profile.floor} · Rest ${formatRest(profile.working_rest_seconds)} · Warm-up ${
-            profile.warm_up_steps.length ? profile.warm_up_steps.map((step) => `${step.percent}%×${step.reps}`).join(', ') : 'None'
+            profile.warm_up_steps.length ? formatProfileWarmUpSteps(profile.warm_up_steps) : 'None'
         }. Publishing is permanent: the preset cannot be edited, archived, or deleted.`,
         confirmLabel: 'Publish preset',
     });
@@ -182,11 +193,7 @@ const remove = async (profile: AdminExerciseProfile) => {
                         </div>
                         <p class="mt-3 text-xs text-muted-foreground">
                             Rest {{ formatRest(profile.working_rest_seconds) }} ·
-                            {{
-                                profile.warm_up_steps.length
-                                    ? profile.warm_up_steps.map((step) => `${step.percent}%×${step.reps}`).join(', ')
-                                    : 'No warm-up'
-                            }}
+                            {{ profile.warm_up_steps.length ? formatProfileWarmUpSteps(profile.warm_up_steps) : 'No warm-up' }}
                         </p>
                     </div>
                 </section>
@@ -203,11 +210,7 @@ const remove = async (profile: AdminExerciseProfile) => {
                         </div>
                         <p class="mt-3 text-xs text-muted-foreground">
                             Rest {{ formatRest(profile.working_rest_seconds) }} ·
-                            {{
-                                profile.warm_up_steps.length
-                                    ? profile.warm_up_steps.map((step) => `${step.percent}%×${step.reps}`).join(', ')
-                                    : 'No warm-up'
-                            }}
+                            {{ profile.warm_up_steps.length ? formatProfileWarmUpSteps(profile.warm_up_steps) : 'No warm-up' }}
                         </p>
                     </div>
                 </section>
@@ -287,7 +290,18 @@ const remove = async (profile: AdminExerciseProfile) => {
                                 <button type="button" class="text-xs text-primary" @click="addWarmUpStep">+ Step</button>
                             </div>
                             <div v-for="(step, index) in form.warm_up_steps" :key="index" class="flex items-end gap-2">
-                                <label class="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                                <label class="flex flex-col gap-1 text-xs text-muted-foreground">
+                                    Mode
+                                    <select
+                                        :value="step.mode ?? 'percent'"
+                                        class="rounded border border-border bg-background px-2 py-1.5 text-foreground"
+                                        @change="setWarmUpMode(step, ($event.target as HTMLSelectElement).value as 'percent' | 'bar')"
+                                    >
+                                        <option value="percent">Percent</option>
+                                        <option value="bar">Empty bar</option>
+                                    </select>
+                                </label>
+                                <label v-if="(step.mode ?? 'percent') === 'percent'" class="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
                                     Percent
                                     <input
                                         v-model.number="step.percent"

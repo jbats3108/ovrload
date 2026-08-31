@@ -259,7 +259,21 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                             />
                         </label>
                         <div v-for="(step, si) in activeBlock.warm_up.steps" :key="si" class="flex items-center gap-1.5">
+                            <select
+                                v-model="step.mode"
+                                class="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+                                aria-label="Warm-up mode"
+                                @change="
+                                    if (step.mode === 'bar') step.percent = undefined;
+                                    else if (step.percent == null) step.percent = 50;
+                                    markSharedCustom(activeBlock);
+                                "
+                            >
+                                <option value="percent">%</option>
+                                <option value="bar">Bar</option>
+                            </select>
                             <input
+                                v-if="(step.mode ?? 'percent') === 'percent'"
                                 v-model.number="step.percent"
                                 type="number"
                                 min="1"

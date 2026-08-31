@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { formatRest } from '@/routines/lib/formatRest';
 import type { ExerciseProfileOption, ExerciseProfilePage, ExerciseProfileWarmUpStep } from '@/settings/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
+import { formatProfileWarmUpSteps } from '@/shared/warmUpStep';
 import { useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
@@ -93,7 +94,16 @@ const setFloorOverride = (raw: string) => {
 };
 
 const addWarmUpStep = () => {
-    form.warm_up_steps.push({ percent: 50, reps: 5 });
+    form.warm_up_steps.push({ mode: 'percent', percent: 50, reps: 5 });
+};
+
+const setWarmUpMode = (step: ExerciseProfileWarmUpStep, mode: 'percent' | 'bar') => {
+    step.mode = mode;
+    if (mode === 'bar') {
+        step.percent = undefined;
+    } else if (step.percent == null) {
+        step.percent = 50;
+    }
 };
 
 const removeWarmUpStep = (index: number) => {
@@ -220,7 +230,8 @@ watch(profileSyncId, (profileId) => {
                         </div>
                         <p class="mt-1 text-sm text-muted-foreground">{{ profileSummary(profile) }}</p>
                         <p v-if="profile.reference_count" class="mt-1 text-xs text-muted-foreground">
-                            Used in {{ profile.reference_count }} routine{{ profile.reference_count === 1 ? '' : 's' }}
+                            Used in {{ profile.reference_count }} routine{{ profile.reference_count === 1 ? '' : 's' }}. Change profile in the routine
+                            editor before deleting or archiving.
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2">
@@ -236,11 +247,7 @@ watch(profileSyncId, (profileId) => {
                         <p>Working rest: {{ formatRest(profile.working_rest_seconds) }}</p>
                         <p>
                             Warm-up:
-                            {{
-                                profile.warm_up_steps.length
-                                    ? profile.warm_up_steps.map((step) => `${step.percent}%×${step.reps}`).join(', ')
-                                    : 'None'
-                            }}
+                            {{ profile.warm_up_steps.length ? formatProfileWarmUpSteps(profile.warm_up_steps) : 'None' }}
                         </p>
                     </div>
                 </details>
@@ -252,7 +259,14 @@ watch(profileSyncId, (profileId) => {
                     <Button v-if="profile.stale_assignment_count > 0" type="button" variant="ghost" size="sm" @click="sync(profile)">
                         Update routines
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="remove(profile)">
+                    <Button
+                        v-if="!profile.reference_count"
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        class="text-destructive hover:text-destructive"
+                        @click="remove(profile)"
+                    >
                         Delete
                     </Button>
                 </div>
@@ -355,7 +369,18 @@ watch(profileSyncId, (profileId) => {
                         <button type="button" class="text-xs text-primary" @click="addWarmUpStep">+ Step</button>
                     </div>
                     <div v-for="(step, index) in form.warm_up_steps" :key="index" class="flex items-end gap-2">
-                        <label class="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
+                        <label class="flex flex-col gap-1 text-xs text-muted-foreground">
+                            Mode
+                            <select
+                                :value="step.mode ?? 'percent'"
+                                class="rounded border border-border bg-background px-2 py-1.5 text-foreground"
+                                @change="setWarmUpMode(step, ($event.target as HTMLSelectElement).value as 'percent' | 'bar')"
+                            >
+                                <option value="percent">Percent</option>
+                                <option value="bar">Empty bar</option>
+                            </select>
+                        </label>
+                        <label v-if="(step.mode ?? 'percent') === 'percent'" class="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
                             Percent
                             <input
                                 v-model.number="step.percent"

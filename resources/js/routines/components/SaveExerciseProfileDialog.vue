@@ -23,14 +23,15 @@ const form = useHttp({
     target_reps: 6,
     floor_override: null as number | null,
     working_rest_seconds: 120,
-    warm_up_steps: [] as { percent: number; reps: number }[],
+    warm_up_steps: [] as { mode?: 'percent' | 'bar'; percent?: number; reps: number }[],
 });
 
 const exercise = computed(() => props.block.exercises[props.exerciseIndex] ?? props.block.exercises[0]);
 const floorOverride = computed(() => (exercise.value?.floor_is_derived === true ? null : (exercise.value?.achievement_floor ?? null)));
 const warmUpSteps = computed(() =>
     props.block.warm_up.steps.map((step) => ({
-        percent: step.percent,
+        mode: step.mode ?? 'percent',
+        percent: step.mode === 'bar' ? undefined : step.percent,
         reps: step.reps,
     })),
 );

@@ -2,6 +2,7 @@
 import BrandName from '@/components/BrandName.vue';
 import { formatRest } from '@/routines/lib/formatRest';
 import type { ExerciseProfileOption } from '@/settings/types';
+import { formatProfileWarmUpSteps } from '@/shared/warmUpStep';
 import { computed } from 'vue';
 
 const model = defineModel<number | null>({ required: true });
@@ -63,9 +64,7 @@ const optionLabel = (profile: ExerciseProfileOption): string =>
                     <p>Working rest: {{ formatRest(selected.working_rest_seconds) }}</p>
                     <p>
                         Warm-up:
-                        {{
-                            selected.warm_up_steps.length ? selected.warm_up_steps.map((step) => `${step.percent}%×${step.reps}`).join(', ') : 'None'
-                        }}
+                        {{ selected.warm_up_steps.length ? formatProfileWarmUpSteps(selected.warm_up_steps) : 'None' }}
                     </p>
                 </div>
             </details>
