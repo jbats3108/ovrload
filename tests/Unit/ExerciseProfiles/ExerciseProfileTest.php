@@ -44,6 +44,22 @@ class ExerciseProfileTest extends TestCase
         $this->assertFalse($archived->isSelectable());
         $this->assertSame(ExerciseProfileKind::Custom, $published->kind);
         $this->assertSame(ExerciseProfileStatus::Draft, $draft->status);
+        $this->assertTrue($published->isCustom());
+        $this->assertTrue($published->isPublished());
+        $this->assertTrue($archived->isArchived());
+        $this->assertFalse($archived->isPublished());
+    }
+
+    #[Test]
+    public function defaulted_by_users_lists_users_who_chose_the_profile(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $other = User::factory()->create();
+        $user->forceFill(['default_exercise_profile_id' => $profile->id])->save();
+
+        $this->assertTrue($profile->defaultedByUsers->contains($user));
+        $this->assertFalse($profile->defaultedByUsers->contains($other));
     }
 
     #[Test]
