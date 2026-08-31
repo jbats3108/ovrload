@@ -85,7 +85,7 @@ final class WarmUpStepSupport
         if ($step['mode'] === WarmUpWeightMode::Fixed) {
             return [
                 'mode' => WarmUpWeightMode::Fixed->value,
-                'weight_kg' => Weight::gramsToKg((int) $step['weight_g']),
+                'weight_kg' => Weight::gramsToKg((int) (self::weightGFromStep($step) ?? 0)),
                 'reps' => $step['reps'],
             ];
         }
