@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import type { PlateProfile } from '@/settings/types';
+import { formatWarmUpStepLabel } from '@/shared/warmUpStep';
 import { type BreadcrumbItem } from '@/types';
 import {
     addWorkingRound,
@@ -20,6 +22,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 
 const props = defineProps<{
     form: HistoricalCreateForm;
+    plate_profile: PlateProfile;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -34,7 +37,9 @@ const step = ref<Step>('when');
 const isDeload = ref(false);
 const finishedAtLocal = ref('');
 const whenError = ref('');
-const blocks = ref<DraftBlock[]>(buildDraftBlocks(props.form.blocks, false, props.form.deload_weight_factor, props.form.deload_reps_factor));
+const blocks = ref<DraftBlock[]>(
+    buildDraftBlocks(props.form.blocks, false, props.form.deload_weight_factor, props.form.deload_reps_factor, props.plate_profile),
+);
 
 watch(isDeload, (deload) => {
     blocks.value = buildDraftBlocks(
@@ -42,6 +47,7 @@ watch(isDeload, (deload) => {
         deload,
         props.form.deload_weight_factor,
         props.form.deload_reps_factor,
+        props.plate_profile,
     ).map((fresh) => {
         const existing = blocks.value.find((block) => block.position === fresh.position);
         if (!existing || existing.working_set_count === fresh.working_set_count) {
@@ -57,7 +63,7 @@ watch(isDeload, (deload) => {
             removeWorkingRound(adjusted);
         }
 
-        syncWarmUpWeights(adjusted);
+        syncWarmUpWeights(adjusted, props.plate_profile);
 
         return adjusted;
     });
@@ -104,7 +110,7 @@ const skipBlock = (position: number) => {
 
 const onWorkingWeightChange = async (block: DraftBlock) => {
     await nextTick();
-    syncWarmUpWeights(block);
+    syncWarmUpWeights(block, props.plate_profile);
 };
 
 const goToSets = () => {
@@ -142,7 +148,7 @@ const submit = () => {
     }
 
     for (const block of blocks.value) {
-        syncWarmUpWeights(block);
+        syncWarmUpWeights(block, props.plate_profile);
     }
 
     submitForm.finished_at = datetimeLocalToPayload(finishedAtLocal.value);
@@ -280,13 +286,23 @@ const submit = () => {
                             <div>
                                 <p class="font-mono text-xs tracking-wide text-muted-foreground uppercase">Warm-up</p>
                                 <p class="mt-1 text-xs text-muted-foreground">
-                                    Weights are % of Set 1 for each exercise. Change Set 1 and they update; edit a warm-up row to override.
+                                    Percent steps scale from Set 1 for each exercise. Empty-bar steps use your plate-profile bar weight on barbell
+                                    lifts.
                                 </p>
                             </div>
                             <div v-for="round in warmUpRoundsForBlock(block)" :key="`wu-${round.setIndex}`" class="space-y-2">
                                 <p class="font-mono text-xs text-muted-foreground">
                                     Step {{ round.setIndex + 1 }}
-                                    <span v-if="round.sets[0]"> · {{ round.sets[0].percent_of_working }}%</span>
+                                    <span v-if="round.sets[0]">
+                                        ·
+                                        {{
+                                            formatWarmUpStepLabel({
+                                                mode: round.sets[0].weight_mode,
+                                                percent: round.sets[0].percent_of_working ?? undefined,
+                                                reps: round.sets[0].reps,
+                                            })
+                                        }}
+                                    </span>
                                 </p>
                                 <ul class="space-y-2 border-l-2 border-muted pl-3">
                                     <li

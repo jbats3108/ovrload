@@ -30,6 +30,8 @@ class SyncRoutineBlockData extends Data
         public readonly ?SyncWarmUpData $warmUp = null,
 
         public readonly bool $hasSetupAfterWarmUp = false,
+        public readonly ?int $sharedProfileId = null,
+        public readonly ?string $sharedProfileFingerprint = null,
     ) {}
 
     /**

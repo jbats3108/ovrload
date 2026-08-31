@@ -92,6 +92,7 @@ class WorkoutService
             'user',
             'blocks.blockExercises.exercise',
             'blocks.blockExercises.deloadExercise',
+            'blocks.blockExercises.exerciseProfile',
             'blocks.setGroups.warmUpSteps',
             'blocks.setGroups.dropsetSegments',
         ]);
@@ -566,7 +567,7 @@ class WorkoutService
     {
         return DB::transaction(function () use ($workout, $exerciseId): WorkoutBlock {
             $locked = $this->lockInProgressWorkout($workout);
-            $locked->load(['user', 'blocks']);
+            $locked->load(['user.defaultExerciseProfile', 'blocks']);
 
             $exercise = Exercise::query()
                 ->forUser($locked->user)
@@ -579,7 +580,9 @@ class WorkoutService
 
             $previousBlock = $locked->blocks->sortByDesc('position')->first();
             $position = ((int) ($previousBlock?->position ?? 0)) + 1;
-            $targetReps = $locked->user->resolvedDefaultTargetReps();
+            $profile = $locked->user->defaultExerciseProfile;
+            $targetReps = $profile === null ? $locked->user->resolvedDefaultTargetReps() : $profile->target_reps;
+            $workingRest = $profile === null ? 120 : $profile->working_rest_seconds;
 
             $adHocBlock = WorkoutBlock::create([
                 'workout_id' => $locked->id,
@@ -606,7 +609,7 @@ class WorkoutService
                 'workout_block_id' => $adHocBlock->id,
                 'type' => SetGroupType::Working,
                 'set_count' => 3,
-                'rest_seconds' => 120,
+                'rest_seconds' => $workingRest,
             ]);
 
             for ($setIndex = 0; $setIndex < 3; $setIndex++) {
@@ -883,6 +886,11 @@ class WorkoutService
                     ? (int) $routineBlockExercise->deload_working_weight_g
                     : (int) round($routineBlockExercise->working_weight_g * $weightFactor);
 
+                $achievementFloor = $routineBlockExercise->floor_is_derived === true
+                    ? max(1, $routineBlockExercise->prescribed_reps - 2)
+                    : ($routineBlockExercise->achievement_floor_override
+                        ?? $routine->user->achievement_floor_default);
+
                 $workoutBlockExercise = WorkoutBlockExercise::create([
                     'workout_block_id' => $workoutBlock->id,
                     'exercise_id' => $sourceExercise->id,
@@ -891,8 +899,7 @@ class WorkoutService
                     'equipment' => $sourceExercise->equipment,
                     'working_weight_g' => $workingWeightG,
                     'prescribed_reps' => max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor)),
-                    'achievement_floor' => $routineBlockExercise->achievement_floor_override
-                        ?? $routine->user->achievement_floor_default,
+                    'achievement_floor' => $achievementFloor,
                     'progression_target' => $routineBlockExercise->prescribed_reps,
                 ]);
 
@@ -927,6 +934,7 @@ class WorkoutService
                     WorkoutWarmUpStep::create([
                         'workout_set_group_id' => $workoutSetGroup->id,
                         'position' => $warmUpStep->position,
+                        'weight_mode' => $warmUpStep->weight_mode,
                         'percent_of_working' => $warmUpStep->percent_of_working,
                         'reps' => $warmUpStep->reps,
                         'has_setup_after' => $warmUpStep->has_setup_after,

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Enums\ExerciseEquipment;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
@@ -11,6 +12,7 @@ use App\Routines\Models\RoutineDropsetSegment;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Shared\Support\Weight;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Models\User;
@@ -38,11 +40,14 @@ class RoutineSeeder extends Seeder
         'Dropset Finishers',
     ];
 
+    /** @var array<string, ExerciseProfile> */
+    private array $profiles = [];
+
     /** @var list<array{percent: int, reps: int}> */
     private const DEFAULT_WARM_UPS = [
-        ['percent' => 40, 'reps' => 8],
-        ['percent' => 60, 'reps' => 5],
-        ['percent' => 80, 'reps' => 3],
+        ['percent' => 50, 'reps' => 5],
+        ['percent' => 75, 'reps' => 3],
+        ['percent' => 90, 'reps' => 1],
     ];
 
     public function run(): void
@@ -54,10 +59,19 @@ class RoutineSeeder extends Seeder
             return;
         }
 
-        $user->forceFill([
+        $this->loadProfiles();
+        $strength = $this->profile('preset-strength');
+
+        $defaults = [
             'warm_up_defaults_scope' => WarmUpDefaultsScope::FirstBlock,
             'warm_up_steps_default' => self::DEFAULT_WARM_UPS,
-        ])->save();
+        ];
+        if ($strength !== null) {
+            $defaults['default_exercise_profile_id'] = $strength->id;
+            $defaults['achievement_floor_default'] = $strength->resolvedFloor();
+            $defaults['progression_target_default'] = $strength->target_reps;
+        }
+        $user->forceFill($defaults)->save();
 
         $this->replaceDemoRoutines($user);
 
@@ -93,98 +107,113 @@ class RoutineSeeder extends Seeder
             ->forceDelete();
     }
 
+    private function loadProfiles(): void
+    {
+        foreach (ExerciseProfile::query()->get() as $profile) {
+            if ($profile->slug !== null) {
+                $this->profiles[$profile->slug] = $profile;
+            }
+        }
+    }
+
+    private function profile(?string $slug): ?ExerciseProfile
+    {
+        return $slug === null ? null : ($this->profiles[$slug] ?? null);
+    }
+
     private function seedBarbellStrength(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Barbell Strength');
+        $routine = $this->createRoutine($user, 'Barbell Strength', 'preset-strength');
 
         // Block 1 — only warm-up in this routine; setup before working; plate guide.
         $this->addBlock($routine, position: 1, exercises: [
-            ['name' => 'Barbell Bench Press - Medium Grip', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 80, 'reps' => 5],
-        ], workingSets: 3, workingRest: 180, warmUps: self::DEFAULT_WARM_UPS, setupAfterWarmUp: true);
+            ['name' => 'Barbell Bench Press - Medium Grip', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 80, 'reps' => 5, 'profile' => 'preset-strength'],
+        ], workingSets: 3, workingRest: 180, warmUps: self::DEFAULT_WARM_UPS, setupAfterWarmUp: true, sharedProfileSlug: 'preset-strength');
 
         $this->addBlock($routine, position: 2, exercises: [
-            ['name' => 'Bent Over Barbell Row', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 70, 'reps' => 6],
+            ['name' => 'Bent Over Barbell Row', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 70, 'reps' => 6, 'profile' => 'preset-strength'],
         ], workingSets: 3, workingRest: 150, warmUps: [], setupAfter: true);
 
         $this->addBlock($routine, position: 3, exercises: [
-            ['name' => 'Barbell Squat', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 100, 'reps' => 5],
+            ['name' => 'Barbell Squat', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 100, 'reps' => 5, 'profile' => 'preset-strength'],
         ], workingSets: 3, workingRest: 180, warmUps: []);
     }
 
     private function seedDumbbellAccessories(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Dumbbell Accessories');
+        $routine = $this->createRoutine($user, 'Dumbbell Accessories', 'preset-hypertrophy');
         $wu = self::DEFAULT_WARM_UPS;
 
         $this->addBlock($routine, position: 1, exercises: [
-            ['name' => 'Dumbbell Bench Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 28, 'reps' => 8],
-        ], workingSets: 3, workingRest: 90, warmUps: $wu);
+            ['name' => 'Dumbbell Bench Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 28, 'reps' => 8, 'profile' => 'preset-hypertrophy'],
+        ], workingSets: 3, workingRest: 90, warmUps: $wu, sharedProfileSlug: 'preset-hypertrophy');
 
         $this->addBlock($routine, position: 2, exercises: [
-            ['name' => 'Arnold Dumbbell Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 16, 'reps' => 10],
-        ], workingSets: 3, workingRest: 90, warmUps: $wu);
+            ['name' => 'Arnold Dumbbell Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 16, 'reps' => 10, 'profile' => 'preset-hypertrophy'],
+        ], workingSets: 3, workingRest: 90, warmUps: $wu, sharedProfileSlug: 'preset-hypertrophy');
 
         $this->addBlock($routine, position: 3, exercises: [
-            ['name' => 'Alternate Hammer Curl', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 14, 'reps' => 12],
-        ], workingSets: 3, workingRest: 60, warmUps: $wu);
+            ['name' => 'Alternate Hammer Curl', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 14, 'reps' => 12, 'profile' => 'preset-hypertrophy'],
+        ], workingSets: 3, workingRest: 90, warmUps: $wu, sharedProfileSlug: 'preset-hypertrophy');
 
         // Fractional load (no plate guide) — gym-test 28.75 dip belt.
         $this->addBlock($routine, position: 4, exercises: [
-            ['name' => 'Bench Dips', 'equipment' => ExerciseEquipment::BodyOnly, 'kg' => 28.75, 'reps' => 8],
-        ], workingSets: 3, workingRest: 90, warmUps: $wu, setupAfter: true);
+            ['name' => 'Bench Dips', 'equipment' => ExerciseEquipment::BodyOnly, 'kg' => 28.75, 'reps' => 8, 'profile' => 'preset-hypertrophy'],
+        ], workingSets: 3, workingRest: 90, warmUps: $wu, setupAfter: true, sharedProfileSlug: 'preset-hypertrophy');
     }
 
     private function seedSupersetPump(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Superset Pump');
+        $routine = $this->createRoutine($user, 'Superset Pump', 'preset-strength');
 
         // WU on first block only of the three — "some" blocks.
         $this->addBlock($routine, position: 1, exercises: [
-            ['name' => 'Close-Grip Barbell Bench Press', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 60, 'reps' => 8],
-            ['name' => 'Barbell Curl', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 30, 'reps' => 10],
-        ], workingSets: 3, workingRest: 120, warmUps: self::DEFAULT_WARM_UPS, setupAfterWarmUp: true, isSuperset: true);
+            ['name' => 'Close-Grip Barbell Bench Press', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 60, 'reps' => 8, 'profile' => 'preset-strength'],
+            ['name' => 'Barbell Curl', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 30, 'reps' => 10, 'profile' => 'power-builder'],
+        ], workingSets: 3, workingRest: 120, warmUps: self::DEFAULT_WARM_UPS, setupAfterWarmUp: true, isSuperset: true, sharedProfileSlug: 'preset-strength');
 
         $this->addBlock($routine, position: 2, exercises: [
-            ['name' => 'Arnold Dumbbell Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 14, 'reps' => 10],
-            ['name' => 'Alternate Hammer Curl', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 12, 'reps' => 12],
+            ['name' => 'Arnold Dumbbell Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 14, 'reps' => 10, 'profile' => 'preset-hypertrophy'],
+            ['name' => 'Alternate Hammer Curl', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 12, 'reps' => 12, 'profile' => 'accessory-volume'],
         ], workingSets: 3, workingRest: 90, warmUps: [], isSuperset: true);
 
         $this->addBlock($routine, position: 3, exercises: [
-            ['name' => 'Bent Over Two-Dumbbell Row', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 22, 'reps' => 10],
+            ['name' => 'Bent Over Two-Dumbbell Row', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 22, 'reps' => 10, 'profile' => 'preset-endurance'],
         ], workingSets: 3, workingRest: 90, warmUps: [
             ['percent' => 50, 'reps' => 8],
             ['percent' => 70, 'reps' => 5],
-        ]);
+        ], sharedProfileSlug: 'preset-endurance');
     }
 
     private function seedDropsetFinishers(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Dropset Finishers');
+        $routine = $this->createRoutine($user, 'Dropset Finishers', 'preset-strength');
 
         // Set indexes 0–1 single, index 2 dropset.
         $this->addBlock($routine, position: 1, exercises: [
-            ['name' => 'Barbell Curl', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 35, 'reps' => 10],
+            ['name' => 'Barbell Curl', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 35, 'reps' => 10, 'profile' => 'preset-strength'],
         ], workingSets: 3, workingRest: 90, warmUps: self::DEFAULT_WARM_UPS, dropsets: [
             2 => [35, 25, 15],
-        ]);
+        ], sharedProfileSlug: 'preset-strength');
 
         // Set index 0 single, index 1 dropset (mixed in one group).
         $this->addBlock($routine, position: 2, exercises: [
-            ['name' => 'Dumbbell Bench Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 26, 'reps' => 10],
+            ['name' => 'Dumbbell Bench Press', 'equipment' => ExerciseEquipment::Dumbbell, 'kg' => 26, 'reps' => 10, 'profile' => 'accessory-volume'],
         ], workingSets: 2, workingRest: 90, warmUps: [], dropsets: [
             1 => [26, 20, 14],
         ]);
 
         $this->addBlock($routine, position: 3, exercises: [
-            ['name' => 'Barbell Shoulder Press', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 45, 'reps' => 8],
+            ['name' => 'Barbell Shoulder Press', 'equipment' => ExerciseEquipment::Barbell, 'kg' => 45, 'reps' => 8, 'profile' => 'preset-endurance'],
         ], workingSets: 3, workingRest: 120, warmUps: [], setupAfter: true);
     }
 
-    private function createRoutine(User $user, string $name): Routine
+    private function createRoutine(User $user, string $name, ?string $defaultProfileSlug = null): Routine
     {
         return Routine::create([
             'user_id' => $user->id,
             'name' => $name,
+            'default_exercise_profile_id' => $this->profile($defaultProfileSlug)?->id,
             'deload_weight_factor' => 0.5,
             'deload_reps_factor' => 0.5,
             'deload_every_n' => 3,
@@ -192,8 +221,8 @@ class RoutineSeeder extends Seeder
     }
 
     /**
-     * @param  list<array{name: string, equipment: ExerciseEquipment, kg: float|int, reps: int}>  $exercises
-     * @param  list<array{percent: int, reps: int}>  $warmUps
+     * @param  list<array{name: string, equipment: ExerciseEquipment, kg: float|int, reps: int, profile?: string}>  $exercises
+     * @param  list<array{mode?: string, percent?: int, reps: int}>  $warmUps
      * @param  array<int, list<float|int>>  $dropsets  set_index => kg weights
      */
     private function addBlock(
@@ -207,6 +236,7 @@ class RoutineSeeder extends Seeder
         bool $isSuperset = false,
         bool $setupAfter = false,
         bool $setupAfterWarmUp = false,
+        ?string $sharedProfileSlug = null,
     ): void {
         if ($isSuperset && count($exercises) !== 2) {
             throw new RuntimeException('Superset blocks require exactly two exercises.');
@@ -214,6 +244,12 @@ class RoutineSeeder extends Seeder
 
         if ($isSuperset && $dropsets !== []) {
             throw new RuntimeException('Dropsets are not seeded on supersets.');
+        }
+
+        $sharedProfile = $this->profile($sharedProfileSlug);
+        if ($sharedProfile !== null) {
+            $workingRest = $sharedProfile->working_rest_seconds;
+            $warmUps = $sharedProfile->warmUpStepList();
         }
 
         DB::transaction(function () use (
@@ -227,6 +263,7 @@ class RoutineSeeder extends Seeder
             $isSuperset,
             $setupAfter,
             $setupAfterWarmUp,
+            $sharedProfile,
         ): void {
             $block = RoutineBlock::create([
                 'routine_id' => $routine->id,
@@ -234,15 +271,27 @@ class RoutineSeeder extends Seeder
                 'is_superset' => $isSuperset,
                 'has_setup_after' => $setupAfter,
                 'has_setup_after_warm_up' => $setupAfterWarmUp,
+                'shared_exercise_profile_id' => $sharedProfile?->id,
+                'shared_profile_fingerprint' => $sharedProfile?->recipe()->sharedFingerprint(),
             ]);
 
             foreach (array_values($exercises) as $index => $exercise) {
+                $profile = $this->profile($exercise['profile'] ?? $sharedProfileSlug);
+                $usesExerciseFingerprint = $isSuperset || $sharedProfile === null;
                 RoutineBlockExercise::create([
                     'routine_block_id' => $block->id,
                     'exercise_id' => $this->resolveExercise($exercise['name'], $exercise['equipment'])->id,
                     'position' => $index + 1,
                     'working_weight_g' => Weight::kgToGrams($exercise['kg']),
-                    'prescribed_reps' => $exercise['reps'],
+                    'prescribed_reps' => $profile?->target_reps ?? $exercise['reps'],
+                    'achievement_floor_override' => $profile?->floor_override,
+                    'floor_is_derived' => $profile === null ? null : $profile->floor_override === null,
+                    'exercise_profile_id' => $profile?->id,
+                    'exercise_profile_fingerprint' => $profile === null
+                        ? null
+                        : ($usesExerciseFingerprint
+                            ? $profile->recipe()->exerciseFingerprint()
+                            : $profile->recipe()->fingerprint()),
                 ]);
             }
 
@@ -272,11 +321,17 @@ class RoutineSeeder extends Seeder
             ]);
 
             foreach (array_values($warmUps) as $stepIndex => $step) {
+                $normalized = WarmUpStepSupport::normalize($step);
+                if ($normalized === null) {
+                    continue;
+                }
+
                 RoutineWarmUpStep::create([
                     'routine_set_group_id' => $warmUpGroup->id,
                     'position' => $stepIndex + 1,
-                    'percent_of_working' => $step['percent'],
-                    'reps' => $step['reps'],
+                    'weight_mode' => $normalized['mode'],
+                    'percent_of_working' => $normalized['percent'],
+                    'reps' => $normalized['reps'],
                 ]);
             }
         });

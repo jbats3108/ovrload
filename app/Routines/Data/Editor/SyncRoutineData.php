@@ -2,12 +2,14 @@
 
 namespace App\Routines\Data\Editor;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Shared\Data\Validation\DeloadEveryN;
 use App\Shared\Data\Validation\DeloadRepsFactor;
 use App\Shared\Data\Validation\DeloadWeightFactor;
 use Override;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapName;
+use Spatie\LaravelData\Attributes\Validation\Exists;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\DataCollection;
@@ -31,6 +33,9 @@ class SyncRoutineData extends Data
 
         #[DeloadEveryN]
         public readonly ?int $deloadEveryN = null,
+
+        #[Exists(ExerciseProfile::class, 'id')]
+        public readonly ?int $defaultExerciseProfileId = null,
 
         #[DataCollectionOf(SyncRoutineBlockData::class)]
         public readonly ?DataCollection $blocks = null,

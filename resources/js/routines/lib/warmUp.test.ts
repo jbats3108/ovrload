@@ -14,18 +14,30 @@ describe('warmUpText', () => {
                 ],
             },
         });
-        expect(warmUpText(b)).toBe('40x5, 60x3');
+        expect(warmUpText(b)).toBe('40%×5, 60%×3');
     });
 });
 
 describe('setWarmUpText', () => {
+    it('parses bar and percent steps', () => {
+        const b = block();
+        setWarmUpText(b, 'bar×10, 40%×5, 60%, 80x1');
+        expect(b.warm_up.steps).toEqual([
+            { mode: 'bar', reps: 10, has_setup_after: false },
+            { mode: 'percent', percent: 40, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 60, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 80, reps: 1, has_setup_after: false },
+        ]);
+        expect(b.warm_up.set_count).toBe(4);
+    });
+
     it('parses percent×reps and legacy percent-only', () => {
         const b = block();
-        setWarmUpText(b, '40x5, 60, 80x1');
+        setWarmUpText(b, '40%×5, 60%, 80x1');
         expect(b.warm_up.steps).toEqual([
-            { percent: 40, reps: 5, has_setup_after: false },
-            { percent: 60, reps: 5, has_setup_after: false },
-            { percent: 80, reps: 1, has_setup_after: false },
+            { mode: 'percent', percent: 40, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 60, reps: 5, has_setup_after: false },
+            { mode: 'percent', percent: 80, reps: 1, has_setup_after: false },
         ]);
         expect(b.warm_up.set_count).toBe(3);
     });
@@ -43,9 +55,9 @@ describe('setWarmUpText', () => {
         });
         setWarmUpText(b, '50x5, 70x3, 80x1');
         expect(b.warm_up.steps).toEqual([
-            { percent: 50, reps: 5, has_setup_after: true },
-            { percent: 70, reps: 3, has_setup_after: false },
-            { percent: 80, reps: 1, has_setup_after: false },
+            { mode: 'percent', percent: 50, reps: 5, has_setup_after: true },
+            { mode: 'percent', percent: 70, reps: 3, has_setup_after: false },
+            { mode: 'percent', percent: 80, reps: 1, has_setup_after: false },
         ]);
     });
 
@@ -67,8 +79,8 @@ describe('sanitizeWarmUpStepsForSave', () => {
                 { percent: 80, reps: 1 },
             ]),
         ).toEqual([
-            { percent: 40, reps: 5, has_setup_after: true },
-            { percent: 80, reps: 1, has_setup_after: false },
+            { mode: 'percent', percent: 40, reps: 5, has_setup_after: true },
+            { mode: 'percent', percent: 80, reps: 1, has_setup_after: false },
         ]);
     });
 });

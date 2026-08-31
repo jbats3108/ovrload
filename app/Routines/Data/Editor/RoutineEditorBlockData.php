@@ -18,6 +18,8 @@ class RoutineEditorBlockData extends Data
         public readonly bool $isSuperset,
         public readonly bool $hasSetupAfter,
         public readonly bool $hasSetupAfterWarmUp,
+        public readonly ?int $sharedProfileId,
+        public readonly ?string $sharedProfileFingerprint,
         #[DataCollectionOf(RoutineEditorBlockExerciseData::class)]
         public readonly DataCollection $exercises,
         public readonly SyncSetGroupData $working,

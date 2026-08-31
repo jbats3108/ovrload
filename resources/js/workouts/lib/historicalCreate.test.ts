@@ -1,3 +1,4 @@
+import { plateProfile } from '@/test/factories';
 import type { HistoricalCreateBlock, HistoricalCreateSet } from '@/workouts/types';
 import { describe, expect, it } from 'vitest';
 import {
@@ -83,6 +84,7 @@ describe('historicalCreate', () => {
                         exercise_position: 1,
                         exercise_name: 'Squat',
                         set_index: 0,
+                        weight_mode: 'percent',
                         percent_of_working: 40,
                         reps: 5,
                     },
@@ -96,6 +98,26 @@ describe('historicalCreate', () => {
         expect(block!.warm_ups[0]?.weight_kg).toBe(48);
     });
 
+    it('derives empty-bar warm-up weight from the plate profile', () => {
+        const withBarWarmUp: HistoricalCreateBlock[] = [
+            {
+                ...sampleBlocks[0]!,
+                warm_ups: [
+                    {
+                        exercise_position: 1,
+                        exercise_name: 'Squat',
+                        set_index: 0,
+                        weight_mode: 'bar',
+                        percent_of_working: null,
+                        reps: 10,
+                    },
+                ],
+            },
+        ];
+        const [block] = buildDraftBlocks(withBarWarmUp, false, 1, 1, plateProfile());
+        expect(block!.warm_ups[0]?.weight_kg).toBe(20);
+    });
+
     it('omits warm-ups when building a deload draft', () => {
         const withWarmUps: HistoricalCreateBlock[] = [
             {
@@ -105,6 +127,7 @@ describe('historicalCreate', () => {
                         exercise_position: 1,
                         exercise_name: 'Squat',
                         set_index: 0,
+                        weight_mode: 'percent',
                         percent_of_working: 40,
                         reps: 5,
                     },

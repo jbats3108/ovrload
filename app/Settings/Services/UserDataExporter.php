@@ -2,6 +2,7 @@
 
 namespace App\Settings\Services;
 
+use App\ExerciseProfiles\Enums\ExerciseProfileKind;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Users\Models\User;
@@ -19,6 +20,7 @@ class UserDataExporter
      *     exported_at: string,
      *     profile: array<string, mixed>,
      *     plate_profile: array<string, mixed>,
+     *     exercise_profiles: list<array<string, mixed>>,
      *     custom_exercises: list<array<string, mixed>>,
      *     routines: list<array<string, mixed>>,
      *     workouts: list<array<string, mixed>>
@@ -30,6 +32,7 @@ class UserDataExporter
             'exported_at' => now()->toIso8601String(),
             'profile' => $this->profile($user),
             'plate_profile' => $this->plateProfiles->profilePayloadFor($user),
+            'exercise_profiles' => $this->exerciseProfiles($user),
             'custom_exercises' => $this->customExercises($user),
             'routines' => $this->routines($user),
             'workouts' => $this->workouts($user),
@@ -52,6 +55,7 @@ class UserDataExporter
             'deload_weight_factor_default' => $user->deload_weight_factor_default,
             'deload_reps_factor_default' => $user->deload_reps_factor_default,
             'deload_every_n_default' => $user->deload_every_n_default,
+            'default_exercise_profile_id' => $user->default_exercise_profile_id,
             'warm_up_steps_default' => $user->warm_up_steps_default,
             'warm_up_defaults_scope' => $user->warm_up_defaults_scope?->value,
             'created_at' => $user->created_at?->toIso8601String(),
@@ -60,9 +64,35 @@ class UserDataExporter
     }
 
     /** @return list<array<string, mixed>> */
+    private function exerciseProfiles(User $user): array
+    {
+        $profiles = $user->exerciseProfiles()
+            ->where('kind', ExerciseProfileKind::Custom)
+            ->orderBy('name')
+            ->get();
+        $payload = [];
+
+        foreach ($profiles as $profile) {
+            $payload[] = [
+                'id' => $profile->id,
+                'name' => $profile->name,
+                'slug' => $profile->slug,
+                'status' => $profile->status->value,
+                'target_reps' => $profile->target_reps,
+                'floor_override' => $profile->floor_override,
+                'working_rest_seconds' => $profile->working_rest_seconds,
+                'warm_up_steps' => $profile->warmUpStepList(),
+                'recipe_fingerprint' => $profile->recipe_fingerprint,
+            ];
+        }
+
+        return $payload;
+    }
+
+    /** @return list<array<string, mixed>> */
     private function customExercises(User $user): array
     {
-        return $user->customExercises()
+        return array_values($user->customExercises()
             ->withTrashed()
             ->with(['primaryMuscleGroup:id,name,slug', 'secondaryMuscleGroup:id,name,slug'])
             ->orderBy('name')
@@ -87,13 +117,13 @@ class UserDataExporter
                     ],
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /** @return list<array<string, mixed>> */
     private function routines(User $user): array
     {
-        return $user->routines()
+        return array_values($user->routines()
             ->withTrashed()
             ->with([
                 'blocks.blockExercises.exercise:id,name,slug',
@@ -104,13 +134,13 @@ class UserDataExporter
             ->get()
             ->map(static fn (Routine $routine): array => $routine->toArray())
             ->values()
-            ->all();
+            ->all());
     }
 
     /** @return list<array<string, mixed>> */
     private function workouts(User $user): array
     {
-        return $user->workouts()
+        return array_values($user->workouts()
             ->withTrashed()
             ->with([
                 'routine:id,name,slug',
@@ -123,6 +153,6 @@ class UserDataExporter
             ->get()
             ->map(static fn (Workout $workout): array => $workout->toArray())
             ->values()
-            ->all();
+            ->all());
     }
 }

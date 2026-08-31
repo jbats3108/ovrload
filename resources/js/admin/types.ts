@@ -1,3 +1,5 @@
+import type { ExerciseProfileWarmUpStep } from '@/settings/types';
+
 export type MuscleGroupOption = {
     name: string;
     slug: string;
@@ -46,4 +48,17 @@ export type AdminUser = {
     email: string;
     roles: string[];
     created_at: string | null;
+};
+
+export type AdminExerciseProfile = {
+    id: number;
+    name: string;
+    slug: string | null;
+    status: 'draft' | 'published';
+    target_reps: number;
+    floor: number;
+    floor_override: number | null;
+    working_rest_seconds: number;
+    warm_up_steps: ExerciseProfileWarmUpStep[];
+    display_name: string;
 };

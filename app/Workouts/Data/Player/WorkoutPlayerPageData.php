@@ -5,6 +5,7 @@ namespace App\Workouts\Data\Player;
 use App\Users\Enums\ProgressionStyle;
 use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Models\User;
+use App\Users\Services\PlateProfileService;
 use App\Workouts\Models\Workout;
 use App\Workouts\Models\WorkoutBlock;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
@@ -40,6 +41,8 @@ class WorkoutPlayerPageData extends Data
             'blocks.setGroups.warmUpSteps',
         ]);
 
+        $defaultBarWeightG = app(PlateProfileService::class)->defaultBarWeightG($user);
+
         return new self(
             id: $workout->ulid,
             routineName: $workout->routine->getName(),
@@ -49,7 +52,7 @@ class WorkoutPlayerPageData extends Data
             status: $workout->status->value,
             weightUnit: $user->weight_unit->value,
             blocks: WorkoutPlayerBlockData::collect(
-                $workout->blocks->map(fn (WorkoutBlock $block): WorkoutPlayerBlockData => WorkoutPlayerBlockData::fromBlock($block)),
+                $workout->blocks->map(fn (WorkoutBlock $block): WorkoutPlayerBlockData => WorkoutPlayerBlockData::fromBlock($block, $defaultBarWeightG)),
                 DataCollection::class,
             ),
         );

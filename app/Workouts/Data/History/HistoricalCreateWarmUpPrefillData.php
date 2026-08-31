@@ -3,6 +3,7 @@
 namespace App\Workouts\Data\History;
 
 use App\Routines\Models\RoutineBlockExercise;
+use App\Shared\Enums\WarmUpWeightMode;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -14,20 +15,23 @@ class HistoricalCreateWarmUpPrefillData extends Data
         public readonly int $exercisePosition,
         public readonly string $exerciseName,
         public readonly int $setIndex,
-        public readonly int $percentOfWorking,
+        public readonly WarmUpWeightMode $weightMode,
+        public readonly ?int $percentOfWorking,
         public readonly int $reps,
     ) {}
 
     public static function fromExerciseStep(
         RoutineBlockExercise $exercise,
         int $setIndex,
-        int $percentOfWorking,
+        WarmUpWeightMode $weightMode,
+        ?int $percentOfWorking,
         int $reps,
     ): self {
         return new self(
             exercisePosition: $exercise->position,
             exerciseName: $exercise->exercise->getName(),
             setIndex: $setIndex,
+            weightMode: $weightMode,
             percentOfWorking: $percentOfWorking,
             reps: $reps,
         );

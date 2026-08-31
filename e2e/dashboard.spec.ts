@@ -17,5 +17,38 @@ test.describe('dashboard', () => {
         await page.getByLabel('Edit routine').first().click();
         await expect(page).toHaveURL(/\/routines\/[a-z0-9-]+\/edit/);
         await expect(page.getByText('Routine', { exact: true })).toBeVisible();
+        await expect(page.getByLabel('Routine profile')).toBeVisible();
+    });
+
+    test('requires a profile when creating a routine', async ({ page }) => {
+        await page.goto('/routines/create');
+
+        await expect(page.getByLabel('Training profile')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
+
+        await page.getByLabel('Name').fill('E2E Profile Routine');
+        await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    });
+});
+
+test.describe('admin exercise profiles', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/login');
+        await page.getByLabel(/email address/i).fill('admin1@test.com');
+        await page.getByLabel(/^password$/i).fill('password');
+        await page.getByRole('button', { name: /log in/i }).click();
+        await expect(page).toHaveURL(/\/dashboard/);
+    });
+
+    test('creates and removes a preset draft', async ({ page }) => {
+        await page.goto('/admin/exercise-profiles');
+        await page.getByRole('button', { name: 'New draft' }).click();
+        await page.getByLabel(/base name/i).fill('E2E Preset');
+        await page.getByRole('button', { name: 'Save draft' }).click();
+
+        await expect(page.getByRole('heading', { name: 'E2E Preset' })).toBeVisible();
+        await page.getByRole('button', { name: 'Delete' }).first().click();
+        await page.getByRole('button', { name: 'Delete draft' }).click();
+        await expect(page.getByText('No draft profiles yet.')).toBeVisible();
     });
 });

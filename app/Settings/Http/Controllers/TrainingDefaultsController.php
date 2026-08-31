@@ -2,7 +2,10 @@
 
 namespace App\Settings\Http\Controllers;
 
+use App\ExerciseProfiles\Services\ExerciseProfileService;
+use App\Shared\Enums\WarmUpWeightMode;
 use App\Shared\Http\Controllers\Controller;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Data\UpdateTrainingDefaultsData;
 use App\Users\Enums\ProgressionStyle;
 use App\Users\Enums\ProgressiveMidBlock;
@@ -16,7 +19,7 @@ use Inertia\Response;
 
 class TrainingDefaultsController extends Controller
 {
-    public function edit(Request $request, PlateProfileService $profiles): Response
+    public function edit(Request $request, PlateProfileService $profiles, ExerciseProfileService $exerciseProfiles): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -33,6 +36,7 @@ class TrainingDefaultsController extends Controller
             'deload_reps_factor_default' => (float) $user->deload_reps_factor_default,
             'deload_every_n_default' => (int) $user->deload_every_n_default,
             'plate_profile' => $profiles->profilePayloadFor($user),
+            'exercise_profiles' => $exerciseProfiles->pageDataFor($user)->toArray(),
         ]);
     }
 
@@ -44,10 +48,13 @@ class TrainingDefaultsController extends Controller
         $steps = $data->warmUpStepsDefault === null
             ? []
             : array_values(array_map(
-                static fn ($step): array => [
-                    'percent' => min(100, max(1, $step->percent)),
-                    'reps' => min(100, max(1, $step->reps)),
-                ],
+                static fn ($step): array => WarmUpStepSupport::toStorage(
+                    WarmUpStepSupport::normalize([
+                        'mode' => $step->mode->value,
+                        'percent' => $step->percent,
+                        'reps' => $step->reps,
+                    ]) ?? ['mode' => WarmUpWeightMode::Percent->value, 'percent' => 50, 'reps' => 5],
+                ),
                 $data->warmUpStepsDefault->all()
             ));
 

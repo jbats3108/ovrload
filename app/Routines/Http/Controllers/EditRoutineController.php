@@ -2,6 +2,7 @@
 
 namespace App\Routines\Http\Controllers;
 
+use App\ExerciseProfiles\Services\ExerciseProfileService;
 use App\Exercises\Enums\ExerciseEquipment;
 use App\Exercises\Models\Exercise;
 use App\MuscleGroups\Models\MuscleGroup;
@@ -19,7 +20,7 @@ use Spatie\LaravelData\DataCollection;
 
 class EditRoutineController extends Controller
 {
-    public function __invoke(Request $request, Routine $routine): Response
+    public function __invoke(Request $request, Routine $routine, ExerciseProfileService $exerciseProfiles): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -72,6 +73,7 @@ class EditRoutineController extends Controller
             'progression_target_default' => $user->resolvedDefaultTargetReps(),
             'muscle_groups' => $muscleGroups,
             'equipment_options' => $equipmentOptions,
+            'exercise_profiles' => $exerciseProfiles->optionsForRoutineEditor($user, $routine),
         ]);
     }
 }

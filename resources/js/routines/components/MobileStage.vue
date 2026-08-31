@@ -5,10 +5,14 @@ import DeloadSettings from '@/routines/components/DeloadSettings.vue';
 import DropsetEditor from '@/routines/components/DropsetEditor.vue';
 import EditorDisclosure from '@/routines/components/EditorDisclosure.vue';
 import ExercisePicker from '@/routines/components/ExercisePicker.vue';
+import ExerciseProfilePicker from '@/routines/components/ExerciseProfilePicker.vue';
 import RoutineEditorErrors from '@/routines/components/RoutineEditorErrors.vue';
+import SaveExerciseProfileDialog from '@/routines/components/SaveExerciseProfileDialog.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
-import { optionalRepsPlaceholder, parseOptionalReps } from '@/routines/lib/optionalReps';
+import { optionalRepsPlaceholder } from '@/routines/lib/optionalReps';
+import type { Block, ExerciseProfileOption } from '@/routines/types';
 import { Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const {
     form,
@@ -34,10 +38,37 @@ const {
     clearWarmUp,
     dropsetSummary,
     achievementFloorDefault,
+    profileOptions,
+    applyProfile,
+    setExerciseTarget,
+    setExerciseFloor,
+    markSharedCustom,
+    exerciseProfileIsOutdated,
+    sharedProfileIsOutdated,
+    registerProfile,
     save,
     deleteRoutine,
     mutating,
 } = useRoutineEditor();
+
+const saveDialogOpen = ref(false);
+const saveDialogBlock = ref<Block | null>(null);
+const saveDialogExerciseIndex = ref(0);
+
+const openSaveProfile = (block: Block, exerciseIndex: number): void => {
+    saveDialogBlock.value = block;
+    saveDialogExerciseIndex.value = exerciseIndex;
+    saveDialogOpen.value = true;
+};
+
+const saveProfile = (profile: ExerciseProfileOption): void => {
+    if (saveDialogBlock.value === null) {
+        return;
+    }
+
+    registerProfile(profile);
+    applyProfile(saveDialogBlock.value, profile.id, saveDialogExerciseIndex.value);
+};
 </script>
 
 <template>
@@ -88,15 +119,15 @@ const {
                                 class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-2xl font-semibold tabular-nums outline-none focus:border-primary"
                             />
                         </label>
-                        <label class="block">
-                            <span class="text-xs text-muted-foreground">Target reps</span>
-                            <input
-                                v-model.number="ex.prescribed_reps"
-                                type="number"
-                                min="1"
-                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-2xl font-semibold tabular-nums outline-none focus:border-primary"
-                            />
-                        </label>
+                        <ExerciseProfilePicker
+                            :model-value="ex.exercise_profile_id ?? null"
+                            :profiles="profileOptions"
+                            variant="compact"
+                            :required="false"
+                            label="Profile"
+                            :outdated="exerciseProfileIsOutdated(activeBlock, ei)"
+                            @update:model-value="applyProfile(activeBlock, $event, ei)"
+                        />
                     </div>
                     <DeloadAlternateFields
                         :deload-exercise-id="ex.deload_exercise_id"
@@ -120,14 +151,22 @@ const {
                         />
                     </label>
                     <label>
-                        <span class="text-xs text-muted-foreground">Rest ({{ formatRest(activeBlock.working.rest_seconds) }})</span>
-                        <input
-                            v-model.number="activeBlock.working.rest_seconds"
-                            type="number"
-                            min="0"
-                            step="15"
-                            class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                        />
+                        <span class="text-xs text-muted-foreground">Rest</span>
+                        <details class="mt-1">
+                            <summary class="cursor-pointer rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg">
+                                {{ formatRest(activeBlock.working.rest_seconds) }}
+                                <span v-if="sharedProfileIsOutdated(activeBlock)" class="text-sm text-amber-400">· Update available</span>
+                            </summary>
+                            <input
+                                v-model.number="activeBlock.working.rest_seconds"
+                                type="number"
+                                min="0"
+                                max="3600"
+                                step="15"
+                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                @input="markSharedCustom(activeBlock)"
+                            />
+                        </details>
                     </label>
                 </div>
 
@@ -141,12 +180,28 @@ const {
                     <DropsetEditor :block="activeBlock" variant="mobile" />
                 </EditorDisclosure>
 
-                <EditorDisclosure :expanded="progressionExpanded" label="Progression" summary="Floor override" @toggle="toggleProgressionExpanded">
+                <EditorDisclosure
+                    :expanded="progressionExpanded"
+                    label="Progression"
+                    summary="Target &amp; floor"
+                    @toggle="toggleProgressionExpanded"
+                >
                     <div class="space-y-4">
                         <div v-for="(ex, ei) in activeBlock.exercises" :key="ei" class="space-y-2">
                             <p v-if="activeBlock.is_superset" class="font-mono text-xs text-muted-foreground">
                                 {{ ei === 0 ? 'A' : 'B' }}
                             </p>
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Target reps</span>
+                                <input
+                                    :value="ex.prescribed_reps"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                    @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
+                                />
+                            </label>
                             <label class="block">
                                 <span class="text-xs text-muted-foreground">Floor</span>
                                 <input
@@ -156,11 +211,21 @@ const {
                                     max="100"
                                     :placeholder="optionalRepsPlaceholder(achievementFloorDefault)"
                                     class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                    @input="ex.achievement_floor = parseOptionalReps(($event.target as HTMLInputElement).value)"
+                                    @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
                                 />
                             </label>
+                            <button
+                                v-if="ex.exercise_profile_id == null"
+                                type="button"
+                                class="text-left text-xs text-primary underline-offset-2 hover:underline"
+                                @click="openSaveProfile(activeBlock, ei)"
+                            >
+                                Save as profile
+                            </button>
                         </div>
-                        <p class="text-xs text-muted-foreground">Empty inherits Preferences. Bump is always the exercise Target (reps).</p>
+                        <p class="text-xs text-muted-foreground">
+                            Leave blank to use your Preferences default. Weight bumps follow the exercise target reps.
+                        </p>
                     </div>
                 </EditorDisclosure>
 
@@ -172,11 +237,14 @@ const {
                 >
                     <div class="space-y-2">
                         <label class="block">
-                            <span class="text-xs text-muted-foreground">Compact (40x5, 60x3)</span>
+                            <span class="text-xs text-muted-foreground">Compact (40%×5, 60%×3)</span>
                             <input
                                 :value="warmUpText(activeBlock)"
                                 class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm text-primary/90"
-                                @change="setWarmUpText(activeBlock, ($event.target as HTMLInputElement).value)"
+                                @change="
+                                    markSharedCustom(activeBlock);
+                                    setWarmUpText(activeBlock, ($event.target as HTMLInputElement).value);
+                                "
                             />
                         </label>
                         <label class="block">
@@ -187,16 +255,32 @@ const {
                                 min="0"
                                 step="15"
                                 class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                @input="markSharedCustom(activeBlock)"
                             />
                         </label>
                         <div v-for="(step, si) in activeBlock.warm_up.steps" :key="si" class="flex items-center gap-1.5">
+                            <select
+                                v-model="step.mode"
+                                class="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+                                aria-label="Warm-up mode"
+                                @change="
+                                    if (step.mode === 'bar') step.percent = undefined;
+                                    else if (step.percent == null) step.percent = 50;
+                                    markSharedCustom(activeBlock);
+                                "
+                            >
+                                <option value="percent">%</option>
+                                <option value="bar">Bar</option>
+                            </select>
                             <input
+                                v-if="(step.mode ?? 'percent') === 'percent'"
                                 v-model.number="step.percent"
                                 type="number"
                                 min="1"
                                 max="100"
                                 class="w-16 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
                                 aria-label="Warm-up percent"
+                                @input="markSharedCustom(activeBlock)"
                             />
                             <span class="text-xs text-muted-foreground">×</span>
                             <input
@@ -206,6 +290,7 @@ const {
                                 max="100"
                                 class="w-14 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
                                 aria-label="Warm-up reps"
+                                @input="markSharedCustom(activeBlock)"
                             />
                             <label
                                 v-if="si < activeBlock.warm_up.steps.length - 1"
@@ -218,18 +303,33 @@ const {
                             <button
                                 type="button"
                                 class="ml-auto text-xs text-muted-foreground hover:text-destructive"
-                                @click="removeWarmUpStep(activeBlock, si)"
+                                @click="
+                                    markSharedCustom(activeBlock);
+                                    removeWarmUpStep(activeBlock, si);
+                                "
                             >
                                 −
                             </button>
                         </div>
                         <div class="flex items-center gap-3">
-                            <button type="button" class="text-xs text-primary" @click="addWarmUpStep(activeBlock)">+ Step</button>
+                            <button
+                                type="button"
+                                class="text-xs text-primary"
+                                @click="
+                                    markSharedCustom(activeBlock);
+                                    addWarmUpStep(activeBlock);
+                                "
+                            >
+                                + Step
+                            </button>
                             <button
                                 v-if="activeBlock.warm_up.steps.length"
                                 type="button"
                                 class="text-xs text-muted-foreground hover:text-destructive"
-                                @click="clearWarmUp(activeBlock)"
+                                @click="
+                                    markSharedCustom(activeBlock);
+                                    clearWarmUp(activeBlock);
+                                "
                             >
                                 Clear warm-up
                             </button>
@@ -306,5 +406,12 @@ const {
                 </button>
             </div>
         </div>
+        <SaveExerciseProfileDialog
+            v-if="saveDialogBlock"
+            v-model:open="saveDialogOpen"
+            :block="saveDialogBlock"
+            :exercise-index="saveDialogExerciseIndex"
+            @saved="saveProfile"
+        />
     </div>
 </template>

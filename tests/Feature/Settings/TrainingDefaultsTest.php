@@ -60,15 +60,15 @@ class TrainingDefaultsTest extends TestCase
         $this->user->refresh();
         $this->assertSame(
             [
-                ['percent' => 45, 'reps' => 6],
-                ['percent' => 70, 'reps' => 2],
+                ['mode' => 'percent', 'percent' => 45, 'reps' => 6],
+                ['mode' => 'percent', 'percent' => 70, 'reps' => 2],
             ],
             $this->user->warm_up_steps_default
         );
         $this->assertSame(
             [
-                ['percent' => 45, 'reps' => 6],
-                ['percent' => 70, 'reps' => 2],
+                ['mode' => 'percent', 'percent' => 45, 'reps' => 6],
+                ['mode' => 'percent', 'percent' => 70, 'reps' => 2],
             ],
             $this->user->resolvedWarmUpStepsDefault()
         );

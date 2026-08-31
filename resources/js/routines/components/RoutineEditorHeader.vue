@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
+import ExerciseProfilePicker from '@/routines/components/ExerciseProfilePicker.vue';
 import RoutineEditorErrors from '@/routines/components/RoutineEditorErrors.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
 import { Link } from '@inertiajs/vue3';
 
-const { form, save, duplicateRoutine, deleteRoutine, mutating } = useRoutineEditor();
+const { form, profileOptions, setRoutineProfile, save, duplicateRoutine, deleteRoutine, mutating } = useRoutineEditor();
 </script>
 
 <template>
@@ -18,6 +19,16 @@ const { form, save, duplicateRoutine, deleteRoutine, mutating } = useRoutineEdit
                     required
                 />
                 <InputError :message="form.errors.name" />
+            </div>
+            <div class="w-full md:max-w-xs">
+                <ExerciseProfilePicker
+                    :model-value="form.default_exercise_profile_id ?? null"
+                    :profiles="profileOptions"
+                    label="Routine profile"
+                    @update:model-value="setRoutineProfile($event)"
+                />
+                <p class="mt-1 text-xs text-muted-foreground">Used for new blocks; existing blocks stay unchanged.</p>
+                <InputError :message="form.errors.default_exercise_profile_id" />
             </div>
             <div class="flex flex-wrap gap-3 font-mono text-sm">
                 <Link

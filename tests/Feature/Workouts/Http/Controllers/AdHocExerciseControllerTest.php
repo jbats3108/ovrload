@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Workouts\Http\Controllers;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Shared\Enums\SetGroupType;
 use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Services\WorkoutService;
+use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Helpers\CreatesPlayableWorkout;
@@ -22,6 +24,7 @@ class AdHocExerciseControllerTest extends TestCase
     {
         parent::setUp();
         $this->seedUsers(false);
+        $this->seed(ExerciseProfileSeeder::class);
     }
 
     #[Test]
@@ -86,6 +89,36 @@ class AdHocExerciseControllerTest extends TestCase
             ->first();
 
         $this->assertSame(10, $adHocExercise?->prescribed_reps);
+    }
+
+    #[Test]
+    public function ad_hoc_exercise_uses_the_user_default_profile_target_and_working_rest(): void
+    {
+        $profile = ExerciseProfile::query()->where('slug', 'preset-hypertrophy')->firstOrFail();
+        $this->user->forceFill(['default_exercise_profile_id' => $profile->id])->save();
+
+        $workout = $this->createPlayableWorkout(
+            setCount: 1,
+            loadBlocks: true,
+            prescribedReps: 8,
+        );
+        $exercise = Exercise::factory()->shared()->create(['name' => 'Face Pull']);
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.ad-hoc-exercises.store', $workout), [
+                'exercise_id' => $exercise->id,
+            ])
+            ->assertRedirect();
+
+        $adHocBlock = $workout->fresh(['blocks.blockExercises', 'blocks.setGroups'])
+            ->blocks
+            ->firstWhere('is_ad_hoc', true);
+
+        $this->assertSame(10, $adHocBlock?->blockExercises->first()?->prescribed_reps);
+        $this->assertSame(
+            90,
+            $adHocBlock?->setGroups->firstWhere('type', SetGroupType::Working)?->rest_seconds,
+        );
     }
 
     #[Test]

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Workouts\Http\Controllers;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
@@ -13,6 +14,7 @@ use App\Shared\Enums\SetGroupType;
 use App\Workouts\Enums\WorkoutStatus;
 use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Services\WorkoutService;
+use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,6 +32,7 @@ class PlayWorkoutControllerTest extends TestCase
     {
         parent::setUp();
         $this->seedUsers(false);
+        $this->seed(ExerciseProfileSeeder::class);
     }
 
     #[Test]
@@ -70,6 +73,53 @@ class PlayWorkoutControllerTest extends TestCase
                 ->where('workout.blocks.0.exercises.0.progression_target', $prescribed)
                 ->where('workout.blocks.0.exercises.0.prescribed_reps', $prescribed)
             );
+    }
+
+    #[Test]
+    public function it_uses_a_profile_derived_floor_in_the_workout_snapshot(): void
+    {
+        $profile = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
+        $this->user->update(['achievement_floor_default' => 1]);
+        $routine = Routine::factory()->withUser($this->user)->create([
+            'default_exercise_profile_id' => $profile->id,
+        ]);
+        $exercise = Exercise::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'shared_exercise_profile_id' => $profile->id,
+            'shared_profile_fingerprint' => $profile->recipe()->sharedFingerprint(),
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => $exercise->id,
+            'position' => 1,
+            'working_weight_g' => 60000,
+            'prescribed_reps' => 6,
+            'exercise_profile_id' => $profile->id,
+            'exercise_profile_fingerprint' => $profile->recipe()->fingerprint(),
+            'floor_is_derived' => true,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 1,
+            'rest_seconds' => 180,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 0,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = app(WorkoutService::class)->createWorkout($routine);
+
+        $this->actingAs($this->user)
+            ->get(route('workouts.play', $workout))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->where('workout.blocks.0.exercises.0.achievement_floor', 4));
     }
 
     #[Test]

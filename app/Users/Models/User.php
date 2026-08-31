@@ -3,8 +3,10 @@
 namespace App\Users\Models;
 
 use App\Auth\Models\RegistrationInvite;
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Enums\ProgressionStyle;
 use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
@@ -12,6 +14,7 @@ use App\Users\Enums\WeightUnit;
 use App\Workouts\Models\Workout;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -44,6 +47,7 @@ class User extends Authenticatable
         'deload_every_n_default',
         'warm_up_steps_default',
         'warm_up_defaults_scope',
+        'default_exercise_profile_id',
     ];
 
     /** @var list<string> */
@@ -70,27 +74,28 @@ class User extends Authenticatable
             'deload_every_n_default' => 'integer',
             'warm_up_steps_default' => 'array',
             'warm_up_defaults_scope' => WarmUpDefaultsScope::class,
+            'default_exercise_profile_id' => 'integer',
         ];
     }
 
     /**
      * App-wide warm-up ladder when the user has not set prefs yet.
      *
-     * @return list<array{percent: int, reps: int}>
+     * @return list<array{mode: string, percent?: int, reps: int}>
      */
     public static function fallbackWarmUpSteps(): array
     {
         return [
-            ['percent' => 40, 'reps' => 5],
-            ['percent' => 60, 'reps' => 3],
-            ['percent' => 80, 'reps' => 1],
+            ['mode' => 'percent', 'percent' => 40, 'reps' => 5],
+            ['mode' => 'percent', 'percent' => 60, 'reps' => 3],
+            ['mode' => 'percent', 'percent' => 80, 'reps' => 1],
         ];
     }
 
     /**
      * Steps to seed into new routine blocks. Null column → app fallback; empty list → no warm-up.
      *
-     * @return list<array{percent: int, reps: int}>
+     * @return list<array{mode: string, percent?: int, reps: int}>
      */
     public function resolvedWarmUpStepsDefault(): array
     {
@@ -99,11 +104,8 @@ class User extends Authenticatable
         }
 
         return array_values(array_map(
-            static fn (mixed $step): array => [
-                'percent' => (int) (is_array($step) ? ($step['percent'] ?? 0) : 0),
-                'reps' => (int) (is_array($step) ? ($step['reps'] ?? 5) : 5),
-            ],
-            $this->warm_up_steps_default
+            WarmUpStepSupport::toStorage(...),
+            WarmUpStepSupport::normalizeList($this->warm_up_steps_default),
         ));
     }
 
@@ -155,6 +157,18 @@ class User extends Authenticatable
     public function customExercises(): HasMany
     {
         return $this->hasMany(Exercise::class);
+    }
+
+    /** @return HasMany<ExerciseProfile, $this> */
+    public function exerciseProfiles(): HasMany
+    {
+        return $this->hasMany(ExerciseProfile::class);
+    }
+
+    /** @return BelongsTo<ExerciseProfile, $this> */
+    public function defaultExerciseProfile(): BelongsTo
+    {
+        return $this->belongsTo(ExerciseProfile::class, 'default_exercise_profile_id');
     }
 
     /** @return HasMany<Workout, $this> */

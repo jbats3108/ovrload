@@ -3,6 +3,8 @@ import type { Block, BlockExercise, WarmUpStep } from '@/routines/types';
 export function emptyExercise(firstCatalogId: number | null = null, prescribedReps = 6): BlockExercise {
     return {
         exercise_id: firstCatalogId,
+        exercise_profile_id: null,
+        exercise_profile_fingerprint: null,
         working_weight_kg: 60,
         prescribed_reps: prescribedReps,
         achievement_floor: null,
@@ -43,6 +45,8 @@ export function emptyBlock(
         is_superset: superset,
         has_setup_after: false,
         has_setup_after_warm_up: false,
+        shared_profile_id: null,
+        shared_profile_fingerprint: null,
         exercises: superset
             ? [emptyExercise(firstCatalogId, prescribedReps), emptyExercise(firstCatalogId, prescribedReps)]
             : [emptyExercise(firstCatalogId, prescribedReps)],
@@ -82,10 +86,15 @@ export function normalizeBlock(raw: Block): Block {
         .filter((d) => d.segments.length >= 2);
     return {
         ...raw,
+        shared_profile_id: raw.shared_profile_id ?? null,
+        shared_profile_fingerprint: raw.shared_profile_fingerprint ?? null,
         has_setup_after_warm_up: Boolean(raw.has_setup_after_warm_up) && steps.length > 0,
         exercises: (raw.exercises ?? []).map((exercise) => ({
             ...emptyExercise(),
             ...exercise,
+            exercise_profile_id: exercise.exercise_profile_id ?? null,
+            exercise_profile_fingerprint: exercise.exercise_profile_fingerprint ?? null,
+            floor_is_derived: exercise.floor_is_derived ?? null,
             deload_exercise_id: exercise.deload_exercise_id ?? null,
             deload_working_weight_kg: exercise.deload_exercise_id != null ? (exercise.deload_working_weight_kg ?? null) : null,
         })),

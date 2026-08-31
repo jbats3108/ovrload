@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Routines\Http\Controllers;
 
+use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Helpers\UserHelper;
@@ -16,6 +17,7 @@ class CreateRoutineControllerTest extends TestCase
     {
         parent::setUp();
         $this->seedUsers(false);
+        $this->seed(ExerciseProfileSeeder::class);
     }
 
     #[Test]
@@ -24,7 +26,10 @@ class CreateRoutineControllerTest extends TestCase
         $response = $this->actingAs($this->user)->get(route('routines.create'));
 
         $response->assertOk();
-        $response->assertInertia(fn ($page) => $page->component('routines/Create'));
+        $response->assertInertia(fn ($page) => $page
+            ->component('routines/Create')
+            ->has('exercise_profiles')
+            ->where('default_exercise_profile_id', null));
     }
 
     #[Test]

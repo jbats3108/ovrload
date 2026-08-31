@@ -2,6 +2,7 @@
 
 namespace App\Routines\Data\Editor;
 
+use App\Shared\Enums\WarmUpWeightMode;
 use Override;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapName;
@@ -50,7 +51,8 @@ class SyncWarmUpData extends Data
 
         return array_values(array_filter(
             $this->steps->all(),
-            static fn (SyncWarmUpStepData $step): bool => $step->percent > 0 && $step->reps > 0
+            static fn (SyncWarmUpStepData $step): bool => $step->reps > 0
+                && ($step->mode === WarmUpWeightMode::Bar || ($step->percent ?? 0) > 0)
         ));
     }
 }

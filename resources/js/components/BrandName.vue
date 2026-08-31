@@ -12,5 +12,5 @@ const props = withDefaults(
 </script>
 
 <template>
-    <span :class="cn(props.class)"> <span class="text-primary">OVR</span><span class="text-foreground">LOAD</span> </span>
+    <span :class="cn(props.class)"><span class="text-primary">OVR</span><span class="text-foreground">LOAD</span></span>
 </template>

@@ -53,6 +53,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'invite_url' => fn () => $request->session()->get('invite_url'),
+                'profile_sync_id' => fn () => $request->session()->get('profile_sync_id'),
             ],
             'ziggy' => [
                 ...(new Ziggy)->toArray(),

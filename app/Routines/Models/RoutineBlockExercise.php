@@ -2,6 +2,7 @@
 
 namespace App\Routines\Models;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,8 @@ class RoutineBlockExercise extends Model
     #[Override]
     protected $fillable = [
         'routine_block_id',
+        'exercise_profile_id',
+        'exercise_profile_fingerprint',
         'exercise_id',
         'position',
         'working_weight_g',
@@ -19,6 +22,7 @@ class RoutineBlockExercise extends Model
         'deload_working_weight_g',
         'prescribed_reps',
         'achievement_floor_override',
+        'floor_is_derived',
         'progression_target_override',
     ];
 
@@ -28,10 +32,12 @@ class RoutineBlockExercise extends Model
     {
         return [
             'position' => 'integer',
+            'exercise_profile_id' => 'integer',
             'working_weight_g' => 'integer',
             'deload_working_weight_g' => 'integer',
             'prescribed_reps' => 'integer',
             'achievement_floor_override' => 'integer',
+            'floor_is_derived' => 'boolean',
             'progression_target_override' => 'integer',
         ];
     }
@@ -40,6 +46,12 @@ class RoutineBlockExercise extends Model
     public function block(): BelongsTo
     {
         return $this->belongsTo(RoutineBlock::class, 'routine_block_id');
+    }
+
+    /** @return BelongsTo<ExerciseProfile, $this> */
+    public function exerciseProfile(): BelongsTo
+    {
+        return $this->belongsTo(ExerciseProfile::class, 'exercise_profile_id');
     }
 
     /** @return BelongsTo<Exercise, $this> */

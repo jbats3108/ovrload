@@ -4,6 +4,8 @@ namespace App\Workouts\Data\Player;
 
 use App\Exercises\Enums\ExerciseEquipment;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
+use App\Shared\Support\WarmUpStepSupport;
 use App\Shared\Support\Weight;
 use App\Workouts\Data\PlateStackData;
 use App\Workouts\Models\WorkoutSet;
@@ -49,6 +51,7 @@ class WorkoutPlayerSetData extends Data
         SetGroupType $groupType,
         int $restSeconds,
         ?WorkoutWarmUpStep $warmUpStep = null,
+        ?int $defaultBarWeightG = null,
     ): self {
         $set->loadMissing('segments');
 
@@ -61,9 +64,20 @@ class WorkoutPlayerSetData extends Data
                 weightKg: Weight::gramsToKg($segment->weight_g),
             ));
 
-        $targetWeightG = $workingWeightG;
-        if ($groupType === SetGroupType::WarmUp && $warmUpStep !== null) {
-            $targetWeightG = (int) round($workingWeightG * ($warmUpStep->percent_of_working / 100));
+        $targetWeightG = null;
+        if (! $isDropset) {
+            if ($groupType === SetGroupType::WarmUp && $warmUpStep !== null) {
+                $mode = $warmUpStep->weight_mode ?? WarmUpWeightMode::Percent;
+                $targetWeightG = WarmUpStepSupport::targetWeightG(
+                    $mode,
+                    $warmUpStep->percent_of_working,
+                    $workingWeightG,
+                    $defaultBarWeightG,
+                    $equipment,
+                );
+            } else {
+                $targetWeightG = $workingWeightG;
+            }
         }
 
         return new self(
@@ -73,9 +87,7 @@ class WorkoutPlayerSetData extends Data
             equipment: $equipment?->value,
             setIndex: $set->set_index,
             groupType: $groupType->value,
-            targetWeightKg: $isDropset
-                ? null
-                : Weight::gramsToKg($targetWeightG),
+            targetWeightKg: $targetWeightG !== null ? Weight::gramsToKg($targetWeightG) : null,
             targetReps: $groupType === SetGroupType::WarmUp
                 ? ($warmUpStep !== null ? $warmUpStep->reps : null)
                 : $prescribedReps,

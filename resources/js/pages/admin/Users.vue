@@ -20,7 +20,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     <AppLayout :breadcrumbs="breadcrumbs">
         <Head title="Admin · Users" />
         <AdminLayout>
-            <HeadingSmall title="Users" description="Read-only account list. Role editing is out of scope for now." />
+            <HeadingSmall title="Users" description="Registered accounts and their roles." />
 
             <ul class="divide-y divide-border rounded-xl border border-border">
                 <li v-for="user in users" :key="user.id" class="px-4 py-3">

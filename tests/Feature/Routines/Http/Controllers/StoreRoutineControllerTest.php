@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Routines\Http\Controllers;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Routines\Models\Routine;
+use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Helpers\UserHelper;
@@ -17,6 +19,7 @@ class StoreRoutineControllerTest extends TestCase
     {
         parent::setUp();
         $this->seedUsers(false);
+        $this->seed(ExerciseProfileSeeder::class);
     }
 
     #[Test]
@@ -35,6 +38,7 @@ class StoreRoutineControllerTest extends TestCase
         // Given
         $createRoutineRequest = [
             'name' => 'Test Routine',
+            'default_exercise_profile_id' => $this->strengthProfile()->id,
         ];
 
         // When
@@ -65,6 +69,7 @@ class StoreRoutineControllerTest extends TestCase
 
         $this->actingAs($this->user)->post(route('routines.store'), [
             'name' => 'From Defaults',
+            'default_exercise_profile_id' => $this->strengthProfile()->id,
         ])->assertRedirect();
 
         $routine = Routine::query()->where('name', 'From Defaults')->first();
@@ -108,5 +113,10 @@ class StoreRoutineControllerTest extends TestCase
         ])->assertSessionHasErrors('deload_every_n');
 
         $this->assertSame($before, Routine::query()->count());
+    }
+
+    private function strengthProfile(): ExerciseProfile
+    {
+        return ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
     }
 }

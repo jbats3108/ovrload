@@ -4,7 +4,8 @@ import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { gramsToKg } from '@/lib/plateCalculator';
-import type { PlateProfile, WarmUpDefaultsScope, WarmUpStep } from '@/settings/types';
+import ExerciseProfilesSection from '@/settings/components/ExerciseProfilesSection.vue';
+import type { ExerciseProfilePage, PlateProfile, WarmUpDefaultsScope, WarmUpStep } from '@/settings/types';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
@@ -20,6 +21,7 @@ const props = defineProps<{
     deload_reps_factor_default: number;
     deload_every_n_default: number;
     plate_profile: PlateProfile;
+    exercise_profiles: ExerciseProfilePage;
 }>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
@@ -41,35 +43,14 @@ const form = useForm({
     deload_every_n_default: props.deload_every_n_default,
 });
 
-const resetForm = useForm({});
-
-const setOptionalReps = (field: 'achievement_floor_default', raw: string) => {
-    form[field] = raw === '' ? null : Number(raw);
-};
-
 const plateForm = useForm({
     name: props.plate_profile.name,
     bars: props.plate_profile.bars.map((b) => ({ ...b })),
     plates: props.plate_profile.plates.map((p) => ({ ...p })),
 });
 
-const addStep = () => {
-    form.warm_up_steps_default.push({ percent: 50, reps: 5 });
-};
-
-const removeStep = (index: number) => {
-    form.warm_up_steps_default.splice(index, 1);
-};
-
 const submit = () => {
     form.put(route('training.update'));
-};
-
-const resetToApp = () => {
-    if (resetForm.processing) {
-        return;
-    }
-    resetForm.post(route('training.reset'));
 };
 
 const addBar = () => {
@@ -110,17 +91,17 @@ const savePlates = () => {
                     for how these defaults feed into routines and Play.
                 </p>
 
+                <ExerciseProfilesSection :exercise-profiles="exercise_profiles" />
+
                 <section class="space-y-6">
                     <HeadingSmall
-                        title="Warm-up defaults"
-                        description="Seeded into new routine exercises. Each step is a percent of working weight and its own reps."
+                        title="Warm-up placement"
+                        description="Choose where the selected profile's warm-up ladder is seeded when you add routine exercises."
                     />
-
-                    <p v-if="using_app_fallback" class="text-sm text-muted-foreground">Using the app fallback ladder until you save your own.</p>
 
                     <form class="space-y-4" @submit.prevent="submit">
                         <fieldset class="space-y-2">
-                            <legend class="text-sm text-muted-foreground">Apply defaults to</legend>
+                            <legend class="text-sm text-muted-foreground">Apply profile warm-ups to</legend>
                             <label class="flex items-center gap-2 text-sm">
                                 <input v-model="form.warm_up_defaults_scope" type="radio" value="all_blocks" />
                                 Every new exercise
@@ -131,97 +112,21 @@ const savePlates = () => {
                             </label>
                         </fieldset>
 
-                        <div v-for="(step, index) in form.warm_up_steps_default" :key="index" class="flex flex-wrap items-end gap-3">
-                            <label class="flex flex-col gap-1 text-sm text-muted-foreground">
-                                % of working
-                                <input
-                                    v-model.number="step.percent"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    class="w-24 rounded border border-border bg-card px-3 py-2 font-mono text-foreground"
-                                    required
-                                />
-                            </label>
-                            <label class="flex flex-col gap-1 text-sm text-muted-foreground">
-                                Reps
-                                <input
-                                    v-model.number="step.reps"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    class="w-24 rounded border border-border bg-card px-3 py-2 font-mono text-foreground"
-                                    required
-                                />
-                            </label>
-                            <button
-                                type="button"
-                                class="rounded border border-border px-3 py-2 text-sm text-muted-foreground hover:text-destructive"
-                                @click="removeStep(index)"
-                            >
-                                Remove
-                            </button>
-                        </div>
+                        <InputError :message="form.errors.warm_up_defaults_scope" />
 
-                        <InputError :message="form.errors.warm_up_steps_default" />
-
-                        <div class="flex flex-wrap gap-3 pt-2">
-                            <button
-                                type="button"
-                                class="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
-                                @click="addStep"
-                            >
-                                + Step
-                            </button>
-                            <button
-                                type="button"
-                                class="rounded-full border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
-                                :disabled="resetForm.processing"
-                                @click="resetToApp"
-                            >
-                                Reset warm-ups
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            class="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                            :disabled="form.processing"
+                        >
+                            Save warm-up placement
+                        </button>
 
                         <div class="space-y-4 border-t border-border pt-6">
                             <HeadingSmall
                                 title="Progression"
-                                description="Defaults for new workouts. Per-exercise overrides in the routine editor win when set."
+                                description="Defaults for new workouts. Target and Floor now come from exercise profiles."
                             />
-
-                            <label class="flex flex-col gap-1 text-sm text-muted-foreground">
-                                Achievement Floor
-                                <span class="text-xs text-muted-foreground/80">
-                                    Minimum reps for a logged set’s weight to count as achieved (carry-forward). Leave blank to disable a default.
-                                </span>
-                                <input
-                                    :value="form.achievement_floor_default ?? ''"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    placeholder="optional"
-                                    class="mt-1 w-28 rounded border border-border bg-card px-3 py-2 font-mono text-foreground"
-                                    @input="setOptionalReps('achievement_floor_default', ($event.target as HTMLInputElement).value)"
-                                />
-                                <InputError :message="form.errors.achievement_floor_default" />
-                            </label>
-
-                            <label class="flex flex-col gap-1 text-sm text-muted-foreground">
-                                Default Target reps
-                                <span class="text-xs text-muted-foreground/80">
-                                    Seeded into new routine exercises and Play “Add exercise” blocks. Per-exercise Target in the editor still wins
-                                    once set.
-                                </span>
-                                <input
-                                    v-model.number="form.progression_target_default"
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    class="mt-1 w-28 rounded border border-border bg-card px-3 py-2 font-mono text-foreground"
-                                    required
-                                />
-                                <InputError :message="form.errors.progression_target_default" />
-                            </label>
 
                             <fieldset class="space-y-2">
                                 <legend class="text-sm text-muted-foreground">Progression style</legend>
@@ -261,7 +166,7 @@ const savePlates = () => {
                         <div class="space-y-4 border-t border-border pt-6">
                             <HeadingSmall
                                 title="Deload"
-                                description="Defaults for new routines. A deload workout scales every exercise on that routine for one session; your usual working weights stay unchanged. Each routine can still override these in the editor."
+                                description="Defaults for new routines. A deload workout scales every exercise on that routine for one session; your usual working weights stay unchanged. Each routine can set its own values in the editor."
                             />
 
                             <label class="flex flex-col gap-1 text-sm text-muted-foreground">

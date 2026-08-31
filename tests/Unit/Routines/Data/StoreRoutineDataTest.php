@@ -2,7 +2,9 @@
 
 namespace Tests\Unit\Routines\Data;
 
+use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Routines\Data\StoreRoutineData;
+use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Helpers\UserHelper;
@@ -17,6 +19,7 @@ class StoreRoutineDataTest extends TestCase
     {
         parent::setUp();
         $this->seedUsers(false);
+        $this->seed(ExerciseProfileSeeder::class);
     }
 
     #[Test]
@@ -25,6 +28,7 @@ class StoreRoutineDataTest extends TestCase
         // Given
         $createRoutineData = [
             'name' => 'Test Routine',
+            'default_exercise_profile_id' => $this->profileId(),
         ];
 
         $this->be($this->user);
@@ -42,6 +46,7 @@ class StoreRoutineDataTest extends TestCase
         // Given
         $createRoutineData = [
             'name' => 'Test Routine',
+            'default_exercise_profile_id' => $this->profileId(),
             'deload_weight_factor' => 0.75,
             'deload_reps_factor' => 1.5,
             'deload_every_n' => 4,
@@ -56,5 +61,10 @@ class StoreRoutineDataTest extends TestCase
         $this->assertSame(0.75, $storeRoutineData->deloadWeightFactor);
         $this->assertSame(1.5, $storeRoutineData->deloadRepsFactor);
         $this->assertSame(4, $storeRoutineData->deloadEveryN);
+    }
+
+    private function profileId(): int
+    {
+        return ExerciseProfile::query()->where('slug', 'preset-strength')->valueOrFail('id');
     }
 }

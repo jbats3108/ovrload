@@ -6,6 +6,7 @@ use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
 use App\Shared\Enums\SetGroupType;
+use App\Shared\Enums\WarmUpWeightMode;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Data;
@@ -72,7 +73,8 @@ class HistoricalCreateBlockData extends Data
                     $warmUps->push(HistoricalCreateWarmUpPrefillData::fromExerciseStep(
                         $exercise,
                         $setIndex,
-                        (int) $step->percent_of_working,
+                        $step->weight_mode ?? WarmUpWeightMode::Percent,
+                        $step->percent_of_working !== null ? (int) $step->percent_of_working : null,
                         (int) $step->reps,
                     ));
                 }

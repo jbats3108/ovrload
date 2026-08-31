@@ -1,5 +1,12 @@
 <?php
 
+use App\ExerciseProfiles\Http\Controllers\ArchiveExerciseProfileController;
+use App\ExerciseProfiles\Http\Controllers\DeleteExerciseProfileController;
+use App\ExerciseProfiles\Http\Controllers\RestoreExerciseProfileController;
+use App\ExerciseProfiles\Http\Controllers\SetDefaultExerciseProfileController;
+use App\ExerciseProfiles\Http\Controllers\StoreExerciseProfileController;
+use App\ExerciseProfiles\Http\Controllers\SyncExerciseProfileController;
+use App\ExerciseProfiles\Http\Controllers\UpdateExerciseProfileController;
 use App\Settings\Http\Controllers\ExportUserDataController;
 use App\Settings\Http\Controllers\PasswordController;
 use App\Settings\Http\Controllers\ProfileController;
@@ -28,4 +35,14 @@ Route::middleware('auth')->group(function (): void {
     Route::put('settings/training', [TrainingDefaultsController::class, 'update'])->name('training.update');
     Route::post('settings/training/reset', [TrainingDefaultsController::class, 'reset'])->name('training.reset');
     Route::put('settings/training/plates', UpdatePlateProfileController::class)->name('training.plates.update');
+
+    Route::prefix('settings/exercise-profiles')->group(function (): void {
+        Route::post('/', StoreExerciseProfileController::class)->name('exercise-profiles.store');
+        Route::put('/{exerciseProfile}', UpdateExerciseProfileController::class)->name('exercise-profiles.update');
+        Route::post('/{exerciseProfile}/default', SetDefaultExerciseProfileController::class)->name('exercise-profiles.default');
+        Route::post('/{exerciseProfile}/sync', SyncExerciseProfileController::class)->name('exercise-profiles.sync');
+        Route::post('/{exerciseProfile}/archive', ArchiveExerciseProfileController::class)->name('exercise-profiles.archive');
+        Route::post('/{exerciseProfile}/restore', RestoreExerciseProfileController::class)->name('exercise-profiles.restore');
+        Route::delete('/{exerciseProfile}', DeleteExerciseProfileController::class)->name('exercise-profiles.delete');
+    });
 });
