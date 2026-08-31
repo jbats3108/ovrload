@@ -76,6 +76,33 @@ class TrainingDefaultsTest extends TestCase
     }
 
     #[Test]
+    public function it_saves_fixed_weight_warm_up_step_defaults(): void
+    {
+        $response = $this->actingAs($this->user)->put(route('training.update'), [
+            'warm_up_steps_default' => [
+                ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+            ],
+            'warm_up_defaults_scope' => 'all_blocks',
+        ]);
+
+        $response->assertRedirect(route('training.edit'));
+
+        $this->user->refresh();
+        $this->assertEquals(
+            [
+                ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+            ],
+            $this->user->warm_up_steps_default
+        );
+        $this->assertEquals(
+            [
+                ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+            ],
+            $this->user->resolvedWarmUpStepsDefault()
+        );
+    }
+
+    #[Test]
     public function it_saves_achievement_floor_default(): void
     {
         $response = $this->actingAs($this->user)->put(route('training.update'), [
