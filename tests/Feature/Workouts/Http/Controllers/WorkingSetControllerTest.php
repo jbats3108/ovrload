@@ -57,7 +57,7 @@ class WorkingSetControllerTest extends TestCase
 
         $this->actingAs($this->secondUser)
             ->post(route('workouts.working-sets.add', ['workout' => $workout, 'block' => $block]))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     #[Test]
@@ -127,7 +127,7 @@ class WorkingSetControllerTest extends TestCase
 
         $this->actingAs($this->secondUser)
             ->post(route('workouts.blocks.skip-rest', ['workout' => $workout, 'block' => $block]))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     #[Test]

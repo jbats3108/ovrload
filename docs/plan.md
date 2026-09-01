@@ -12,6 +12,8 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Shipped (recent)
 
+**Backend tidy (refactor/backend-tidy, 2026-09-01)** — slices A–F: profile reference tracking + route auth; DRY assignment/picker/structure helpers; WorkoutSetLogger; WorkoutSession/Snapshot + ExerciseProfilePreset/Assignment service splits; RoutineBlockStructureData; scoped workout bind, sync filter, seed backfill removal.
+
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
 1. **Play add-exercise less prominent** — control moved into the player header vs primary session actions (#89)
