@@ -63,4 +63,21 @@ class ExerciseProfilePolicy
             && $exerciseProfile->isPreset()
             && $exerciseProfile->status === ExerciseProfileStatus::Draft;
     }
+
+    public function sync(User $user, ExerciseProfile $exerciseProfile): bool
+    {
+        return $this->update($user, $exerciseProfile);
+    }
+
+    public function archive(User $user, ExerciseProfile $exerciseProfile): bool
+    {
+        return $exerciseProfile->isCustom()
+            && $exerciseProfile->user_id === $user->id
+            && $exerciseProfile->status === ExerciseProfileStatus::Published;
+    }
+
+    public function setDefault(User $user, ExerciseProfile $exerciseProfile): bool
+    {
+        return $this->view($user, $exerciseProfile);
+    }
 }

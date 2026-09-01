@@ -330,7 +330,26 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
-    public function page_data_ignores_shared_only_profile_assignments(): void
+    public function page_data_lists_assigned_routines_for_shared_only_block_references(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->archived()->create(['name' => 'Shared Only']);
+        $routine = Routine::factory()->withUser($user)->create(['name' => 'Push Day']);
+        $this->createSharedOnlyBlock($routine, $profile);
+
+        $page = $this->profiles->pageDataFor($user);
+        $match = collect($page->archivedProfiles->all())->firstWhere('id', $profile->id);
+
+        $this->assertNotNull($match);
+        $this->assertSame(1, $match->referenceCount);
+        $this->assertSame(
+            [['name' => 'Push Day', 'slug' => $routine->slug]],
+            $match->assignedRoutines,
+        );
+    }
+
+    #[Test]
+    public function page_data_ignores_shared_only_profile_assignments_for_reference_count_on_published_profiles(): void
     {
         $user = User::factory()->create();
         $profile = ExerciseProfile::factory()->forUser($user)->create();
@@ -341,8 +360,11 @@ class ExerciseProfileServiceTest extends TestCase
         $match = collect($page->profiles->all())->firstWhere('id', $profile->id);
 
         $this->assertNotNull($match);
-        $this->assertSame(0, $match->referenceCount);
-        $this->assertSame([], $match->assignedRoutines);
+        $this->assertSame(1, $match->referenceCount);
+        $this->assertSame(
+            [['name' => 'Full Body B', 'slug' => $routine->slug]],
+            $match->assignedRoutines,
+        );
         $this->assertSame(0, $match->staleAssignmentCount);
     }
 

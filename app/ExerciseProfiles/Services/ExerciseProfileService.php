@@ -404,7 +404,7 @@ class ExerciseProfileService
 
     private function liveRoutineCountFor(User $user, ExerciseProfile $profile): int
     {
-        return count($this->assignedRoutinesByProfileId($user, new Collection([$profile]))[$profile->id] ?? []);
+        return count($this->assignedRoutinesByExerciseProfileId($user, new Collection([$profile]))[$profile->id] ?? []);
     }
 
     /**
@@ -413,6 +413,38 @@ class ExerciseProfileService
      */
     private function assignedRoutinesByProfileId(User $user, Collection $profiles): array
     {
+        return $this->assignedRoutinesForReferencedIds(
+            $user,
+            $profiles,
+            fn (Routine $routine): array => $this->profileIdsReferencedBy($routine),
+        );
+    }
+
+    /**
+     * Exercise-level and routine-default references only (shared block profile excluded).
+     *
+     * @param  Collection<int, ExerciseProfile>  $profiles
+     * @return array<int, list<array{name: string, slug: string}>>
+     */
+    private function assignedRoutinesByExerciseProfileId(User $user, Collection $profiles): array
+    {
+        return $this->assignedRoutinesForReferencedIds(
+            $user,
+            $profiles,
+            fn (Routine $routine): array => $this->exerciseProfileIdsReferencedBy($routine),
+        );
+    }
+
+    /**
+     * @param  Collection<int, ExerciseProfile>  $profiles
+     * @param  callable(Routine): list<int>  $referencedIdsFor
+     * @return array<int, list<array{name: string, slug: string}>>
+     */
+    private function assignedRoutinesForReferencedIds(
+        User $user,
+        Collection $profiles,
+        callable $referencedIdsFor,
+    ): array {
         /** @var array<int, list<array{name: string, slug: string}>> $map */
         $map = [];
         foreach ($profiles as $profile) {
@@ -434,7 +466,7 @@ class ExerciseProfileService
                 'slug' => (string) $routine->slug,
             ];
 
-            foreach ($this->profileIdsReferencedBy($routine) as $profileId) {
+            foreach ($referencedIdsFor($routine) as $profileId) {
                 if (! array_key_exists($profileId, $map)) {
                     continue;
                 }
@@ -447,11 +479,29 @@ class ExerciseProfileService
     }
 
     /**
-     * Profile IDs shown by the routine profile picker or an exercise profile picker.
+     * Profile IDs referenced by a routine for picker visibility and assigned-routine display.
      *
      * @return list<int>
      */
     private function profileIdsReferencedBy(Routine $routine): array
+    {
+        $ids = $this->exerciseProfileIdsReferencedBy($routine);
+
+        foreach ($routine->blocks as $block) {
+            if ($block->shared_exercise_profile_id !== null) {
+                $ids[] = $block->shared_exercise_profile_id;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Exercise-level and routine-default profile references (excludes block shared profile).
+     *
+     * @return list<int>
+     */
+    private function exerciseProfileIdsReferencedBy(Routine $routine): array
     {
         $ids = [];
 

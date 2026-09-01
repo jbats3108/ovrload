@@ -390,11 +390,7 @@ class WorkoutService
         ?array $plateStack = null,
     ): WorkoutSet {
         $set->loadMissing(['setGroup.block.workout', 'segments']);
-        $workout = $set->setGroup->block->workout;
-
-        if ($workout->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($set->setGroup->block->workout);
 
         if ($set->completed_at !== null) {
             throw new WorkoutServiceException(self::SET_ALREADY_LOGGED_ERROR);
@@ -429,7 +425,7 @@ class WorkoutService
      *
      * @throws WorkoutServiceException
      */
-    public function completeDropset(WorkoutSet $set, int $reps, array $segmentWeightGrams): WorkoutSet
+    private function completeDropset(WorkoutSet $set, int $reps, array $segmentWeightGrams): WorkoutSet
     {
         if (count($segmentWeightGrams) < 2) {
             throw new WorkoutServiceException(self::DROPSET_REQUIRES_SEGMENTS_ERROR);
@@ -457,11 +453,7 @@ class WorkoutService
     {
         $set->loadMissing(['setGroup.block.workout', 'segments']);
 
-        $workout = $set->setGroup->block->workout;
-
-        if ($workout->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($set->setGroup->block->workout);
 
         if ($set->completed_at !== null) {
             throw new WorkoutServiceException(self::CANNOT_PROMOTE_COMPLETED_SET_ERROR);
@@ -498,11 +490,7 @@ class WorkoutService
         $set->loadMissing(['setGroup.block.workout']);
         $set->load('segments');
 
-        $workout = $set->setGroup->block->workout;
-
-        if ($workout->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($set->setGroup->block->workout);
 
         if ($set->completed_at !== null) {
             throw new WorkoutServiceException(self::CANNOT_DEMOTE_COMPLETED_SET_ERROR);
@@ -530,9 +518,7 @@ class WorkoutService
     {
         $block->loadMissing(['workout', 'blockExercises', 'workingSetGroup.sets']);
 
-        if ($block->workout->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($block->workout);
 
         $workingGroup = $block->workingSetGroup;
 
@@ -633,9 +619,7 @@ class WorkoutService
     {
         $block->loadMissing(['workout', 'setGroups.sets']);
 
-        if ($block->workout->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($block->workout);
 
         if (! $block->is_ad_hoc) {
             throw new WorkoutServiceException(self::AD_HOC_BLOCK_ONLY_ERROR);
@@ -676,11 +660,8 @@ class WorkoutService
         $set->loadMissing(['setGroup.block.workout', 'setGroup.sets']);
 
         $group = $set->setGroup;
-        $workout = $group->block->workout;
 
-        if ($workout->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($group->block->workout);
 
         if ($group->type !== SetGroupType::Working) {
             throw new WorkoutServiceException(self::WORKING_SET_GROUP_MISSING_ERROR);
@@ -722,9 +703,7 @@ class WorkoutService
     {
         $block->loadMissing(['workout', 'setGroups.sets']);
 
-        if ($block->workout->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($block->workout);
 
         $hasIncomplete = $block->setGroups
             ->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
@@ -818,13 +797,21 @@ class WorkoutService
     /**
      * @throws WorkoutServiceException
      */
+    private function assertInProgress(Workout $workout): void
+    {
+        if ($workout->status !== WorkoutStatus::InProgress) {
+            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
+        }
+    }
+
+    /**
+     * @throws WorkoutServiceException
+     */
     private function lockInProgressWorkout(Workout $workout): Workout
     {
         $locked = Workout::query()->whereKey($workout->id)->lockForUpdate()->firstOrFail();
 
-        if ($locked->status !== WorkoutStatus::InProgress) {
-            throw new WorkoutServiceException(self::WORKOUT_NOT_IN_PROGRESS_ERROR);
-        }
+        $this->assertInProgress($locked);
 
         return $locked;
     }
