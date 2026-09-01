@@ -11,21 +11,11 @@ class ExerciseProfilePolicy
 {
     use HandlesAuthorization;
 
-    public function viewAny(User $user): bool
-    {
-        return true;
-    }
-
     public function view(User $user, ExerciseProfile $exerciseProfile): bool
     {
         return $exerciseProfile->isPreset()
             ? $exerciseProfile->status === ExerciseProfileStatus::Published
             : $exerciseProfile->user_id === $user->id;
-    }
-
-    public function create(User $user): bool
-    {
-        return true;
     }
 
     public function update(User $user, ExerciseProfile $exerciseProfile): bool

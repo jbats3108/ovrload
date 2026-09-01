@@ -3,7 +3,6 @@
 namespace App\Workouts\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Override;
 
 class WorkoutSetSegment extends Model
@@ -23,11 +22,5 @@ class WorkoutSetSegment extends Model
             'position' => 'integer',
             'weight_g' => 'integer',
         ];
-    }
-
-    /** @return BelongsTo<WorkoutSet, $this> */
-    public function set(): BelongsTo
-    {
-        return $this->belongsTo(WorkoutSet::class, 'workout_set_id');
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Users\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Override;
 
 class PlateProfileBar extends Model
@@ -24,11 +23,5 @@ class PlateProfileBar extends Model
             'weight_g' => 'integer',
             'is_default' => 'boolean',
         ];
-    }
-
-    /** @return BelongsTo<PlateProfile, $this> */
-    public function plateProfile(): BelongsTo
-    {
-        return $this->belongsTo(PlateProfile::class);
     }
 }

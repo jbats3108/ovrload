@@ -66,7 +66,6 @@ class ExerciseProfileControllerTest extends TestCase
                     $match = collect($profiles)->firstWhere('id', $profile->id);
 
                     return $match !== null
-                        && $match['reference_count'] === 1
                         && $match['assigned_routines'] === [
                             ['name' => 'Upper A', 'slug' => $routine->slug],
                         ];

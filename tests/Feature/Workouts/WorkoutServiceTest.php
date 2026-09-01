@@ -14,6 +14,7 @@ use App\Workouts\Enums\WorkoutMode;
 use App\Workouts\Enums\WorkoutStatus;
 use App\Workouts\Exceptions\WorkoutServiceException;
 use App\Workouts\Models\Workout;
+use App\Workouts\Models\WorkoutBlockExercise;
 use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Services\WorkoutService;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -387,20 +388,22 @@ class WorkoutServiceTest extends TestCase
 
         $workout = $this->workoutService->createWorkout($routine);
         $workoutBlock = $workout->blocks->first();
+        $exerciseAtPositionOne = $workoutBlock->blockExercises->firstWhere('position', 1);
         $setA = WorkoutSet::query()
             ->whereHas('setGroup.block', fn ($q) => $q->where('id', $workoutBlock->id))
             ->where('set_index', 0)
-            ->whereHas('blockExercise', fn ($q) => $q->where('position', 1))
+            ->where('workout_block_exercise_id', $exerciseAtPositionOne->id)
             ->firstOrFail();
-        $this->assertSame($exerciseA->exercise_id, $setA->blockExercise->exercise_id);
+        $this->assertSame($exerciseA->exercise_id, $exerciseAtPositionOne->exercise_id);
         $this->workoutService->completeSet($setA, reps: 6, weightGrams: 80000);
 
         $this->workoutService->skipRestOfBlock($workoutBlock->fresh(['setGroups.sets', 'workout']));
 
-        $working = $workoutBlock->fresh()->workingSetGroup->load('sets.blockExercise');
+        $working = $workoutBlock->fresh()->workingSetGroup->load('sets');
         $this->assertSame(1, $working->set_count);
         $this->assertCount(1, $working->sets);
-        $this->assertSame(1, $working->sets->first()->blockExercise->position);
+        $remainingExercise = WorkoutBlockExercise::query()->findOrFail($working->sets->first()->workout_block_exercise_id);
+        $this->assertSame(1, $remainingExercise->position);
         $this->assertNotNull($working->sets->first()->completed_at);
     }
 

@@ -44,12 +44,6 @@ class Exercise extends Model
         ];
     }
 
-    /** @return BelongsTo<User, $this> */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
     /** @return BelongsTo<MuscleGroup, $this> */
     public function primaryMuscleGroup(): BelongsTo
     {
@@ -105,17 +99,6 @@ class Exercise extends Model
         if (! $exists) {
             throw new InvalidArgumentException("Exercise {$exerciseId} is not available for this routine.");
         }
-    }
-
-    /**
-     * @param  Builder<Exercise>  $query
-     * @return Builder<Exercise>
-     */
-    public function scopeWhereMuscleGroup(Builder $query, MuscleGroup $muscleGroup): Builder
-    {
-        return $query
-            ->whereBelongsTo($muscleGroup, 'primaryMuscleGroup')
-            ->orWhereBelongsTo($muscleGroup, 'secondaryMuscleGroup');
     }
 
     protected static function newFactory(): ExerciseFactory

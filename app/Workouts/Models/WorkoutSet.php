@@ -44,12 +44,6 @@ class WorkoutSet extends Model
         return $this->belongsTo(WorkoutSetGroup::class, 'workout_set_group_id');
     }
 
-    /** @return BelongsTo<WorkoutBlockExercise, $this> */
-    public function blockExercise(): BelongsTo
-    {
-        return $this->belongsTo(WorkoutBlockExercise::class, 'workout_block_exercise_id');
-    }
-
     /** @return HasMany<WorkoutSetSegment, $this> */
     public function segments(): HasMany
     {
@@ -90,18 +84,6 @@ class WorkoutSet extends Model
     public function clearSegments(): void
     {
         $this->segments()->delete();
-    }
-
-    public function recordReps(int $reps): void
-    {
-        $this->reps = $reps;
-        $this->save();
-    }
-
-    public function recordWeight(int $weightGrams): void
-    {
-        $this->weight_g = $weightGrams;
-        $this->save();
     }
 
     protected static function newFactory(): WorkoutSetFactory

@@ -2,7 +2,6 @@
 
 namespace App\Users\Services;
 
-use App\Shared\Support\Weight;
 use App\Users\Data\UpsertPlateProfileData;
 use App\Users\Models\PlateProfile;
 use App\Users\Models\PlateProfileBar;
@@ -12,10 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class PlateProfileService
 {
-    public function __construct(
-        private readonly PlateCalculatorService $calculator,
-    ) {}
-
     /**
      * @return array{
      *     name: string,
@@ -150,54 +145,5 @@ class PlateProfileService
         $bar = $profile->bars->firstWhere('is_default', true) ?? $profile->bars->first();
 
         return $bar?->weight_g;
-    }
-
-    /**
-     * @return array{
-     *     exact: bool,
-     *     total_kg: float,
-     *     bar_kg: float,
-     *     per_side: list<array{kg: float, count: int, colour: ?string}>,
-     *     delta_kg: float
-     * }|null
-     */
-    public function nearestForUser(User $user, float $targetKg): ?array
-    {
-        $profile = $this->ensureProfile($user);
-        $bar = $profile->bars->firstWhere('is_default', true) ?? $profile->bars->first();
-        if ($bar === null) {
-            return null;
-        }
-
-        $plates = array_values($profile->plates->map(fn (PlateProfilePlate $plate): array => [
-            'denomination_g' => $plate->denomination_g,
-            'count' => $plate->count,
-            'colour' => $plate->colour,
-        ])->all());
-
-        $result = $this->calculator->nearest(
-            Weight::kgToGrams($targetKg),
-            $bar->weight_g,
-            $plates,
-        );
-
-        if ($result === null) {
-            return null;
-        }
-
-        return [
-            'exact' => $result['exact'],
-            'total_kg' => Weight::gramsToKg($result['total_g']),
-            'bar_kg' => Weight::gramsToKg($result['bar_g']),
-            'per_side' => array_map(
-                static fn (array $step): array => [
-                    'kg' => Weight::gramsToKg($step['denomination_g']),
-                    'count' => $step['count'],
-                    'colour' => $step['colour'],
-                ],
-                $result['per_side'],
-            ),
-            'delta_kg' => Weight::gramsToKg($result['delta_g']),
-        ];
     }
 }
