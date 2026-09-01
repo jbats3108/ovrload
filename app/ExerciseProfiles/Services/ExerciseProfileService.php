@@ -2,7 +2,6 @@
 
 namespace App\ExerciseProfiles\Services;
 
-use App\ExerciseProfiles\Data\AdminExerciseProfileData;
 use App\ExerciseProfiles\Data\AdminExerciseProfilePageData;
 use App\ExerciseProfiles\Data\ExerciseProfileOptionData;
 use App\ExerciseProfiles\Data\ExerciseProfilePageData;
@@ -13,12 +12,7 @@ use App\ExerciseProfiles\Enums\ExerciseProfileStatus;
 use App\ExerciseProfiles\Exceptions\ExerciseProfileInUseException;
 use App\ExerciseProfiles\Exceptions\ExerciseProfileNotEditableException;
 use App\ExerciseProfiles\Models\ExerciseProfile;
-use App\ExerciseProfiles\Support\ExerciseProfileAssignment;
 use App\Routines\Models\Routine;
-use App\Routines\Models\RoutineBlock;
-use App\Routines\Models\RoutineBlockExercise;
-use App\Routines\Models\RoutineSetGroup;
-use App\Shared\Enums\SetGroupType;
 use App\Shared\Support\WarmUpStepSupport;
 use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -29,6 +23,11 @@ use Spatie\LaravelData\DataCollection;
 
 class ExerciseProfileService
 {
+    public function __construct(
+        private readonly ExerciseProfilePresetService $presets,
+        private readonly ExerciseProfileAssignmentService $assignments,
+    ) {}
+
     public function pageDataFor(User $user): ExerciseProfilePageData
     {
         $defaultId = $this->defaultProfileId($user);
@@ -36,12 +35,12 @@ class ExerciseProfileService
         $presets = $this->publishedPresetProfiles();
 
         $profiles = $this->orderedProfiles($custom, $presets, $defaultId);
-        $staleAssignmentCounts = $this->staleAssignmentCountsForUser($user, $profiles);
+        $staleAssignmentCounts = $this->assignments->staleAssignmentCountsForUser($user, $profiles);
         $archived = $user->exerciseProfiles()
             ->where('status', ExerciseProfileStatus::Archived)
             ->orderBy('name')
             ->get();
-        $assignedById = $this->assignedRoutinesByProfileId($user, $profiles->concat($archived));
+        $assignedById = $this->assignments->assignedRoutinesByProfileId($user, $profiles->concat($archived));
 
         return new ExerciseProfilePageData(
             defaultProfileId: $defaultId,
@@ -94,7 +93,7 @@ class ExerciseProfileService
             'blocks.sharedExerciseProfile',
         ]);
 
-        $referencedIds = $this->profileIdsReferencedBy($routine);
+        $referencedIds = $this->assignments->profileIdsReferencedBy($routine);
         $profiles = $this->selectableCustomProfilesFor($user, $referencedIds);
         $presets = $this->publishedPresetProfiles();
         $defaultId = $this->defaultProfileId($user);
@@ -109,98 +108,27 @@ class ExerciseProfileService
 
     public function adminPageData(): AdminExerciseProfilePageData
     {
-        $profiles = ExerciseProfile::query()
-            ->whereNull('user_id')
-            ->where('kind', ExerciseProfileKind::Preset)
-            ->orderBy('status')
-            ->orderBy('name')
-            ->get();
-
-        return new AdminExerciseProfilePageData(
-            drafts: AdminExerciseProfileData::collect(
-                $profiles->where('status', ExerciseProfileStatus::Draft)
-                    ->map(fn (ExerciseProfile $profile): AdminExerciseProfileData => AdminExerciseProfileData::fromProfile($profile))
-                    ->values(),
-                DataCollection::class,
-            ),
-            published: AdminExerciseProfileData::collect(
-                $profiles->where('status', ExerciseProfileStatus::Published)
-                    ->map(fn (ExerciseProfile $profile): AdminExerciseProfileData => AdminExerciseProfileData::fromProfile($profile))
-                    ->values(),
-                DataCollection::class,
-            ),
-        );
+        return $this->presets->adminPageData();
     }
 
     public function createPreset(User $admin, SaveExerciseProfileData $data): ExerciseProfile
     {
-        $this->assertAdmin($admin);
-        $name = $this->adminName($data->name);
-        $recipe = $this->recipeFromData($data);
-
-        return ExerciseProfile::create([
-            'user_id' => null,
-            'created_by_user_id' => $admin->id,
-            'kind' => ExerciseProfileKind::Preset,
-            'status' => ExerciseProfileStatus::Draft,
-            'name' => $name,
-            'slug' => null,
-            'slug_scope' => 'system',
-            'target_reps' => $recipe->targetReps,
-            'floor_override' => $recipe->floorOverride,
-            'working_rest_seconds' => $recipe->workingRestSeconds,
-            'warm_up_steps' => $recipe->warmUpSteps,
-            'recipe_fingerprint' => $recipe->fingerprint(),
-            'published_at' => null,
-        ]);
+        return $this->presets->createPreset($admin, $data);
     }
 
     public function updatePresetDraft(User $admin, ExerciseProfile $profile, SaveExerciseProfileData $data): ExerciseProfile
     {
-        $this->assertAdmin($admin);
-        $this->assertPresetDraft($profile);
-        $recipe = $this->recipeFromData($data);
-
-        $profile->update([
-            'name' => $this->adminName($data->name),
-            'target_reps' => $recipe->targetReps,
-            'floor_override' => $recipe->floorOverride,
-            'working_rest_seconds' => $recipe->workingRestSeconds,
-            'warm_up_steps' => $recipe->warmUpSteps,
-            'recipe_fingerprint' => $recipe->fingerprint(),
-        ]);
-
-        return $profile->fresh() ?? $profile;
+        return $this->presets->updatePresetDraft($admin, $profile, $data);
     }
 
     public function deletePresetDraft(User $admin, ExerciseProfile $profile): void
     {
-        $this->assertAdmin($admin);
-        $this->assertPresetDraft($profile);
-        $profile->forceDelete();
+        $this->presets->deletePresetDraft($admin, $profile);
     }
 
     public function publishPreset(User $admin, ExerciseProfile $profile): ExerciseProfile
     {
-        $this->assertAdmin($admin);
-
-        return DB::transaction(function () use ($profile): ExerciseProfile {
-            $locked = ExerciseProfile::query()->whereKey($profile->id)->lockForUpdate()->firstOrFail();
-            $this->assertPresetDraft($locked);
-            ExerciseProfile::query()->where('slug_scope', 'system')->lockForUpdate()->get();
-
-            $this->assertPublishedPresetNameAvailable($locked);
-            $this->assertPublishedPresetRecipeAvailable($locked);
-            $slug = $this->publishedPresetSlug($locked->name);
-
-            $locked->update([
-                'status' => ExerciseProfileStatus::Published,
-                'slug' => $slug,
-                'published_at' => now(),
-            ]);
-
-            return $locked->fresh() ?? $locked;
-        });
+        return $this->presets->publishPreset($admin, $profile);
     }
 
     public function createCustom(User $user, SaveExerciseProfileData $data): ExerciseProfile
@@ -264,7 +192,7 @@ class ExerciseProfileService
             throw new InvalidArgumentException('The user default profile cannot be archived.');
         }
 
-        if ($this->liveRoutineCountFor($user, $profile) > 0) {
+        if ($this->assignments->liveRoutineCountFor($user, $profile) > 0) {
             throw new InvalidArgumentException('This profile is still used by routines. Choose a different profile in the routine editor first.');
         }
 
@@ -282,7 +210,7 @@ class ExerciseProfileService
     {
         $this->assertOwnedCustom($user, $profile);
 
-        if ($profile->defaultedByUsers()->exists() || $this->liveRoutineCountFor($user, $profile) > 0) {
+        if ($profile->defaultedByUsers()->exists() || $this->assignments->liveRoutineCountFor($user, $profile) > 0) {
             throw new ExerciseProfileInUseException('This profile is still used by routines. Choose a different profile in the routine editor first.');
         }
 
@@ -291,55 +219,7 @@ class ExerciseProfileService
 
     public function syncProfile(User $user, ExerciseProfile $profile): int
     {
-        $this->assertEditableCustom($user, $profile);
-
-        return DB::transaction(function () use ($user, $profile): int {
-            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            $lockedProfile = ExerciseProfile::query()->whereKey($profile->id)->lockForUpdate()->firstOrFail();
-            $recipe = $lockedProfile->recipe();
-            $updated = 0;
-
-            $routines = $user->routines()
-                ->withTrashed()
-                ->with([
-                    'blocks.blockExercises',
-                    'blocks.setGroups.warmUpSteps',
-                ])
-                ->get();
-
-            foreach ($routines as $routine) {
-                foreach ($routine->blocks as $block) {
-                    $sharedAssigned = $block->shared_exercise_profile_id === $lockedProfile->id;
-                    if ($sharedAssigned) {
-                        $this->materializeSharedRecipe($block, $recipe);
-                        $block->forceFill([
-                            'shared_profile_fingerprint' => $recipe->sharedFingerprint(),
-                        ])->save();
-                        $updated++;
-                    }
-
-                    foreach ($block->blockExercises as $exercise) {
-                        if ($exercise->exercise_profile_id !== $lockedProfile->id) {
-                            continue;
-                        }
-
-                        $exercise->forceFill([
-                            'prescribed_reps' => $recipe->targetReps,
-                            'achievement_floor_override' => $recipe->floorOverride,
-                            'floor_is_derived' => $recipe->floorOverride === null,
-                            'exercise_profile_fingerprint' => ExerciseProfileAssignment::expectedExerciseFingerprint(
-                                $recipe,
-                                $block->is_superset,
-                                $sharedAssigned,
-                            ),
-                        ])->save();
-                        $updated++;
-                    }
-                }
-            }
-
-            return $updated;
-        });
+        return $this->assignments->syncProfile($user, $profile);
     }
 
     /**
@@ -366,191 +246,6 @@ class ExerciseProfileService
                     ->all(),
             )),
         );
-    }
-
-    private function liveRoutineCountFor(User $user, ExerciseProfile $profile): int
-    {
-        return count($this->assignedRoutinesByExerciseProfileId($user, new Collection([$profile]))[$profile->id] ?? []);
-    }
-
-    /**
-     * @param  Collection<int, ExerciseProfile>  $profiles
-     * @return array<int, list<array{name: string, slug: string}>>
-     */
-    private function assignedRoutinesByProfileId(User $user, Collection $profiles): array
-    {
-        return $this->assignedRoutinesForReferencedIds(
-            $user,
-            $profiles,
-            fn (Routine $routine): array => $this->profileIdsReferencedBy($routine),
-        );
-    }
-
-    /**
-     * Exercise-level and routine-default references only (shared block profile excluded).
-     *
-     * @param  Collection<int, ExerciseProfile>  $profiles
-     * @return array<int, list<array{name: string, slug: string}>>
-     */
-    private function assignedRoutinesByExerciseProfileId(User $user, Collection $profiles): array
-    {
-        return $this->assignedRoutinesForReferencedIds(
-            $user,
-            $profiles,
-            fn (Routine $routine): array => $this->exerciseProfileIdsReferencedBy($routine),
-        );
-    }
-
-    /**
-     * @param  Collection<int, ExerciseProfile>  $profiles
-     * @param  callable(Routine): list<int>  $referencedIdsFor
-     * @return array<int, list<array{name: string, slug: string}>>
-     */
-    private function assignedRoutinesForReferencedIds(
-        User $user,
-        Collection $profiles,
-        callable $referencedIdsFor,
-    ): array {
-        /** @var array<int, list<array{name: string, slug: string}>> $map */
-        $map = [];
-        foreach ($profiles as $profile) {
-            $map[$profile->id] = [];
-        }
-
-        if ($map === []) {
-            return $map;
-        }
-
-        $routines = $user->routines()
-            ->with(['blocks.blockExercises'])
-            ->orderBy('name')
-            ->get();
-
-        foreach ($routines as $routine) {
-            $summary = [
-                'name' => $routine->name,
-                'slug' => (string) $routine->slug,
-            ];
-
-            foreach ($referencedIdsFor($routine) as $profileId) {
-                if (! array_key_exists($profileId, $map)) {
-                    continue;
-                }
-
-                $map[$profileId][] = $summary;
-            }
-        }
-
-        return $map;
-    }
-
-    /**
-     * Profile IDs referenced by a routine for picker visibility and assigned-routine display.
-     *
-     * @return list<int>
-     */
-    private function profileIdsReferencedBy(Routine $routine): array
-    {
-        $ids = $this->exerciseProfileIdsReferencedBy($routine);
-
-        foreach ($routine->blocks as $block) {
-            if ($block->shared_exercise_profile_id !== null) {
-                $ids[] = $block->shared_exercise_profile_id;
-            }
-        }
-
-        return array_values(array_unique($ids));
-    }
-
-    /**
-     * Exercise-level and routine-default profile references (excludes block shared profile).
-     *
-     * @return list<int>
-     */
-    private function exerciseProfileIdsReferencedBy(Routine $routine): array
-    {
-        $ids = [];
-
-        if ($routine->default_exercise_profile_id !== null) {
-            $ids[] = $routine->default_exercise_profile_id;
-        }
-
-        foreach ($routine->blocks as $block) {
-            foreach ($block->blockExercises as $exercise) {
-                if ($exercise->exercise_profile_id !== null) {
-                    $ids[] = $exercise->exercise_profile_id;
-                }
-            }
-        }
-
-        return array_values(array_unique($ids));
-    }
-
-    /**
-     * @param  Collection<int, ExerciseProfile>  $profiles
-     * @return array<int, int>
-     */
-    private function staleAssignmentCountsForUser(User $user, Collection $profiles): array
-    {
-        $customProfiles = $profiles
-            ->filter(fn (ExerciseProfile $profile): bool => $profile->isCustom())
-            ->keyBy('id');
-
-        /** @var array<int, int> $counts */
-        $counts = $customProfiles
-            ->map(fn (): int => 0)
-            ->all();
-
-        if ($counts === []) {
-            return $counts;
-        }
-
-        /** @var array<int, ExerciseProfileRecipe> $recipes */
-        $recipes = $customProfiles
-            ->map(fn (ExerciseProfile $profile): ExerciseProfileRecipe => $profile->recipe())
-            ->all();
-
-        $routines = $user->routines()
-            ->with(['blocks.blockExercises'])
-            ->get();
-
-        foreach ($routines as $routine) {
-            foreach ($routine->blocks as $block) {
-                $sharedProfileId = $block->shared_exercise_profile_id;
-                $sharedAssignedToTrackedProfile = $sharedProfileId !== null && isset($counts[$sharedProfileId]);
-
-                $exerciseUsesSharedProfile = $sharedAssignedToTrackedProfile && $block->blockExercises->contains(
-                    fn (RoutineBlockExercise $exercise): bool => $exercise->exercise_profile_id === $sharedProfileId,
-                );
-
-                if ($exerciseUsesSharedProfile) {
-                    $sharedRecipe = $recipes[$sharedProfileId];
-                    if ($block->shared_profile_fingerprint !== $sharedRecipe->sharedFingerprint()) {
-                        $counts[$sharedProfileId]++;
-                    }
-                }
-
-                foreach ($block->blockExercises as $exercise) {
-                    $exerciseProfileId = $exercise->exercise_profile_id;
-                    if ($exerciseProfileId === null || ! isset($counts[$exerciseProfileId])) {
-                        continue;
-                    }
-
-                    $exerciseRecipe = $recipes[$exerciseProfileId];
-                    $expectedFingerprint = ExerciseProfileAssignment::expectedExerciseFingerprint(
-                        $exerciseRecipe,
-                        $block->is_superset,
-                        $sharedAssignedToTrackedProfile,
-                    );
-
-                    if ($exercise->exercise_profile_fingerprint !== $expectedFingerprint) {
-                        $counts[$exerciseProfileId]++;
-                    }
-                }
-            }
-        }
-
-        return $counts;
     }
 
     /**
@@ -693,128 +388,6 @@ class ExerciseProfileService
         }
 
         return $slug;
-    }
-
-    private function assertAdmin(User $admin): void
-    {
-        if (! $admin->isAdmin()) {
-            throw new ExerciseProfileNotEditableException('Only admins can manage presets.');
-        }
-    }
-
-    private function assertPresetDraft(ExerciseProfile $profile): void
-    {
-        if (
-            ! $profile->isPreset()
-            || $profile->user_id !== null
-            || $profile->status !== ExerciseProfileStatus::Draft
-        ) {
-            throw new ExerciseProfileNotEditableException('Only unpublished preset drafts can be changed.');
-        }
-    }
-
-    private function adminName(string $name): string
-    {
-        $name = trim($name);
-        $normalized = mb_strtolower($name);
-
-        if ($name === '') {
-            throw new InvalidArgumentException('Preset name is required.');
-        }
-
-        if (str_starts_with($normalized, 'ovrload ')) {
-            throw new InvalidArgumentException('Enter the preset name without the OVRLOAD prefix.');
-        }
-
-        return $name;
-    }
-
-    private function assertPublishedPresetNameAvailable(ExerciseProfile $profile): void
-    {
-        $normalized = mb_strtolower($profile->name);
-        $exists = ExerciseProfile::query()
-            ->whereNull('user_id')
-            ->where('kind', ExerciseProfileKind::Preset)
-            ->where('status', ExerciseProfileStatus::Published)
-            ->whereRaw('LOWER(name) = ?', [$normalized])
-            ->exists();
-
-        if ($exists) {
-            throw new InvalidArgumentException('A published preset already uses that name.');
-        }
-    }
-
-    private function assertPublishedPresetRecipeAvailable(ExerciseProfile $profile): void
-    {
-        $exists = ExerciseProfile::query()
-            ->whereNull('user_id')
-            ->where('kind', ExerciseProfileKind::Preset)
-            ->where('status', ExerciseProfileStatus::Published)
-            ->where('recipe_fingerprint', $profile->recipe()->fingerprint())
-            ->exists();
-
-        if ($exists) {
-            throw new InvalidArgumentException('A published preset already uses those Profile Details.');
-        }
-    }
-
-    private function publishedPresetSlug(string $name): string
-    {
-        $base = 'preset-'.Str::slug($name);
-        if ($base === 'preset-') {
-            $base = 'preset-profile';
-        }
-
-        $slug = $base;
-        while (
-            ExerciseProfile::query()
-                ->where('slug_scope', 'system')
-                ->where('slug', $slug)
-                ->exists()
-        ) {
-            $slug = $base.'-'.Str::lower(Str::random(6));
-        }
-
-        return $slug;
-    }
-
-    private function materializeSharedRecipe(RoutineBlock $block, ExerciseProfileRecipe $recipe): void
-    {
-        $working = $block->setGroups->firstWhere('type', SetGroupType::Working);
-        if ($working instanceof RoutineSetGroup) {
-            $working->forceFill(['rest_seconds' => $recipe->workingRestSeconds])->save();
-        }
-
-        $warmUp = $block->setGroups->firstWhere('type', SetGroupType::WarmUp);
-        if (! $warmUp instanceof RoutineSetGroup) {
-            return;
-        }
-
-        $existingSetupFlags = $warmUp->warmUpSteps
-            ->map(static fn ($step): bool => (bool) $step->has_setup_after)
-            ->values()
-            ->all();
-
-        $warmUp->warmUpSteps()->delete();
-        foreach ($recipe->warmUpSteps as $index => $step) {
-            $normalized = WarmUpStepSupport::normalize($step);
-            if ($normalized === null) {
-                continue;
-            }
-
-            $warmUp->warmUpSteps()->create([
-                'position' => $index + 1,
-                'weight_mode' => $normalized['mode'],
-                'percent_of_working' => $normalized['percent'],
-                'weight_g' => $normalized['weight_g'],
-                'reps' => $normalized['reps'],
-                'has_setup_after' => $existingSetupFlags[$index] ?? false,
-            ]);
-        }
-        $warmUp->forceFill(['set_count' => count($recipe->warmUpSteps)])->save();
-        if ($recipe->warmUpSteps === []) {
-            $block->forceFill(['has_setup_after_warm_up' => false])->save();
-        }
     }
 
     private function defaultProfileId(User $user): ?int
