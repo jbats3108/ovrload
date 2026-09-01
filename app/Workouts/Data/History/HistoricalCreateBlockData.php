@@ -2,10 +2,9 @@
 
 namespace App\Workouts\Data\History;
 
+use App\Routines\Data\RoutineBlockStructureData;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
-use App\Routines\Models\RoutineSetGroup;
-use App\Shared\Enums\SetGroupType;
 use App\Shared\Enums\WarmUpWeightMode;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapName;
@@ -35,19 +34,14 @@ class HistoricalCreateBlockData extends Data
 
     public static function fromRoutineBlock(RoutineBlock $block): self
     {
-        $exercises = $block->blockExercises
+        $structure = RoutineBlockStructureData::fromRoutineBlock($block);
+
+        $exercises = $structure->blockExercises
             ->map(fn (RoutineBlockExercise $exercise): HistoricalCreateExerciseData => HistoricalCreateExerciseData::fromRoutineBlockExercise($exercise))
             ->values();
 
-        /** @var RoutineSetGroup|null $workingGroup */
-        $workingGroup = $block->setGroups->first(
-            fn (RoutineSetGroup $group): bool => $group->type === SetGroupType::Working
-        );
-
-        /** @var RoutineSetGroup|null $warmUpGroup */
-        $warmUpGroup = $block->setGroups->first(
-            fn (RoutineSetGroup $group): bool => $group->type === SetGroupType::WarmUp
-        );
+        $workingGroup = $structure->workingGroup;
+        $warmUpGroup = $structure->warmUpGroup;
 
         $setCount = $workingGroup?->set_count ?? 1;
         $segmentsByIndex = $workingGroup?->dropsetSegments->groupBy('set_index') ?? collect();
@@ -56,7 +50,7 @@ class HistoricalCreateBlockData extends Data
         for ($setIndex = 0; $setIndex < $setCount; $setIndex++) {
             $recipeSegments = $segmentsByIndex->get($setIndex, collect())->sortBy('position')->values();
 
-            foreach ($block->blockExercises as $exercise) {
+            foreach ($structure->blockExercises as $exercise) {
                 $workingSets->push(HistoricalCreateSetPrefillData::fromExercise(
                     $exercise,
                     $setIndex,
@@ -69,7 +63,7 @@ class HistoricalCreateBlockData extends Data
         if ($warmUpGroup !== null) {
             foreach ($warmUpGroup->warmUpSteps->sortBy('position')->values() as $step) {
                 $setIndex = max(0, $step->position - 1);
-                foreach ($block->blockExercises as $exercise) {
+                foreach ($structure->blockExercises as $exercise) {
                     $warmUps->push(HistoricalCreateWarmUpPrefillData::fromExerciseStep(
                         $exercise,
                         $setIndex,
@@ -83,8 +77,8 @@ class HistoricalCreateBlockData extends Data
         }
 
         return new self(
-            position: $block->position,
-            isSuperset: $block->is_superset,
+            position: $structure->position,
+            isSuperset: $structure->isSuperset,
             exercises: HistoricalCreateExerciseData::collect($exercises, DataCollection::class),
             workingSetCount: $setCount,
             workingSets: HistoricalCreateSetPrefillData::collect($workingSets, DataCollection::class),
