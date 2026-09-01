@@ -27,12 +27,7 @@ class HistoricalCreatePageData extends Data
 
     public static function fromRoutine(Routine $routine): self
     {
-        $routine->loadMissing([
-            'blocks.blockExercises.exercise',
-            'blocks.blockExercises.deloadExercise',
-            'blocks.setGroups.dropsetSegments',
-            'blocks.setGroups.warmUpSteps',
-        ]);
+        $routine->loadMissing(Routine::EDITOR_STRUCTURE_WITH_DELOAD);
 
         $blocks = $routine->blocks
             ->filter(fn (RoutineBlock $block): bool => $block->blockExercises->isNotEmpty())

@@ -90,11 +90,7 @@ class WorkoutService
     {
         $routine->load([
             'user',
-            'blocks.blockExercises.exercise',
-            'blocks.blockExercises.deloadExercise',
-            'blocks.blockExercises.exerciseProfile',
-            'blocks.setGroups.warmUpSteps',
-            'blocks.setGroups.dropsetSegments',
+            ...Routine::SNAPSHOT_STRUCTURE,
         ]);
 
         $hasExercises = $routine->blocks->contains(

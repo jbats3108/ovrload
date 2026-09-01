@@ -9,6 +9,7 @@ use App\Shared\Traits\HasSlug;
 use App\Users\Models\User;
 use App\Workouts\Models\Workout;
 use Database\Factories\RoutineFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,30 @@ use Override;
 
 class Routine extends Model
 {
+    /** @var list<string> */
+    public const EDITOR_STRUCTURE = [
+        'blocks.blockExercises.exercise',
+        'blocks.setGroups.warmUpSteps',
+        'blocks.setGroups.dropsetSegments',
+    ];
+
+    /** @var list<string> */
+    public const EDITOR_STRUCTURE_WITH_DELOAD = [
+        'blocks.blockExercises.exercise',
+        'blocks.blockExercises.deloadExercise',
+        'blocks.setGroups.warmUpSteps',
+        'blocks.setGroups.dropsetSegments',
+    ];
+
+    /** @var list<string> */
+    public const SNAPSHOT_STRUCTURE = [
+        'blocks.blockExercises.exercise',
+        'blocks.blockExercises.deloadExercise',
+        'blocks.blockExercises.exerciseProfile',
+        'blocks.setGroups.warmUpSteps',
+        'blocks.setGroups.dropsetSegments',
+    ];
+
     /** @use HasFactory<RoutineFactory> */
     use HasFactory;
 
@@ -93,6 +118,14 @@ class Routine extends Model
     public function workouts(): HasMany
     {
         return $this->hasMany(Workout::class);
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     */
+    public function scopeWithEditorStructure(Builder $query, bool $includeDeload = false): void
+    {
+        $query->with($includeDeload ? self::EDITOR_STRUCTURE_WITH_DELOAD : self::EDITOR_STRUCTURE);
     }
 
     protected static function newFactory(): RoutineFactory

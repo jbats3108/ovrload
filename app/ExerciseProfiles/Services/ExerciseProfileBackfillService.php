@@ -5,6 +5,7 @@ namespace App\ExerciseProfiles\Services;
 use App\ExerciseProfiles\Enums\ExerciseProfileKind;
 use App\ExerciseProfiles\Enums\ExerciseProfileStatus;
 use App\ExerciseProfiles\Models\ExerciseProfile;
+use App\ExerciseProfiles\Support\ExerciseProfileAssignment;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
@@ -165,9 +166,10 @@ final class ExerciseProfileBackfillService
                 'exercise_profile_fingerprint' => $existingProfile?->id === $profiles[$blockExercise->id]->id
                     && $blockExercise->exercise_profile_fingerprint !== null
                     ? $blockExercise->exercise_profile_fingerprint
-                    : ($block->is_superset
-                        ? $recipe->exerciseFingerprint()
-                        : $recipe->fingerprint()),
+                    : ExerciseProfileAssignment::exerciseFingerprint(
+                        $profiles[$blockExercise->id],
+                        $block->is_superset,
+                    ),
                 'floor_is_derived' => $profiles[$blockExercise->id]->floor_override === null,
             ])->save();
         }

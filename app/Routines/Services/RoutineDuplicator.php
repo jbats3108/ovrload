@@ -41,11 +41,7 @@ class RoutineDuplicator
                 $this->copyBlock($copy, $block);
             }
 
-            return $copy->fresh([
-                'blocks.blockExercises.exercise',
-                'blocks.setGroups.warmUpSteps',
-                'blocks.setGroups.dropsetSegments',
-            ]) ?? $copy;
+            return $copy->fresh(Routine::EDITOR_STRUCTURE) ?? $copy;
         });
     }
 

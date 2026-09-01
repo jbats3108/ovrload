@@ -4,6 +4,7 @@ namespace App\Routines\Services;
 
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\ExerciseProfiles\Services\ExerciseProfileService;
+use App\ExerciseProfiles\Support\ExerciseProfileAssignment;
 use App\Exercises\Models\Exercise;
 use App\Routines\Data\Editor\SyncBlockExerciseData;
 use App\Routines\Data\Editor\SyncDropsetData;
@@ -71,11 +72,7 @@ class RoutineEditorService
                 $this->createBlock($locked, $index + 1, $blockData, $index === $lastIndex);
             }
 
-            return $locked->fresh([
-                'blocks.blockExercises.exercise',
-                'blocks.setGroups.warmUpSteps',
-                'blocks.setGroups.dropsetSegments',
-            ]) ?? $locked;
+            return $locked->fresh(Routine::EDITOR_STRUCTURE) ?? $locked;
         });
     }
 
@@ -110,12 +107,18 @@ class RoutineEditorService
 
         if (
             $sharedProfile !== null
-            && $this->assignmentIsCurrent($blockData->sharedProfileFingerprint, $sharedProfile->recipe()->sharedFingerprint())
+            && ExerciseProfileAssignment::assignmentIsCurrent(
+                $blockData->sharedProfileFingerprint,
+                $sharedProfile->recipe()->sharedFingerprint(),
+            )
             && ! $this->sharedValuesMatchProfile($blockData, $sharedProfile, $steps)
         ) {
             throw new InvalidArgumentException('The shared profile values no longer match this block.');
         }
-        $sharedFingerprint = $this->sharedProfileFingerprint($sharedProfile, $blockData->sharedProfileFingerprint);
+        $sharedFingerprint = ExerciseProfileAssignment::sharedProfileFingerprint(
+            $sharedProfile,
+            $blockData->sharedProfileFingerprint,
+        );
 
         $block = RoutineBlock::create([
             'routine_id' => $routine->id,
@@ -133,9 +136,9 @@ class RoutineEditorService
             $exerciseProfile = $this->profileFromId($routine->user, $exerciseData->exerciseProfileId);
             if (
                 $exerciseProfile !== null
-                && $this->assignmentIsCurrent(
+                && ExerciseProfileAssignment::assignmentIsCurrent(
                     $exerciseData->exerciseProfileFingerprint,
-                    $this->exerciseProfileFingerprint($exerciseProfile, $blockData->isSuperset),
+                    ExerciseProfileAssignment::exerciseFingerprint($exerciseProfile, $blockData->isSuperset),
                 )
                 && ! $this->exerciseValuesMatchProfile($exerciseData, $exerciseProfile)
             ) {
@@ -146,15 +149,19 @@ class RoutineEditorService
                 Exercise::assertAvailableFor($routine->user, $exerciseData->deloadExerciseId);
             }
             $usesSupersetFingerprint = $blockData->isSuperset || $sharedProfile === null;
-            $exerciseFingerprint = $this->exerciseProfileFingerprint(
+            $exerciseFingerprint = ExerciseProfileAssignment::exerciseFingerprint(
                 $exerciseProfile,
                 $usesSupersetFingerprint,
             );
             $exerciseAssignmentIsCurrent = $exerciseProfile !== null
-                && $this->assignmentIsCurrent($exerciseData->exerciseProfileFingerprint, $exerciseFingerprint);
-            $storedExerciseFingerprint = $exerciseProfile === null
-                ? null
-                : ($exerciseData->exerciseProfileFingerprint ?? $exerciseFingerprint);
+                && ExerciseProfileAssignment::assignmentIsCurrent(
+                    $exerciseData->exerciseProfileFingerprint,
+                    $exerciseFingerprint,
+                );
+            $storedExerciseFingerprint = ExerciseProfileAssignment::storedExerciseFingerprint(
+                $exerciseData->exerciseProfileFingerprint,
+                $exerciseFingerprint,
+            );
 
             RoutineBlockExercise::create([
                 'routine_block_id' => $block->id,
@@ -299,31 +306,6 @@ class RoutineEditorService
         }
 
         return $data->achievementFloor;
-    }
-
-    private function assignmentIsCurrent(?string $fingerprint, string $currentFingerprint): bool
-    {
-        return $fingerprint === null || $fingerprint === $currentFingerprint;
-    }
-
-    private function exerciseProfileFingerprint(?ExerciseProfile $profile, bool $isSuperset): ?string
-    {
-        if ($profile === null) {
-            return null;
-        }
-
-        return $isSuperset
-            ? $profile->recipe()->exerciseFingerprint()
-            : $profile->recipe()->fingerprint();
-    }
-
-    private function sharedProfileFingerprint(?ExerciseProfile $profile, ?string $fingerprint): ?string
-    {
-        if ($profile === null) {
-            return null;
-        }
-
-        return $fingerprint ?? $profile->recipe()->sharedFingerprint();
     }
 
     /**

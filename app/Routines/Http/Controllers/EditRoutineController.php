@@ -4,7 +4,7 @@ namespace App\Routines\Http\Controllers;
 
 use App\ExerciseProfiles\Services\ExerciseProfileService;
 use App\Exercises\Enums\ExerciseEquipment;
-use App\Exercises\Models\Exercise;
+use App\Exercises\Support\ExercisePickerOptions;
 use App\MuscleGroups\Models\MuscleGroup;
 use App\Routines\Data\Editor\RoutineEditorExerciseOptionData;
 use App\Routines\Data\Editor\RoutineEditorPageData;
@@ -53,19 +53,7 @@ class EditRoutineController extends Controller
 
         return Inertia::render('routines/Edit', [
             'routine' => Arr::except($payload, ['exercises', 'weight_unit']),
-            'exercises' => Inertia::defer(fn () => Exercise::query()
-                ->with(['primaryMuscleGroup', 'secondaryMuscleGroup'])
-                ->forUser($user)
-                ->orderBy('name')
-                ->get()
-                ->map(fn (Exercise $exercise): RoutineEditorExerciseOptionData => new RoutineEditorExerciseOptionData(
-                    id: $exercise->id,
-                    name: $exercise->getName(),
-                    primaryMuscleGroup: $exercise->primaryMuscleGroup->getName(),
-                    isCustom: $exercise->isCustom(),
-                ))
-                ->values()
-                ->all()),
+            'exercises' => ExercisePickerOptions::deferFor($user),
             'weight_unit' => $payload['weight_unit'],
             'warm_up_defaults' => $user->resolvedWarmUpStepsDefault(),
             'warm_up_defaults_scope' => ($user->warm_up_defaults_scope ?? WarmUpDefaultsScope::AllBlocks)->value,

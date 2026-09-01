@@ -43,11 +43,7 @@ class RoutineEditorPageData extends Data
      */
     public static function fromRoutine(Routine $routine, DataCollection $exercises, string $weightUnit): self
     {
-        $routine->loadMissing([
-            'blocks.blockExercises.exercise',
-            'blocks.setGroups.warmUpSteps',
-            'blocks.setGroups.dropsetSegments',
-        ]);
+        $routine->loadMissing(Routine::EDITOR_STRUCTURE);
 
         $blocks = $routine->blocks->map(function (RoutineBlock $block): RoutineEditorBlockData {
             $working = $block->setGroups->firstWhere('type', SetGroupType::Working);

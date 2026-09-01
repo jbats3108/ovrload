@@ -13,6 +13,7 @@ use App\ExerciseProfiles\Enums\ExerciseProfileStatus;
 use App\ExerciseProfiles\Exceptions\ExerciseProfileInUseException;
 use App\ExerciseProfiles\Exceptions\ExerciseProfileNotEditableException;
 use App\ExerciseProfiles\Models\ExerciseProfile;
+use App\ExerciseProfiles\Support\ExerciseProfileAssignment;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
@@ -31,16 +32,8 @@ class ExerciseProfileService
     public function pageDataFor(User $user): ExerciseProfilePageData
     {
         $defaultId = $this->defaultProfileId($user);
-        $custom = $user->exerciseProfiles()
-            ->where('status', ExerciseProfileStatus::Published)
-            ->orderBy('name')
-            ->get();
-        $presets = ExerciseProfile::query()
-            ->whereNull('user_id')
-            ->where('kind', ExerciseProfileKind::Preset)
-            ->where('status', ExerciseProfileStatus::Published)
-            ->orderBy('name')
-            ->get();
+        $custom = $this->publishedCustomProfilesFor($user);
+        $presets = $this->publishedPresetProfiles();
 
         $profiles = $this->orderedProfiles($custom, $presets, $defaultId);
         $staleAssignmentCounts = $this->staleAssignmentCountsForUser($user, $profiles);
@@ -80,16 +73,8 @@ class ExerciseProfileService
      */
     public function optionsForUser(User $user, ?int $defaultId = null): array
     {
-        $custom = $user->exerciseProfiles()
-            ->where('status', ExerciseProfileStatus::Published)
-            ->orderBy('name')
-            ->get();
-        $presets = ExerciseProfile::query()
-            ->whereNull('user_id')
-            ->where('kind', ExerciseProfileKind::Preset)
-            ->where('status', ExerciseProfileStatus::Published)
-            ->orderBy('name')
-            ->get();
+        $custom = $this->publishedCustomProfilesFor($user);
+        $presets = $this->publishedPresetProfiles();
 
         $options = [];
         foreach ($this->orderedProfiles($custom, $presets, $defaultId) as $profile) {
@@ -109,30 +94,9 @@ class ExerciseProfileService
             'blocks.sharedExerciseProfile',
         ]);
 
-        $referencedIds = $routine->blocks
-            ->flatMap(fn ($block): array => array_merge(
-                [$block->shared_exercise_profile_id],
-                $block->blockExercises->pluck('exercise_profile_id')->all(),
-            ))
-            ->push($routine->default_exercise_profile_id)
-            ->filter()
-            ->unique()
-            ->values();
-
-        $profiles = $user->exerciseProfiles()
-            ->whereIn('status', [ExerciseProfileStatus::Published, ExerciseProfileStatus::Archived])
-            ->where(function ($query) use ($referencedIds): void {
-                $query->where('status', ExerciseProfileStatus::Published)
-                    ->orWhereIn('id', $referencedIds);
-            })
-            ->orderBy('name')
-            ->get();
-        $presets = ExerciseProfile::query()
-            ->whereNull('user_id')
-            ->where('kind', ExerciseProfileKind::Preset)
-            ->where('status', ExerciseProfileStatus::Published)
-            ->orderBy('name')
-            ->get();
+        $referencedIds = $this->profileIdsReferencedBy($routine);
+        $profiles = $this->selectableCustomProfilesFor($user, $referencedIds);
+        $presets = $this->publishedPresetProfiles();
         $defaultId = $this->defaultProfileId($user);
 
         $options = [];
@@ -363,9 +327,11 @@ class ExerciseProfileService
                             'prescribed_reps' => $recipe->targetReps,
                             'achievement_floor_override' => $recipe->floorOverride,
                             'floor_is_derived' => $recipe->floorOverride === null,
-                            'exercise_profile_fingerprint' => $block->is_superset || ! $sharedAssigned
-                                ? $recipe->exerciseFingerprint()
-                                : $recipe->fingerprint(),
+                            'exercise_profile_fingerprint' => ExerciseProfileAssignment::expectedExerciseFingerprint(
+                                $recipe,
+                                $block->is_superset,
+                                $sharedAssigned,
+                            ),
                         ])->save();
                         $updated++;
                     }
@@ -571,9 +537,11 @@ class ExerciseProfileService
                     }
 
                     $exerciseRecipe = $recipes[$exerciseProfileId];
-                    $expectedFingerprint = $block->is_superset || ! $sharedAssignedToTrackedProfile
-                        ? $exerciseRecipe->exerciseFingerprint()
-                        : $exerciseRecipe->fingerprint();
+                    $expectedFingerprint = ExerciseProfileAssignment::expectedExerciseFingerprint(
+                        $exerciseRecipe,
+                        $block->is_superset,
+                        $sharedAssignedToTrackedProfile,
+                    );
 
                     if ($exercise->exercise_profile_fingerprint !== $expectedFingerprint) {
                         $counts[$exerciseProfileId]++;
@@ -583,6 +551,50 @@ class ExerciseProfileService
         }
 
         return $counts;
+    }
+
+    /**
+     * @return Collection<int, ExerciseProfile>
+     */
+    private function publishedCustomProfilesFor(User $user): Collection
+    {
+        return $user->exerciseProfiles()
+            ->where('status', ExerciseProfileStatus::Published)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, ExerciseProfile>
+     */
+    private function publishedPresetProfiles(): Collection
+    {
+        return ExerciseProfile::query()
+            ->whereNull('user_id')
+            ->where('kind', ExerciseProfileKind::Preset)
+            ->where('status', ExerciseProfileStatus::Published)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @param  list<int>  $includeArchivedIds
+     * @return Collection<int, ExerciseProfile>
+     */
+    private function selectableCustomProfilesFor(User $user, array $includeArchivedIds): Collection
+    {
+        if ($includeArchivedIds === []) {
+            return $this->publishedCustomProfilesFor($user);
+        }
+
+        return $user->exerciseProfiles()
+            ->whereIn('status', [ExerciseProfileStatus::Published, ExerciseProfileStatus::Archived])
+            ->where(function ($query) use ($includeArchivedIds): void {
+                $query->where('status', ExerciseProfileStatus::Published)
+                    ->orWhereIn('id', $includeArchivedIds);
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     private function recipeFromData(SaveExerciseProfileData $data): ExerciseProfileRecipe
