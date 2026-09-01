@@ -4,6 +4,7 @@ namespace Tests\Feature\ExerciseProfiles;
 
 use App\ExerciseProfiles\Enums\ExerciseProfileKind;
 use App\ExerciseProfiles\Models\ExerciseProfile;
+use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Users\Models\User;
 use Database\Seeders\DatabaseSeeder;
@@ -25,8 +26,9 @@ class LocalExerciseProfileSeederTest extends TestCase
         $strength = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
         $customProfiles = $user->exerciseProfiles()->get();
         $routineIds = $user->routines()->pluck('id');
+        $blockIds = RoutineBlock::query()->whereIn('routine_id', $routineIds)->pluck('id');
         $routineExercises = RoutineBlockExercise::query()
-            ->whereHas('block', fn ($query) => $query->whereIn('routine_id', $routineIds))
+            ->whereIn('routine_block_id', $blockIds)
             ->with('exerciseProfile')
             ->get();
 

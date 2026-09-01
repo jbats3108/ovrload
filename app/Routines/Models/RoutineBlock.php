@@ -2,9 +2,7 @@
 
 namespace App\Routines\Models;
 
-use App\ExerciseProfiles\Models\ExerciseProfile;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Override;
@@ -33,18 +31,6 @@ class RoutineBlock extends Model
             'has_setup_after' => 'boolean',
             'has_setup_after_warm_up' => 'boolean',
         ];
-    }
-
-    /** @return BelongsTo<Routine, $this> */
-    public function routine(): BelongsTo
-    {
-        return $this->belongsTo(Routine::class);
-    }
-
-    /** @return BelongsTo<ExerciseProfile, $this> */
-    public function sharedExerciseProfile(): BelongsTo
-    {
-        return $this->belongsTo(ExerciseProfile::class, 'shared_exercise_profile_id');
     }
 
     /** @return HasMany<RoutineBlockExercise, $this> */

@@ -21,7 +21,7 @@ class ArchiveExerciseProfileController extends Controller
     ): RedirectResponse {
         /** @var User $user */
         $user = $request->user();
-        Gate::authorize('archive', $exerciseProfile);
+        Gate::authorize('delete', $exerciseProfile);
 
         try {
             $profiles->archive($user, $exerciseProfile);

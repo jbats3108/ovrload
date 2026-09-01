@@ -4,7 +4,6 @@ namespace App\Routines\Models;
 
 use App\Shared\Enums\SetGroupType;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Override;
 
@@ -27,12 +26,6 @@ class RoutineSetGroup extends Model
             'set_count' => 'integer',
             'rest_seconds' => 'integer',
         ];
-    }
-
-    /** @return BelongsTo<RoutineBlock, $this> */
-    public function block(): BelongsTo
-    {
-        return $this->belongsTo(RoutineBlock::class, 'routine_block_id');
     }
 
     /** @return HasMany<RoutineWarmUpStep, $this> */

@@ -251,14 +251,20 @@ watch(profileSyncId, (profileId) => {
                 </details>
 
                 <div v-if="profile.kind === 'custom'" class="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
-                    <Button v-if="!profile.is_default && !profile.reference_count" type="button" variant="ghost" size="sm" @click="archive(profile)">
+                    <Button
+                        v-if="!profile.is_default && !profile.assigned_routines.length"
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        @click="archive(profile)"
+                    >
                         Archive
                     </Button>
                     <Button v-if="profile.stale_assignment_count > 0" type="button" variant="ghost" size="sm" @click="sync(profile)">
                         Update routines
                     </Button>
                     <Button
-                        v-if="!profile.reference_count"
+                        v-if="!profile.assigned_routines.length"
                         type="button"
                         variant="ghost"
                         size="sm"

@@ -48,7 +48,6 @@ class ExerciseProfileService
                 $profiles->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     $profile->id === $defaultId,
-                    count($assignedById[$profile->id] ?? []),
                     $staleAssignmentCounts[$profile->id] ?? 0,
                     $assignedById[$profile->id] ?? [],
                 )),
@@ -58,7 +57,6 @@ class ExerciseProfileService
                 $archived->map(fn (ExerciseProfile $profile): ExerciseProfileOptionData => ExerciseProfileOptionData::fromProfile(
                     $profile,
                     false,
-                    count($assignedById[$profile->id] ?? []),
                     0,
                     $assignedById[$profile->id] ?? [],
                 )),
@@ -88,10 +86,7 @@ class ExerciseProfileService
      */
     public function optionsForRoutineEditor(User $user, Routine $routine): array
     {
-        $routine->loadMissing([
-            'blocks.blockExercises',
-            'blocks.sharedExerciseProfile',
-        ]);
+        $routine->loadMissing(['blocks.blockExercises']);
 
         $referencedIds = $this->assignments->profileIdsReferencedBy($routine);
         $profiles = $this->selectableCustomProfilesFor($user, $referencedIds);

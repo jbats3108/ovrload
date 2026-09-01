@@ -21,7 +21,6 @@ const strength: ExerciseProfileOption = {
     recipe_fingerprint: 'recipe-strength',
     exercise_fingerprint: 'exercise-strength',
     shared_fingerprint: 'shared-strength',
-    reference_count: 0,
     stale_assignment_count: 0,
     is_default: true,
     assigned_routines: [],

@@ -28,13 +28,6 @@ class ExerciseProfileAssignmentService
             $updated = 0;
 
             $routines = $user->routines()
-                ->where(function ($query) use ($lockedProfile): void {
-                    $query->where('default_exercise_profile_id', $lockedProfile->id)
-                        ->orWhereHas('blocks', fn ($blocks) => $blocks
-                            ->where('shared_exercise_profile_id', $lockedProfile->id)
-                            ->orWhereHas('blockExercises', fn ($exercises) => $exercises
-                                ->where('exercise_profile_id', $lockedProfile->id)));
-                })
                 ->with([
                     'blocks.blockExercises',
                     'blocks.setGroups.warmUpSteps',
@@ -78,7 +71,7 @@ class ExerciseProfileAssignmentService
 
     public function liveRoutineCountFor(User $user, ExerciseProfile $profile): int
     {
-        return count($this->assignedRoutinesByExerciseProfileId($user, new Collection([$profile]))[$profile->id] ?? []);
+        return count($this->assignedRoutinesByProfileId($user, new Collection([$profile]))[$profile->id] ?? []);
     }
 
     /**
@@ -95,21 +88,13 @@ class ExerciseProfileAssignmentService
     }
 
     /**
-     * Profile IDs referenced by a routine for picker visibility and assigned-routine display.
+     * Profile IDs shown by the routine profile picker or an exercise profile picker.
      *
      * @return list<int>
      */
     public function profileIdsReferencedBy(Routine $routine): array
     {
-        $ids = $this->exerciseProfileIdsReferencedBy($routine);
-
-        foreach ($routine->blocks as $block) {
-            if ($block->shared_exercise_profile_id !== null) {
-                $ids[] = $block->shared_exercise_profile_id;
-            }
-        }
-
-        return array_values(array_unique($ids));
+        return $this->exerciseProfileIdsReferencedBy($routine);
     }
 
     /**
@@ -177,21 +162,6 @@ class ExerciseProfileAssignmentService
         }
 
         return $counts;
-    }
-
-    /**
-     * Exercise-level and routine-default references only (shared block profile excluded).
-     *
-     * @param  Collection<int, ExerciseProfile>  $profiles
-     * @return array<int, list<array{name: string, slug: string}>>
-     */
-    private function assignedRoutinesByExerciseProfileId(User $user, Collection $profiles): array
-    {
-        return $this->assignedRoutinesForReferencedIds(
-            $user,
-            $profiles,
-            fn (Routine $routine): array => $this->exerciseProfileIdsReferencedBy($routine),
-        );
     }
 
     /**

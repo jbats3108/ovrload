@@ -29,7 +29,6 @@ class ExerciseProfileOptionData extends Data
         public readonly string $recipeFingerprint,
         public readonly string $exerciseFingerprint,
         public readonly string $sharedFingerprint,
-        public readonly int $referenceCount = 0,
         public readonly int $staleAssignmentCount = 0,
         public readonly bool $isDefault = false,
         public readonly array $assignedRoutines = [],
@@ -41,7 +40,6 @@ class ExerciseProfileOptionData extends Data
     public static function fromProfile(
         ExerciseProfile $profile,
         bool $isDefault = false,
-        int $referenceCount = 0,
         int $staleAssignmentCount = 0,
         array $assignedRoutines = [],
     ): self {
@@ -60,7 +58,6 @@ class ExerciseProfileOptionData extends Data
             recipeFingerprint: $profile->recipe()->fingerprint(),
             exerciseFingerprint: $profile->recipe()->exerciseFingerprint(),
             sharedFingerprint: $profile->recipe()->sharedFingerprint(),
-            referenceCount: $referenceCount,
             staleAssignmentCount: $staleAssignmentCount,
             isDefault: $isDefault,
             assignedRoutines: $assignedRoutines,

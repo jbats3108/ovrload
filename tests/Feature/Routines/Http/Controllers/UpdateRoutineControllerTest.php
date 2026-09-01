@@ -72,6 +72,25 @@ class UpdateRoutineControllerTest extends TestCase
     }
 
     #[Test]
+    public function owner_update_rejects_a_draft_preset_as_the_default_profile(): void
+    {
+        $draft = ExerciseProfile::factory()->preset()->draft()->create(['name' => 'WIP']);
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'New Name',
+            'default_exercise_profile_id' => $draft->id,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'working_weight_kg' => 80,
+                    'working' => ['set_count' => 3, 'rest_seconds' => 180],
+                ]),
+            ],
+        ])->assertSessionHasErrors('blocks');
+    }
+
+    #[Test]
     public function owner_update_returns_inertia_location_for_inertia_requests(): void
     {
         $routine = Routine::factory()->withUser($this->user)->create();
@@ -119,7 +138,7 @@ class UpdateRoutineControllerTest extends TestCase
             ],
         ])->assertRedirect(route('routines.edit', $routine));
 
-        $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.sharedExerciseProfile', 'blocks.setGroups.warmUpSteps']);
+        $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.setGroups.warmUpSteps']);
         $savedBlock = $savedRoutine->blocks->firstOrFail();
         $savedExercise = $savedBlock->blockExercises->firstOrFail();
         $savedWarmUps = $savedBlock->setGroups->firstWhere('type', 'warm_up')?->warmUpSteps;
@@ -534,7 +553,7 @@ class UpdateRoutineControllerTest extends TestCase
             ],
         ])->assertRedirect(route('routines.edit', $routine));
 
-        $saved = $routine->fresh(['blocks.blockExercises', 'blocks.sharedExerciseProfile']);
+        $saved = $routine->fresh(['blocks.blockExercises']);
         $block = $saved->blocks->firstOrFail();
 
         $this->assertSame($strength->id, $saved->default_exercise_profile_id);

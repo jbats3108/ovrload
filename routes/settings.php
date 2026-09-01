@@ -7,7 +7,6 @@ use App\ExerciseProfiles\Http\Controllers\SetDefaultExerciseProfileController;
 use App\ExerciseProfiles\Http\Controllers\StoreExerciseProfileController;
 use App\ExerciseProfiles\Http\Controllers\SyncExerciseProfileController;
 use App\ExerciseProfiles\Http\Controllers\UpdateExerciseProfileController;
-use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Settings\Http\Controllers\ExportUserDataController;
 use App\Settings\Http\Controllers\PasswordController;
 use App\Settings\Http\Controllers\ProfileController;
@@ -38,26 +37,12 @@ Route::middleware('auth')->group(function (): void {
     Route::put('settings/training/plates', UpdatePlateProfileController::class)->name('training.plates.update');
 
     Route::prefix('settings/exercise-profiles')->group(function (): void {
-        Route::post('/', StoreExerciseProfileController::class)
-            ->can('create', ExerciseProfile::class)
-            ->name('exercise-profiles.store');
-        Route::put('/{exerciseProfile}', UpdateExerciseProfileController::class)
-            ->can('update', 'exerciseProfile')
-            ->name('exercise-profiles.update');
-        Route::post('/{exerciseProfile}/default', SetDefaultExerciseProfileController::class)
-            ->can('setDefault', 'exerciseProfile')
-            ->name('exercise-profiles.default');
-        Route::post('/{exerciseProfile}/sync', SyncExerciseProfileController::class)
-            ->can('sync', 'exerciseProfile')
-            ->name('exercise-profiles.sync');
-        Route::post('/{exerciseProfile}/archive', ArchiveExerciseProfileController::class)
-            ->can('archive', 'exerciseProfile')
-            ->name('exercise-profiles.archive');
-        Route::post('/{exerciseProfile}/restore', RestoreExerciseProfileController::class)
-            ->can('restore', 'exerciseProfile')
-            ->name('exercise-profiles.restore');
-        Route::delete('/{exerciseProfile}', DeleteExerciseProfileController::class)
-            ->can('delete', 'exerciseProfile')
-            ->name('exercise-profiles.delete');
+        Route::post('/', StoreExerciseProfileController::class)->name('exercise-profiles.store');
+        Route::put('/{exerciseProfile}', UpdateExerciseProfileController::class)->name('exercise-profiles.update');
+        Route::post('/{exerciseProfile}/default', SetDefaultExerciseProfileController::class)->name('exercise-profiles.default');
+        Route::post('/{exerciseProfile}/sync', SyncExerciseProfileController::class)->name('exercise-profiles.sync');
+        Route::post('/{exerciseProfile}/archive', ArchiveExerciseProfileController::class)->name('exercise-profiles.archive');
+        Route::post('/{exerciseProfile}/restore', RestoreExerciseProfileController::class)->name('exercise-profiles.restore');
+        Route::delete('/{exerciseProfile}', DeleteExerciseProfileController::class)->name('exercise-profiles.delete');
     });
 });

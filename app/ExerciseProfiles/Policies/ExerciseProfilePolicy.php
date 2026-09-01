@@ -11,21 +11,11 @@ class ExerciseProfilePolicy
 {
     use HandlesAuthorization;
 
-    public function viewAny(User $user): bool
-    {
-        return true;
-    }
-
     public function view(User $user, ExerciseProfile $exerciseProfile): bool
     {
         return $exerciseProfile->isPreset()
             ? $exerciseProfile->status === ExerciseProfileStatus::Published
             : $exerciseProfile->user_id === $user->id;
-    }
-
-    public function create(User $user): bool
-    {
-        return true;
     }
 
     public function update(User $user, ExerciseProfile $exerciseProfile): bool
@@ -62,22 +52,5 @@ class ExerciseProfilePolicy
         return $user->isAdmin()
             && $exerciseProfile->isPreset()
             && $exerciseProfile->status === ExerciseProfileStatus::Draft;
-    }
-
-    public function sync(User $user, ExerciseProfile $exerciseProfile): bool
-    {
-        return $this->update($user, $exerciseProfile);
-    }
-
-    public function archive(User $user, ExerciseProfile $exerciseProfile): bool
-    {
-        return $exerciseProfile->isCustom()
-            && $exerciseProfile->user_id === $user->id
-            && $exerciseProfile->status === ExerciseProfileStatus::Published;
-    }
-
-    public function setDefault(User $user, ExerciseProfile $exerciseProfile): bool
-    {
-        return $this->view($user, $exerciseProfile);
     }
 }
