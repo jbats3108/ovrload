@@ -44,12 +44,6 @@ class WorkoutSet extends Model
         return $this->belongsTo(WorkoutSetGroup::class, 'workout_set_group_id');
     }
 
-    /** @return BelongsTo<WorkoutBlockExercise, $this> */
-    public function blockExercise(): BelongsTo
-    {
-        return $this->belongsTo(WorkoutBlockExercise::class, 'workout_block_exercise_id');
-    }
-
     /** @return HasMany<WorkoutSetSegment, $this> */
     public function segments(): HasMany
     {

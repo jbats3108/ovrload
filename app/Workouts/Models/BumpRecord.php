@@ -29,12 +29,6 @@ class BumpRecord extends Model
         ];
     }
 
-    /** @return BelongsTo<Workout, $this> */
-    public function workout(): BelongsTo
-    {
-        return $this->belongsTo(Workout::class);
-    }
-
     /** @return BelongsTo<RoutineBlockExercise, $this> */
     public function routineBlockExercise(): BelongsTo
     {

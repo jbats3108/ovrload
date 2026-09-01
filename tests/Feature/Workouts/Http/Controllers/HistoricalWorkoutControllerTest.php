@@ -71,7 +71,7 @@ class HistoricalWorkoutControllerTest extends TestCase
         $routine = Routine::factory()->withUser($this->user)->create();
         [, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, workingWeightG: 200000, prescribedReps: 5);
         $warmUp = RoutineSetGroup::create([
-            'routine_block_id' => $routineExercise->block->id,
+            'routine_block_id' => $routineExercise->routine_block_id,
             'type' => SetGroupType::WarmUp,
             'set_count' => 1,
             'rest_seconds' => 45,
@@ -141,9 +141,9 @@ class HistoricalWorkoutControllerTest extends TestCase
     {
         $routine = Routine::factory()->withUser($this->user)->create();
         [, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, workingWeightG: 100000, prescribedReps: 5);
-        $block = $routineExercise->block;
+        $blockId = $routineExercise->routine_block_id;
         $warmUp = RoutineSetGroup::create([
-            'routine_block_id' => $block->id,
+            'routine_block_id' => $blockId,
             'type' => SetGroupType::WarmUp,
             'set_count' => 1,
             'rest_seconds' => 45,
@@ -201,7 +201,7 @@ class HistoricalWorkoutControllerTest extends TestCase
         $routine = Routine::factory()->withUser($this->user)->create();
         [, $routineExercise] = $this->seedPlayableRoutineBlock($routine, setCount: 1, workingWeightG: 200000, prescribedReps: 5);
         $warmUp = RoutineSetGroup::create([
-            'routine_block_id' => $routineExercise->block->id,
+            'routine_block_id' => $routineExercise->routine_block_id,
             'type' => SetGroupType::WarmUp,
             'set_count' => 1,
             'rest_seconds' => 45,

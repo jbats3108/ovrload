@@ -18,9 +18,8 @@ class WorkoutSetTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function it_has_a_block_exercise(): void
+    public function it_stores_workout_block_exercise_id(): void
     {
-        // Given
         $workoutBlock = WorkoutBlock::create([
             'workout_id' => Workout::factory()->create()->id,
             'position' => 1,
@@ -41,15 +40,13 @@ class WorkoutSetTest extends TestCase
             'set_count' => 3,
         ]);
 
-        // When
         $workoutSet = WorkoutSet::create([
             'workout_set_group_id' => $workoutSetGroup->id,
             'workout_block_exercise_id' => $workoutBlockExercise->id,
             'set_index' => 0,
         ]);
 
-        // Then
-        $this->assertTrue($workoutSet->blockExercise->is($workoutBlockExercise));
+        $this->assertSame($workoutBlockExercise->id, $workoutSet->workout_block_exercise_id);
     }
 
     #[Test]

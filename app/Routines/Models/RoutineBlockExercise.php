@@ -42,12 +42,6 @@ class RoutineBlockExercise extends Model
         ];
     }
 
-    /** @return BelongsTo<RoutineBlock, $this> */
-    public function block(): BelongsTo
-    {
-        return $this->belongsTo(RoutineBlock::class, 'routine_block_id');
-    }
-
     /** @return BelongsTo<ExerciseProfile, $this> */
     public function exerciseProfile(): BelongsTo
     {

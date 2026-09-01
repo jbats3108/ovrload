@@ -3,7 +3,6 @@
 namespace App\Routines\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Override;
 
 class RoutineDropsetSegment extends Model
@@ -25,11 +24,5 @@ class RoutineDropsetSegment extends Model
             'position' => 'integer',
             'weight_g' => 'integer',
         ];
-    }
-
-    /** @return BelongsTo<RoutineSetGroup, $this> */
-    public function setGroup(): BelongsTo
-    {
-        return $this->belongsTo(RoutineSetGroup::class, 'routine_set_group_id');
     }
 }

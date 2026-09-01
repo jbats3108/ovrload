@@ -138,7 +138,7 @@ class UpdateRoutineControllerTest extends TestCase
             ],
         ])->assertRedirect(route('routines.edit', $routine));
 
-        $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.sharedExerciseProfile', 'blocks.setGroups.warmUpSteps']);
+        $savedRoutine = $routine->fresh(['defaultExerciseProfile', 'blocks.blockExercises.exerciseProfile', 'blocks.setGroups.warmUpSteps']);
         $savedBlock = $savedRoutine->blocks->firstOrFail();
         $savedExercise = $savedBlock->blockExercises->firstOrFail();
         $savedWarmUps = $savedBlock->setGroups->firstWhere('type', 'warm_up')?->warmUpSteps;
@@ -553,7 +553,7 @@ class UpdateRoutineControllerTest extends TestCase
             ],
         ])->assertRedirect(route('routines.edit', $routine));
 
-        $saved = $routine->fresh(['blocks.blockExercises', 'blocks.sharedExerciseProfile']);
+        $saved = $routine->fresh(['blocks.blockExercises']);
         $block = $saved->blocks->firstOrFail();
 
         $this->assertSame($strength->id, $saved->default_exercise_profile_id);
