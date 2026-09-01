@@ -12,6 +12,8 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Shipped (recent)
 
+**Backend tidy (refactor/backend-tidy, 2026-09-01)** — slices A–F: profile reference tracking + route auth; DRY assignment/picker/structure helpers; WorkoutSetLogger; WorkoutSession/Snapshot + ExerciseProfilePreset/Assignment service splits; RoutineBlockStructureData; scoped workout bind, sync filter, seed backfill removal.
+
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
 
 1. **Dead backend code cull** — unused ExerciseProfile relations/enum helpers; unreachable NotEditable catch; editor options ignore shared-only IDs; `referenceCount` collapsed to `assigned_routines`; sync skips soft-deleted routines; empty payload stub; unused policy methods; test-only plate/set/exercise helpers. Unused Eloquent inverses of live FKs left in place.
@@ -133,7 +135,7 @@ Public order matches `/beta-tester-faqs`.
 
 - **PHPStan warmup-step / profile typing** — advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`
 - **Node 20 on git-auto-commit-action** — `stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24. Harmless until Node 20 is dropped
-- **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface
+- **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface. **Backend-tidy follow-up (post #97):** `useWorkoutPlayer` (~1200 lines) still owns session mutations inline (complete/promote/demote/add/remove/ad-hoc); extract to `workouts/lib/playerSessionMutations.ts` mirroring `WorkoutSessionService`, composable stays orchestration. **Started on branch:** `exerciseProfileAssignment.ts` + `exerciseProfileApply.ts` (mirrors PHP assignment vs apply); `playerSetLog.ts` + `buildCompleteSetPayload()` (mirrors `WorkoutSetLogger`). **PHP tidy leftover:** inline `assignedRoutinesForReferencedIds` callable in `ExerciseProfileAssignmentService` (Slice A dual-path artifact; one strategy remains).
 - **Find N+1 queries (Sentry)** — triage / fix N+1s flagged in Sentry
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 

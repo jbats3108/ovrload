@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\ExerciseProfiles\Services\ExerciseProfileBackfillService;
 use Illuminate\Database\Seeder;
 
 class E2eSeeder extends Seeder
@@ -17,8 +16,6 @@ class E2eSeeder extends Seeder
             E2eExerciseSeeder::class,
             RoutineSeeder::class,
         ]);
-
-        app(ExerciseProfileBackfillService::class)->run();
 
         $this->call(LocalBlankSlateUserSeeder::class);
     }

@@ -3,9 +3,8 @@
 namespace App\Workouts\Http\Controllers;
 
 use App\Exercises\Enums\ExerciseEquipment;
-use App\Exercises\Models\Exercise;
+use App\Exercises\Support\ExercisePickerOptions;
 use App\MuscleGroups\Models\MuscleGroup;
-use App\Routines\Data\Editor\RoutineEditorExerciseOptionData;
 use App\Shared\Http\Controllers\Controller;
 use App\Users\Models\User;
 use App\Users\Services\PlateProfileService;
@@ -25,19 +24,7 @@ class PlayWorkoutController extends Controller
         return Inertia::render('workouts/Play', [
             'workout' => WorkoutPlayerPageData::fromWorkout($workout, $user),
             'plate_profile' => $profiles->profilePayloadFor($user),
-            'exercises' => Inertia::defer(fn () => Exercise::query()
-                ->with(['primaryMuscleGroup', 'secondaryMuscleGroup'])
-                ->forUser($user)
-                ->orderBy('name')
-                ->get()
-                ->map(fn (Exercise $exercise): RoutineEditorExerciseOptionData => new RoutineEditorExerciseOptionData(
-                    id: $exercise->id,
-                    name: $exercise->getName(),
-                    primaryMuscleGroup: $exercise->primaryMuscleGroup->getName(),
-                    isCustom: $exercise->isCustom(),
-                ))
-                ->values()
-                ->all()),
+            'exercises' => ExercisePickerOptions::deferFor($user),
             'muscle_groups' => MuscleGroup::query()
                 ->orderBy('name')
                 ->get()

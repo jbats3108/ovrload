@@ -7,6 +7,7 @@ import { formatRestSeconds, groupLabel, setupHintText, workoutProgressLabel } fr
 import { bumpedWeightKg, qualifiesForMidBlockBump, workingSetPrefillKg, type MidBlockBumpOffer } from '@/workouts/lib/midBlockBump';
 import { changePlateCount, formatPlateStackLabel, resolvePlateLoad, resolvePlateStack, serializePlateStack } from '@/workouts/lib/plates';
 import { preparePlayerInteraction } from '@/workouts/lib/playerInteraction';
+import { buildCompleteSetPayload } from '@/workouts/lib/playerSetLog';
 import { notifyRestCountdown, notifyRestEnded, shouldBeepRestCountdown } from '@/workouts/lib/restAlert';
 import { releaseScreenWake, requestScreenWake } from '@/workouts/lib/screenWake';
 import {
@@ -551,16 +552,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                     ? logPlateLoadDraft.value
                     : null
                 : null;
-        const payload = set.is_dropset
-            ? {
-                  reps: setForm.reps,
-                  segments: draftSegments.value.map((s) => ({ weight_kg: s.weight_kg })),
-              }
-            : {
-                  reps: setForm.reps,
-                  weight_kg: setForm.weight_kg,
-                  plate_stack: finalPlateLoad ? serializePlateStack(finalPlateLoad) : null,
-              };
+        const payload = buildCompleteSetPayload(set, setForm.reps, setForm.weight_kg, draftSegments.value, finalPlateLoad);
+        const loggedReps = setForm.reps;
+        const loggedWeightKg = setForm.weight_kg;
 
         pendingRestSeconds.value = restAfter;
 
@@ -570,8 +564,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                 preserveScroll: true,
                 only: ['workout'],
                 onSuccess: () => {
-                    if (!set.is_dropset && set.group_type === 'working' && typeof payload.weight_kg === 'number') {
-                        lastWorkingWeightKg.value[set.workout_block_exercise_id] = payload.weight_kg;
+                    if (!set.is_dropset && set.group_type === 'working' && typeof loggedWeightKg === 'number') {
+                        lastWorkingWeightKg.value[set.workout_block_exercise_id] = loggedWeightKg;
                     }
                     if (finalPlateLoad) {
                         stagePlateLoadOverrides.value[set.id] = finalPlateLoad;
@@ -579,13 +573,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                     logPlateLoadDraft.value = null;
 
                     const afterLog = async (): Promise<void> => {
-                        if (
-                            !set.is_dropset &&
-                            set.group_type === 'working' &&
-                            typeof payload.reps === 'number' &&
-                            typeof payload.weight_kg === 'number'
-                        ) {
-                            await applyMidBlockBumpAfterLog(block, set, payload.weight_kg, payload.reps, restAfter);
+                        if (!set.is_dropset && set.group_type === 'working' && typeof loggedReps === 'number' && typeof loggedWeightKg === 'number') {
+                            await applyMidBlockBumpAfterLog(block, set, loggedWeightKg, loggedReps, restAfter);
                         }
 
                         if (restAfter > 0) {

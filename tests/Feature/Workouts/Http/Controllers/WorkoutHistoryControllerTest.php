@@ -192,7 +192,7 @@ class WorkoutHistoryControllerTest extends TestCase
                 'reps' => 5,
                 'weight_kg' => 80,
             ])
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     #[Test]
@@ -246,7 +246,7 @@ class WorkoutHistoryControllerTest extends TestCase
 
         $this->actingAs($this->secondUser)
             ->delete(route('history.destroy', $workout))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertNotSoftDeleted($workout);
     }

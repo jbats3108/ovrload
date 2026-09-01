@@ -168,7 +168,7 @@ class AdHocExerciseControllerTest extends TestCase
             ->post(route('workouts.ad-hoc-exercises.store', $workout), [
                 'exercise_id' => $exercise->id,
             ])
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     #[Test]

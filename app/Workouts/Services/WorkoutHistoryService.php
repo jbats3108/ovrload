@@ -19,6 +19,7 @@ class WorkoutHistoryService
 
     public function __construct(
         private readonly WorkoutProgressionService $progressionService,
+        private readonly WorkoutSetLogger $setLogger,
     ) {}
 
     /**
@@ -39,9 +40,18 @@ class WorkoutHistoryService
 
         DB::transaction(function () use ($set, $data): void {
             if ($set->isDropset() || $data->segments !== null) {
-                $this->updateDropset($set, $data);
+                $this->setLogger->applyLoggedValues(
+                    $set,
+                    $data->reps,
+                    segmentWeightGrams: $data->segmentWeightGrams(),
+                );
             } else {
-                $this->updateSingleSet($set, $data);
+                $this->setLogger->applyLoggedValues(
+                    $set,
+                    $data->reps,
+                    weightGrams: $data->weightGrams(),
+                    plateStack: null,
+                );
             }
 
             if ($set->completed_at === null) {
@@ -62,40 +72,5 @@ class WorkoutHistoryService
         }
 
         return $session->hasActions() ? $session : null;
-    }
-
-    /**
-     * @throws WorkoutServiceException
-     */
-    private function updateDropset(WorkoutSet $set, CompleteWorkoutSetData $data): void
-    {
-        $segmentWeights = $data->segmentWeightGrams();
-
-        if ($segmentWeights === null || count($segmentWeights) < 2) {
-            throw new WorkoutServiceException(WorkoutService::DROPSET_REQUIRES_SEGMENTS_ERROR);
-        }
-
-        $set->replaceSegments($segmentWeights);
-
-        $set->reps = $data->reps;
-        $set->weight_g = null;
-        $set->plate_stack = null;
-    }
-
-    /**
-     * @throws WorkoutServiceException
-     */
-    private function updateSingleSet(WorkoutSet $set, CompleteWorkoutSetData $data): void
-    {
-        $weightGrams = $data->weightGrams();
-
-        if ($weightGrams === null) {
-            throw new WorkoutServiceException(WorkoutService::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
-        }
-
-        $set->replaceSegments([]);
-        $set->reps = $data->reps;
-        $set->weight_g = $weightGrams;
-        $set->plate_stack = null;
     }
 }

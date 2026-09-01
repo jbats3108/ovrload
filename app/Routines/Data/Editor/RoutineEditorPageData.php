@@ -2,11 +2,10 @@
 
 namespace App\Routines\Data\Editor;
 
+use App\Routines\Data\RoutineBlockStructureData;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
-use App\Shared\Data\WeightKgSegmentData;
-use App\Shared\Enums\SetGroupType;
 use App\Shared\Enums\WarmUpWeightMode;
 use App\Shared\Support\Weight;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
@@ -43,40 +42,21 @@ class RoutineEditorPageData extends Data
      */
     public static function fromRoutine(Routine $routine, DataCollection $exercises, string $weightUnit): self
     {
-        $routine->loadMissing([
-            'blocks.blockExercises.exercise',
-            'blocks.setGroups.warmUpSteps',
-            'blocks.setGroups.dropsetSegments',
-        ]);
+        $routine->loadMissing(Routine::EDITOR_STRUCTURE);
 
         $blocks = $routine->blocks->map(function (RoutineBlock $block): RoutineEditorBlockData {
-            $working = $block->setGroups->firstWhere('type', SetGroupType::Working);
-            $warmUp = $block->setGroups->firstWhere('type', SetGroupType::WarmUp);
-
-            $dropsets = collect($working !== null ? $working->dropsetSegments : [])
-                ->groupBy('set_index')
-                ->filter(fn ($segments): bool => $segments->count() >= 2)
-                ->map(fn ($segments, $setIndex): SyncDropsetData => new SyncDropsetData(
-                    setIndex: (int) $setIndex,
-                    segments: WeightKgSegmentData::collect(
-                        $segments->sortBy('position')->values()->map(
-                            fn ($segment): WeightKgSegmentData => new WeightKgSegmentData(
-                                weightKg: Weight::gramsToKg($segment->weight_g),
-                            )
-                        ),
-                        DataCollection::class,
-                    ),
-                ))
-                ->values();
+            $structure = RoutineBlockStructureData::fromRoutineBlock($block);
+            $working = $structure->workingGroup;
+            $warmUp = $structure->warmUpGroup;
 
             return new RoutineEditorBlockData(
-                isSuperset: $block->is_superset,
-                hasSetupAfter: $block->has_setup_after,
-                hasSetupAfterWarmUp: $block->has_setup_after_warm_up,
-                sharedProfileId: $block->shared_exercise_profile_id,
-                sharedProfileFingerprint: $block->shared_profile_fingerprint,
+                isSuperset: $structure->isSuperset,
+                hasSetupAfter: $structure->hasSetupAfter,
+                hasSetupAfterWarmUp: $structure->hasSetupAfterWarmUp,
+                sharedProfileId: $structure->sharedProfileId,
+                sharedProfileFingerprint: $structure->sharedProfileFingerprint,
                 exercises: RoutineEditorBlockExerciseData::collect(
-                    $block->blockExercises->map(fn (RoutineBlockExercise $row): RoutineEditorBlockExerciseData => new RoutineEditorBlockExerciseData(
+                    $structure->blockExercises->map(fn (RoutineBlockExercise $row): RoutineEditorBlockExerciseData => new RoutineEditorBlockExerciseData(
                         exerciseId: $row->exercise_id,
                         workingWeightKg: Weight::gramsToKg($row->working_weight_g),
                         prescribedReps: $row->prescribed_reps,
@@ -95,7 +75,7 @@ class RoutineEditorPageData extends Data
                 working: new SyncSetGroupData(
                     setCount: $working !== null ? $working->set_count : 3,
                     restSeconds: $working !== null ? $working->rest_seconds : 120,
-                    dropsets: SyncDropsetData::collect($dropsets, DataCollection::class),
+                    dropsets: $structure->dropsets,
                 ),
                 warmUp: new SyncWarmUpData(
                     setCount: $warmUp !== null ? $warmUp->set_count : 0,
