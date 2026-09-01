@@ -19,10 +19,10 @@ use App\Workouts\Models\WorkoutWarmUpStep;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
-class WorkoutSnapshotService
+final readonly class WorkoutSnapshotService
 {
     public function __construct(
-        private readonly WorkoutSetLogger $setLogger,
+        private WorkoutSetLogger $setLogger,
     ) {}
 
     /**

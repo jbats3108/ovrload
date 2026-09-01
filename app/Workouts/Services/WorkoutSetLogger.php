@@ -6,7 +6,7 @@ use App\Workouts\Exceptions\WorkoutServiceException;
 use App\Workouts\Models\WorkoutSet;
 use Carbon\CarbonInterface;
 
-final class WorkoutSetLogger
+final readonly class WorkoutSetLogger
 {
     /**
      * @param  list<int>|null  $segmentWeightGrams

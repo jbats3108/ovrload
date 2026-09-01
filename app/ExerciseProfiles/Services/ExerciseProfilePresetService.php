@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Spatie\LaravelData\DataCollection;
 
-class ExerciseProfilePresetService
+final readonly class ExerciseProfilePresetService
 {
     public function adminPageData(): AdminExerciseProfilePageData
     {

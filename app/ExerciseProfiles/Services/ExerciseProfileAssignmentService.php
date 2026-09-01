@@ -15,7 +15,7 @@ use App\Users\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
-class ExerciseProfileAssignmentService
+final readonly class ExerciseProfileAssignmentService
 {
     public function syncProfile(User $user, ExerciseProfile $profile): int
     {

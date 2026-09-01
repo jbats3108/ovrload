@@ -105,16 +105,7 @@ class RoutineEditorService
             throw new InvalidArgumentException('Dropsets are not supported on supersets.');
         }
 
-        if (
-            $sharedProfile !== null
-            && ExerciseProfileAssignment::assignmentIsCurrent(
-                $blockData->sharedProfileFingerprint,
-                $sharedProfile->recipe()->sharedFingerprint(),
-            )
-            && ! $this->sharedValuesMatchProfile($blockData, $sharedProfile, $steps)
-        ) {
-            throw new InvalidArgumentException('The shared profile values no longer match this block.');
-        }
+        $this->assertSharedProfileNotTampered($sharedProfile, $blockData, $steps);
         $sharedFingerprint = ExerciseProfileAssignment::sharedProfileFingerprint(
             $sharedProfile,
             $blockData->sharedProfileFingerprint,
@@ -134,16 +125,7 @@ class RoutineEditorService
             /** @var SyncBlockExerciseData $exerciseData */
             Exercise::assertAvailableFor($routine->user, $exerciseData->exerciseId);
             $exerciseProfile = $this->profileFromId($routine->user, $exerciseData->exerciseProfileId);
-            if (
-                $exerciseProfile !== null
-                && ExerciseProfileAssignment::assignmentIsCurrent(
-                    $exerciseData->exerciseProfileFingerprint,
-                    ExerciseProfileAssignment::exerciseFingerprint($exerciseProfile, $blockData->isSuperset),
-                )
-                && ! $this->exerciseValuesMatchProfile($exerciseData, $exerciseProfile)
-            ) {
-                throw new InvalidArgumentException('The exercise profile values no longer match this exercise.');
-            }
+            $this->assertExerciseProfileNotTampered($exerciseProfile, $exerciseData, $blockData->isSuperset);
 
             if ($exerciseData->deloadExerciseId !== null) {
                 Exercise::assertAvailableFor($routine->user, $exerciseData->deloadExerciseId);
@@ -238,6 +220,55 @@ class RoutineEditorService
         $this->exerciseProfiles->assertSelectable($user, $profile);
 
         return $profile;
+    }
+
+    /**
+     * @param  list<SyncWarmUpStepData>  $steps
+     */
+    private function assertSharedProfileNotTampered(
+        ?ExerciseProfile $sharedProfile,
+        SyncRoutineBlockData $blockData,
+        array $steps,
+    ): void {
+        if ($sharedProfile === null) {
+            return;
+        }
+
+        if (! ExerciseProfileAssignment::assignmentIsCurrent(
+            $blockData->sharedProfileFingerprint,
+            $sharedProfile->recipe()->sharedFingerprint(),
+        )) {
+            return;
+        }
+
+        if ($this->sharedValuesMatchProfile($blockData, $sharedProfile, $steps)) {
+            return;
+        }
+
+        throw new InvalidArgumentException('The shared profile values no longer match this block.');
+    }
+
+    private function assertExerciseProfileNotTampered(
+        ?ExerciseProfile $exerciseProfile,
+        SyncBlockExerciseData $exerciseData,
+        bool $isSuperset,
+    ): void {
+        if ($exerciseProfile === null) {
+            return;
+        }
+
+        if (! ExerciseProfileAssignment::assignmentIsCurrent(
+            $exerciseData->exerciseProfileFingerprint,
+            ExerciseProfileAssignment::exerciseFingerprint($exerciseProfile, $isSuperset),
+        )) {
+            return;
+        }
+
+        if ($this->exerciseValuesMatchProfile($exerciseData, $exerciseProfile)) {
+            return;
+        }
+
+        throw new InvalidArgumentException('The exercise profile values no longer match this exercise.');
     }
 
     /**

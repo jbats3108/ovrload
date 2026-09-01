@@ -13,10 +13,10 @@ use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Models\WorkoutSetGroup;
 use Illuminate\Support\Facades\DB;
 
-class WorkoutSessionService
+final readonly class WorkoutSessionService
 {
     public function __construct(
-        private readonly WorkoutSetLogger $setLogger,
+        private WorkoutSetLogger $setLogger,
     ) {}
 
     /**
