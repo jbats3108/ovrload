@@ -81,6 +81,7 @@ class WorkoutService
 
     public function __construct(
         private readonly WorkoutProgressionService $progressionService,
+        private readonly WorkoutSetLogger $setLogger,
     ) {}
 
     /**
@@ -348,11 +349,12 @@ class WorkoutService
                 throw new WorkoutServiceException(self::DROPSET_REQUIRES_SEGMENTS_ERROR);
             }
 
-            $set->replaceSegments($segmentWeightGrams);
-            $set->reps = $data->reps;
-            $set->weight_g = null;
-            $set->plate_stack = null;
-            $set->completed_at = $finishedAt;
+            $this->setLogger->applyLoggedValues(
+                $set,
+                $data->reps,
+                segmentWeightGrams: $segmentWeightGrams,
+                completedAt: $finishedAt,
+            );
             $set->save();
 
             return;
@@ -364,11 +366,12 @@ class WorkoutService
             throw new WorkoutServiceException(self::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
         }
 
-        $set->replaceSegments([]);
-        $set->reps = $data->reps;
-        $set->weight_g = $weightGrams;
-        $set->plate_stack = null;
-        $set->completed_at = $finishedAt;
+        $this->setLogger->applyLoggedValues(
+            $set,
+            $data->reps,
+            weightGrams: $weightGrams,
+            completedAt: $finishedAt,
+        );
         $set->save();
     }
 
@@ -400,44 +403,29 @@ class WorkoutService
         }
 
         if ($hasSegments) {
-            return $this->completeDropset($set, $reps, $segmentWeightGrams);
+            return DB::transaction(function () use ($set, $reps, $segmentWeightGrams): WorkoutSet {
+                $this->setLogger->applyLoggedValues(
+                    $set,
+                    $reps,
+                    segmentWeightGrams: $segmentWeightGrams,
+                    completedAt: now(),
+                );
+                $set->save();
+
+                return $set->fresh(['segments']);
+            });
         }
 
-        if ($weightGrams === null) {
-            throw new WorkoutServiceException(self::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
-        }
-
-        $set->reps = $reps;
-        $set->weight_g = $weightGrams;
-        $set->plate_stack = $set->setGroup->type === SetGroupType::Working ? $plateStack : null;
-        $set->completed_at = now();
+        $this->setLogger->applyLoggedValues(
+            $set,
+            $reps,
+            weightGrams: $weightGrams,
+            plateStack: $set->setGroup->type === SetGroupType::Working ? $plateStack : null,
+            completedAt: now(),
+        );
         $set->save();
 
         return $set->fresh(['segments']);
-    }
-
-    /**
-     * @param  list<int>  $segmentWeightGrams
-     *
-     * @throws WorkoutServiceException
-     */
-    private function completeDropset(WorkoutSet $set, int $reps, array $segmentWeightGrams): WorkoutSet
-    {
-        if (count($segmentWeightGrams) < 2) {
-            throw new WorkoutServiceException(self::DROPSET_REQUIRES_SEGMENTS_ERROR);
-        }
-
-        return DB::transaction(function () use ($set, $reps, $segmentWeightGrams): WorkoutSet {
-            $set->replaceSegments($segmentWeightGrams);
-
-            $set->reps = $reps;
-            $set->weight_g = null;
-            $set->plate_stack = null;
-            $set->completed_at = now();
-            $set->save();
-
-            return $set->fresh(['segments']);
-        });
     }
 
     /**
