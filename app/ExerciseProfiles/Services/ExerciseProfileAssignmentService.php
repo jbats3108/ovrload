@@ -28,7 +28,13 @@ class ExerciseProfileAssignmentService
             $updated = 0;
 
             $routines = $user->routines()
-                ->withTrashed()
+                ->where(function ($query) use ($lockedProfile): void {
+                    $query->where('default_exercise_profile_id', $lockedProfile->id)
+                        ->orWhereHas('blocks', fn ($blocks) => $blocks
+                            ->where('shared_exercise_profile_id', $lockedProfile->id)
+                            ->orWhereHas('blockExercises', fn ($exercises) => $exercises
+                                ->where('exercise_profile_id', $lockedProfile->id)));
+                })
                 ->with([
                     'blocks.blockExercises',
                     'blocks.setGroups.warmUpSteps',

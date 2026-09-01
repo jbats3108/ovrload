@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Auth\Listeners\SendWelcomeBetaTesterMail;
 use App\Routines\Models\Routine;
 use App\Users\Models\User;
+use App\Workouts\Models\Workout;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +38,17 @@ class AppServiceProvider extends ServiceProvider
         // (admins are unscoped). Authorization still runs via ->can() policies after bind.
         Route::bind('routine', function (string $value): Routine {
             $query = Routine::query()->where('slug', $value);
+
+            $user = Auth::user();
+            if ($user instanceof User && ! $user->isAdmin()) {
+                $query->where('user_id', $user->id);
+            }
+
+            return $query->firstOrFail();
+        });
+
+        Route::bind('workout', function (string $value): Workout {
+            $query = Workout::query()->where('ulid', $value);
 
             $user = Auth::user();
             if ($user instanceof User && ! $user->isAdmin()) {

@@ -39,7 +39,7 @@ class SoftFailTest extends TestCase
     }
 
     #[Test]
-    public function other_users_workout_play_soft_fails_as_forbidden(): void
+    public function other_users_workout_play_soft_fails_as_not_found(): void
     {
         $workout = Workout::factory()->create([
             'user_id' => $this->user->id,
@@ -48,7 +48,7 @@ class SoftFailTest extends TestCase
         $this->actingAs($this->secondUser)
             ->get(route('workouts.play', $workout))
             ->assertRedirect(route('dashboard'))
-            ->assertSessionHas('error', 'You do not have access to that workout.');
+            ->assertSessionHas('error', 'Workout not found. Check the URL and try again.');
     }
 
     #[Test]
@@ -77,7 +77,7 @@ class SoftFailTest extends TestCase
     }
 
     #[Test]
-    public function mutation_forbidden_stays_hard(): void
+    public function mutation_on_other_users_workout_is_not_found(): void
     {
         $workout = Workout::factory()->create([
             'user_id' => $this->user->id,
@@ -85,6 +85,6 @@ class SoftFailTest extends TestCase
 
         $this->actingAs($this->secondUser)
             ->post(route('workouts.finish', $workout))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 }

@@ -28,8 +28,6 @@ class StoreHistoricalWorkoutController extends Controller
             return DomainFail::back($exception, 'workout');
         }
 
-        $progressionService->forgetSiblingProgressionSessions($workout);
-
         if ($bumps->count() === 0) {
             return redirect()->route('history.show', $workout);
         }
