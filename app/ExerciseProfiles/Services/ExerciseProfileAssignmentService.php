@@ -80,11 +80,37 @@ final readonly class ExerciseProfileAssignmentService
      */
     public function assignedRoutinesByProfileId(User $user, Collection $profiles): array
     {
-        return $this->assignedRoutinesForReferencedIds(
-            $user,
-            $profiles,
-            fn (Routine $routine): array => $this->profileIdsReferencedBy($routine),
-        );
+        /** @var array<int, list<array{name: string, slug: string}>> $map */
+        $map = [];
+        foreach ($profiles as $profile) {
+            $map[$profile->id] = [];
+        }
+
+        if ($map === []) {
+            return $map;
+        }
+
+        $routines = $user->routines()
+            ->with(['blocks.blockExercises'])
+            ->orderBy('name')
+            ->get();
+
+        foreach ($routines as $routine) {
+            $summary = [
+                'name' => $routine->name,
+                'slug' => (string) $routine->slug,
+            ];
+
+            foreach ($this->profileIdsReferencedBy($routine) as $profileId) {
+                if (! array_key_exists($profileId, $map)) {
+                    continue;
+                }
+
+                $map[$profileId][] = $summary;
+            }
+        }
+
+        return $map;
     }
 
     /**
@@ -162,49 +188,6 @@ final readonly class ExerciseProfileAssignmentService
         }
 
         return $counts;
-    }
-
-    /**
-     * @param  Collection<int, ExerciseProfile>  $profiles
-     * @param  callable(Routine): list<int>  $referencedIdsFor
-     * @return array<int, list<array{name: string, slug: string}>>
-     */
-    private function assignedRoutinesForReferencedIds(
-        User $user,
-        Collection $profiles,
-        callable $referencedIdsFor,
-    ): array {
-        /** @var array<int, list<array{name: string, slug: string}>> $map */
-        $map = [];
-        foreach ($profiles as $profile) {
-            $map[$profile->id] = [];
-        }
-
-        if ($map === []) {
-            return $map;
-        }
-
-        $routines = $user->routines()
-            ->with(['blocks.blockExercises'])
-            ->orderBy('name')
-            ->get();
-
-        foreach ($routines as $routine) {
-            $summary = [
-                'name' => $routine->name,
-                'slug' => (string) $routine->slug,
-            ];
-
-            foreach ($referencedIdsFor($routine) as $profileId) {
-                if (! array_key_exists($profileId, $map)) {
-                    continue;
-                }
-
-                $map[$profileId][] = $summary;
-            }
-        }
-
-        return $map;
     }
 
     /**
