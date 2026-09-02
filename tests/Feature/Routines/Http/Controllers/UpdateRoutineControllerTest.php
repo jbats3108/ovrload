@@ -647,7 +647,7 @@ class UpdateRoutineControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('routines/Edit')
-                ->where('exercise_profiles', fn ($profiles) => collect($profiles)->contains(
+                ->where('exercise_profiles', fn (array $profiles) => collect($profiles)->contains(
                     fn ($profile): bool => $profile['id'] === $archived->id && $profile['status'] === ExerciseProfileStatus::Archived->value,
                 )));
     }

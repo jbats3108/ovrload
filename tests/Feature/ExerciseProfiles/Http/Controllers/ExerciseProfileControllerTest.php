@@ -62,7 +62,7 @@ class ExerciseProfileControllerTest extends TestCase
             ->get(route('training.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('exercise_profiles.profiles', function ($profiles) use ($profile, $routine): bool {
+                ->where('exercise_profiles.profiles', function (array $profiles) use ($profile, $routine): bool {
                     $match = collect($profiles)->firstWhere('id', $profile->id);
 
                     return $match !== null
@@ -308,7 +308,7 @@ class ExerciseProfileControllerTest extends TestCase
             ->get(route('training.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('exercise_profiles.profiles', function ($profiles) use ($profile): bool {
+                ->where('exercise_profiles.profiles', function (array $profiles) use ($profile): bool {
                     $match = collect($profiles)->firstWhere('id', $profile->id);
 
                     return $match !== null && $match['stale_assignment_count'] === 0;
@@ -324,7 +324,7 @@ class ExerciseProfileControllerTest extends TestCase
             ->get(route('training.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('exercise_profiles.profiles', function ($profiles) use ($profile): bool {
+                ->where('exercise_profiles.profiles', function (array $profiles) use ($profile): bool {
                     $match = collect($profiles)->firstWhere('id', $profile->id);
 
                     return $match !== null && $match['stale_assignment_count'] === 2;

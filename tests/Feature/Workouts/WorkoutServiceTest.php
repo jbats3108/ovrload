@@ -20,13 +20,13 @@ use App\Workouts\Services\WorkoutService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\Helpers\CreatesPlayableWorkout;
+use Tests\Helpers\SeedsPlayableRoutineBlock;
 use Tests\TestCase;
 
 class WorkoutServiceTest extends TestCase
 {
-    use CreatesPlayableWorkout;
     use RefreshDatabase;
+    use SeedsPlayableRoutineBlock;
 
     private WorkoutService $workoutService;
 
