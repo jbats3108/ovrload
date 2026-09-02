@@ -4,6 +4,7 @@ namespace App\Workouts\Services;
 
 use App\Workouts\Exceptions\WorkoutServiceException;
 use App\Workouts\Models\WorkoutSet;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
 final readonly class WorkoutSetLogger
@@ -45,7 +46,7 @@ final readonly class WorkoutSetLogger
         }
 
         if ($completedAt !== null) {
-            $set->completed_at = $completedAt;
+            $set->completed_at = Carbon::instance($completedAt);
         }
     }
 }

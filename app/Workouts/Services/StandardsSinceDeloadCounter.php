@@ -42,7 +42,7 @@ final class StandardsSinceDeloadCounter
         $lastDeloadAt = [];
         foreach ($workouts as $workout) {
             $routineId = $workout->routine_id;
-            if (! array_key_exists((string) $routineId, $summaries)) {
+            if (! array_key_exists($routineId, $summaries)) {
                 continue;
             }
 
@@ -57,7 +57,7 @@ final class StandardsSinceDeloadCounter
             if (
                 $workout->mode !== WorkoutMode::Standard
                 || $workout->finished_at === null
-                || ! array_key_exists((string) $routineId, $summaries)
+                || ! array_key_exists($routineId, $summaries)
             ) {
                 continue;
             }

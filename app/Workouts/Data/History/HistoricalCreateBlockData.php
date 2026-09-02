@@ -43,7 +43,7 @@ class HistoricalCreateBlockData extends Data
         $workingGroup = $structure->workingGroup;
         $warmUpGroup = $structure->warmUpGroup;
 
-        $setCount = $workingGroup?->set_count ?? 1;
+        $setCount = $workingGroup !== null ? $workingGroup->set_count : 1;
         $segmentsByIndex = $workingGroup?->dropsetSegments->groupBy('set_index') ?? collect();
 
         $workingSets = collect();
