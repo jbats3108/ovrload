@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\PendingMail;
 use Illuminate\Support\Facades\Mail;
 use Mockery;
+use Mockery\Expectation;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -208,7 +209,9 @@ class RegistrationInviteServiceTest extends TestCase
     public function create_and_send_rolls_back_when_mail_fails(): void
     {
         $pending = Mockery::mock(PendingMail::class);
-        $pending->shouldReceive('send')->once()->andThrow(new RuntimeException('smtp down'));
+        $sendExpectation = $pending->shouldReceive('send');
+        assert($sendExpectation instanceof Expectation);
+        $sendExpectation->once()->andThrow(new RuntimeException('smtp down'));
         Mail::shouldReceive('to')->once()->with('buddy@example.com')->andReturn($pending);
 
         $creator = User::factory()->create();

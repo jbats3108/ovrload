@@ -250,7 +250,11 @@ final readonly class WorkoutSnapshotService
                 /** @var WorkoutBlockExercise|null $exercise */
                 $exercise = $exercisesById->get($set->workout_block_exercise_id);
 
-                return sprintf('%d:%d', $exercise?->position ?? 0, $set->set_index);
+                return sprintf(
+                    '%d:%d',
+                    $exercise !== null ? $exercise->position : 0,
+                    $set->set_index,
+                );
             }
         );
 

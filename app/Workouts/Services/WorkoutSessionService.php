@@ -193,7 +193,7 @@ final readonly class WorkoutSessionService
             }
 
             $previousBlock = $locked->blocks->sortByDesc('position')->first();
-            $position = ((int) ($previousBlock?->position ?? 0)) + 1;
+            $position = ($previousBlock !== null ? (int) $previousBlock->position : 0) + 1;
             $profile = $locked->user->defaultExerciseProfile;
             $targetReps = $profile === null ? $locked->user->resolvedDefaultTargetReps() : $profile->target_reps;
             $workingRest = $profile === null ? 120 : $profile->working_rest_seconds;

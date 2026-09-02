@@ -46,7 +46,7 @@ class ExerciseFactory extends Factory
     public function custom(?User $user = null): static
     {
         return $this->state(fn (): array => [
-            'user_id' => $user?->id ?? User::factory(),
+            'user_id' => $user !== null ? $user->id : User::factory(),
         ]);
     }
 

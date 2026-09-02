@@ -72,7 +72,9 @@ class StoreCustomExerciseControllerTest extends TestCase
         ]);
 
         $response->assertCreated();
-        $this->assertTrue(Exercise::query()->findOrFail($response->json('id'))->isCustom());
+        /** @var Exercise $exercise */
+        $exercise = Exercise::query()->findOrFail($response->json('id'));
+        $this->assertTrue($exercise->isCustom());
     }
 
     #[Test]

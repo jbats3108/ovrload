@@ -11,6 +11,7 @@ use App\Routines\Models\RoutineBlockExercise;
 use App\Shared\Enums\WarmUpWeightMode;
 use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Helpers\RoutineEditorPayload;
 use Tests\Helpers\UserHelper;
@@ -647,7 +648,7 @@ class UpdateRoutineControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('routines/Edit')
-                ->where('exercise_profiles', fn ($profiles) => collect($profiles)->contains(
+                ->where('exercise_profiles', fn (Collection $profiles) => $profiles->contains(
                     fn ($profile): bool => $profile['id'] === $archived->id && $profile['status'] === ExerciseProfileStatus::Archived->value,
                 )));
     }

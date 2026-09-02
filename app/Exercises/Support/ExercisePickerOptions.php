@@ -23,7 +23,7 @@ final class ExercisePickerOptions
      */
     public static function listFor(User $user): array
     {
-        return Exercise::query()
+        return array_values(Exercise::query()
             ->with(['primaryMuscleGroup', 'secondaryMuscleGroup'])
             ->forUser($user)
             ->orderBy('name')
@@ -35,6 +35,6 @@ final class ExercisePickerOptions
                 isCustom: $exercise->isCustom(),
             ))
             ->values()
-            ->all();
+            ->all());
     }
 }

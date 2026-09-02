@@ -11,7 +11,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 class AdminExerciseProfileData extends Data
 {
     /**
-     * @param  list<array{percent: int, reps: int}>  $warmUpSteps
+     * @param  list<array{mode: string, percent?: int, weight_kg?: float, reps: int}>  $warmUpSteps
      */
     public function __construct(
         public readonly int $id,

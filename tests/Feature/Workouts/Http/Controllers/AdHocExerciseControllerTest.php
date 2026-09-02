@@ -53,15 +53,17 @@ class AdHocExerciseControllerTest extends TestCase
         $workingGroup = $adHocBlock?->setGroups->firstWhere('type', SetGroupType::Working);
 
         $this->assertNotNull($adHocBlock);
+        $this->assertNotNull($adHocExercise);
+        $this->assertNotNull($workingGroup);
         $this->assertSame(2, $adHocBlock->position);
         $this->assertFalse($adHocBlock->is_superset);
-        $this->assertSame($exercise->id, $adHocExercise?->exercise_id);
-        $this->assertSame(0, $adHocExercise?->working_weight_g);
-        $this->assertSame(6, $adHocExercise?->prescribed_reps);
-        $this->assertNull($adHocExercise?->progression_target);
-        $this->assertSame(3, $workingGroup?->set_count);
-        $this->assertSame(120, $workingGroup?->rest_seconds);
-        $this->assertCount(3, $workingGroup?->sets);
+        $this->assertSame($exercise->id, $adHocExercise->exercise_id);
+        $this->assertSame(0, $adHocExercise->working_weight_g);
+        $this->assertSame(6, $adHocExercise->prescribed_reps);
+        $this->assertNull($adHocExercise->progression_target);
+        $this->assertSame(3, $workingGroup->set_count);
+        $this->assertSame(120, $workingGroup->rest_seconds);
+        $this->assertCount(3, $workingGroup->sets);
         $this->assertCount(2, $workout->blocks);
     }
 
@@ -114,10 +116,15 @@ class AdHocExerciseControllerTest extends TestCase
             ->blocks
             ->firstWhere('is_ad_hoc', true);
 
-        $this->assertSame(10, $adHocBlock?->blockExercises->first()?->prescribed_reps);
+        $this->assertNotNull($adHocBlock);
+        $adHocExercise = $adHocBlock->blockExercises->first();
+        $workingGroup = $adHocBlock->setGroups->firstWhere('type', SetGroupType::Working);
+        $this->assertNotNull($adHocExercise);
+        $this->assertSame(10, $adHocExercise->prescribed_reps);
+        $this->assertNotNull($workingGroup);
         $this->assertSame(
             90,
-            $adHocBlock?->setGroups->firstWhere('type', SetGroupType::Working)?->rest_seconds,
+            $workingGroup->rest_seconds,
         );
     }
 

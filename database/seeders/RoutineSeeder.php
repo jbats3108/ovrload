@@ -264,6 +264,7 @@ class RoutineSeeder extends Seeder
             $setupAfter,
             $setupAfterWarmUp,
             $sharedProfile,
+            $sharedProfileSlug,
         ): void {
             $block = RoutineBlock::create([
                 'routine_id' => $routine->id,
@@ -283,7 +284,7 @@ class RoutineSeeder extends Seeder
                     'exercise_id' => $this->resolveExercise($exercise['name'], $exercise['equipment'])->id,
                     'position' => $index + 1,
                     'working_weight_g' => Weight::kgToGrams($exercise['kg']),
-                    'prescribed_reps' => $profile?->target_reps ?? $exercise['reps'],
+                    'prescribed_reps' => $profile !== null ? $profile->target_reps : $exercise['reps'],
                     'achievement_floor_override' => $profile?->floor_override,
                     'floor_is_derived' => $profile === null ? null : $profile->floor_override === null,
                     'exercise_profile_id' => $profile?->id,
