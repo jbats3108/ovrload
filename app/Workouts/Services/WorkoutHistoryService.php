@@ -11,11 +11,11 @@ use App\Workouts\Models\Workout;
 use App\Workouts\Models\WorkoutSet;
 use Illuminate\Support\Facades\DB;
 
-class WorkoutHistoryService
+final class WorkoutHistoryService
 {
-    public const WORKOUT_NOT_FINISHED_ERROR = 'Only finished workouts can be edited in history';
+    public const string WORKOUT_NOT_FINISHED_ERROR = 'Only finished workouts can be edited in history';
 
-    public const WARM_UP_SETS_READ_ONLY_ERROR = 'Warm-up sets cannot be edited in history';
+    public const string WARM_UP_SETS_READ_ONLY_ERROR = 'Warm-up sets cannot be edited in history';
 
     public function __construct(
         private readonly WorkoutProgressionService $progressionService,

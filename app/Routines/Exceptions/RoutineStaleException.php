@@ -6,7 +6,7 @@ use Exception;
 
 class RoutineStaleException extends Exception
 {
-    public const MESSAGE = 'This routine was changed elsewhere. Reload and try again.';
+    public const string MESSAGE = 'This routine was changed elsewhere. Reload and try again.';
 
     public function __construct()
     {

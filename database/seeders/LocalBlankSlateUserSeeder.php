@@ -14,9 +14,9 @@ use Illuminate\Database\Seeder;
  *
  * Runs after ExerciseProfileBackfillService so backfill cannot re-assign a default.
  */
-class LocalBlankSlateUserSeeder extends Seeder
+final class LocalBlankSlateUserSeeder extends Seeder
 {
-    public const EMAIL = 'user2@test.com';
+    public const string EMAIL = 'user2@test.com';
 
     public function run(): void
     {
