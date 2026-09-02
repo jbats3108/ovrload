@@ -185,6 +185,16 @@ final readonly class WorkoutSnapshotService
         $routineBlocksByPosition,
         CarbonInterface $finishedAt,
     ): void {
+        $setIds = $workout->blocks
+            ->flatMap(fn (WorkoutBlock $block) => $block->setGroups->flatMap(
+                fn (WorkoutSetGroup $group) => $group->sets->pluck('id'),
+            ))
+            ->all();
+
+        if ($setIds !== []) {
+            WorkoutSetSegment::query()->whereIn('workout_set_id', $setIds)->delete();
+        }
+
         $workoutBlocksByPosition = $workout->blocks->keyBy('position');
 
         foreach ($blocksPayload as $blockData) {
@@ -301,6 +311,7 @@ final readonly class WorkoutSnapshotService
                 $data->reps,
                 segmentWeightGrams: $segmentWeightGrams,
                 completedAt: $finishedAt,
+                deleteExistingSegments: false,
             );
             $set->save();
 
@@ -318,6 +329,7 @@ final readonly class WorkoutSnapshotService
             $data->reps,
             weightGrams: $weightGrams,
             completedAt: $finishedAt,
+            deleteExistingSegments: false,
         );
         $set->save();
     }

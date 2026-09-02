@@ -136,7 +136,7 @@ Public order matches `/beta-tester-faqs`.
 - **PHPStan warmup-step / profile typing** — ~~advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`~~ done (#99)
 - **Node 20 on git-auto-commit-action** — `stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24. Harmless until Node 20 is dropped
 - **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface. **Done (refactor/backend-tidy):** `exerciseProfileAssignment.ts` + `exerciseProfileApply.ts`; `playerSetLog.ts` + `buildCompleteSetPayload()`; `playerSessionMutations.ts` (session route visits mirroring `WorkoutSessionService`); `useWorkoutPlayer` keeps orchestration. ~~**PHP tidy leftover:** inline `assignedRoutinesForReferencedIds` callable in `ExerciseProfileAssignmentService` (Slice A dual-path artifact; one strategy remains).~~ done
-- **Find N+1 queries (Sentry)** — triage / fix N+1s flagged in Sentry
+- **Find N+1 queries (Sentry)** — ~~triage / fix N+1s flagged in Sentry~~ done (OVRLOAD-3: bulk-delete workout set segments on historical create)
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)

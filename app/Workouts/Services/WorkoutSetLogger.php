@@ -22,6 +22,7 @@ final readonly class WorkoutSetLogger
         ?array $segmentWeightGrams = null,
         ?array $plateStack = null,
         ?CarbonInterface $completedAt = null,
+        bool $deleteExistingSegments = true,
     ): void {
         $hasSegments = $segmentWeightGrams !== null && count($segmentWeightGrams) >= 2;
 
@@ -30,7 +31,7 @@ final readonly class WorkoutSetLogger
                 throw new WorkoutServiceException(WorkoutService::DROPSET_REQUIRES_SEGMENTS_ERROR);
             }
 
-            $set->replaceSegments($segmentWeightGrams);
+            $set->replaceSegments($segmentWeightGrams, $deleteExistingSegments);
             $set->reps = $reps;
             $set->weight_g = null;
             $set->plate_stack = null;
@@ -39,7 +40,7 @@ final readonly class WorkoutSetLogger
                 throw new WorkoutServiceException(WorkoutService::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
             }
 
-            $set->replaceSegments([]);
+            $set->replaceSegments([], $deleteExistingSegments);
             $set->reps = $reps;
             $set->weight_g = $weightGrams;
             $set->plate_stack = $plateStack;
