@@ -20,7 +20,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Spatie\LaravelData\DataCollection;
 
-final class WorkoutService
+final readonly class WorkoutService
 {
     public const string ROUTINE_HAS_NO_EXERCISES_ERROR = 'Unable to create a workout for a routine with no exercises';
 
@@ -71,9 +71,9 @@ final class WorkoutService
     public const string HISTORICAL_FUTURE_FINISHED_AT_ERROR = 'Finished time cannot be in the future';
 
     public function __construct(
-        private readonly WorkoutSessionService $sessions,
-        private readonly WorkoutSnapshotService $snapshots,
-        private readonly WorkoutProgressionService $progressionService,
+        private WorkoutSessionService $sessions,
+        private WorkoutSnapshotService $snapshots,
+        private WorkoutProgressionService $progressionService,
     ) {}
 
     /**

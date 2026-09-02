@@ -64,7 +64,9 @@ class RoutineEditorService
                 $block->delete();
             });
 
-            $blocks = array_values(iterator_to_array($data->blocks ?? []));
+            $blocks = ($data->blocks ?? [])
+                |> iterator_to_array(...)
+                |> array_values(...);
             $lastIndex = count($blocks) - 1;
 
             foreach ($blocks as $index => $blockData) {
@@ -283,7 +285,7 @@ class RoutineEditorService
             return false;
         }
 
-        $warmUpSteps = array_values(array_map(
+        $warmUpSteps = array_map(
             WarmUpStepSupport::toStorage(...),
             WarmUpStepSupport::normalizeList(array_values(array_map(
                 static fn (SyncWarmUpStepData $step): array => [
@@ -294,7 +296,8 @@ class RoutineEditorService
                 ],
                 $steps,
             ))),
-        ));
+        )
+            |> array_values(...);
 
         return $warmUpSteps === $profile->warmUpStepList();
     }

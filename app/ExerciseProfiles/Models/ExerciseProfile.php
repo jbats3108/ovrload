@@ -104,10 +104,11 @@ class ExerciseProfile extends Model
     {
         $steps = is_array($this->warm_up_steps) ? $this->warm_up_steps : [];
 
-        return array_values(array_map(
+        return array_map(
             WarmUpStepSupport::toStorage(...),
             WarmUpStepSupport::normalizeList(array_values($steps)),
-        ));
+        )
+            |> array_values(...);
     }
 
     public function resolvedFloor(): int

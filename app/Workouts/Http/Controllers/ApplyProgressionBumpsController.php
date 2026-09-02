@@ -28,14 +28,16 @@ class ApplyProgressionBumpsController extends Controller
             /** @var BumpProposalData $bump */
             $allowedBumpIds[] = $bump->routineBlockExerciseId;
         }
-        $selectedBumps = array_values(array_intersect($data->routineBlockExerciseIds, $allowedBumpIds));
+        $selectedBumps = array_intersect($data->routineBlockExerciseIds, $allowedBumpIds)
+            |> array_values(...);
 
         $allowedUndoIds = [];
         foreach ($session->undos as $undo) {
             /** @var UndoBumpProposalData $undo */
             $allowedUndoIds[] = $undo->bumpRecordId;
         }
-        $selectedUndos = array_values(array_intersect($data->undoBumpRecordIds, $allowedUndoIds));
+        $selectedUndos = array_intersect($data->undoBumpRecordIds, $allowedUndoIds)
+            |> array_values(...);
 
         $progressionService->applyConfirmedBumps($workout, $session->bumps, $selectedBumps);
         $progressionService->applyConfirmedUndos($workout, $selectedUndos);

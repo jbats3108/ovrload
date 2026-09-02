@@ -31,13 +31,14 @@ class PlateStackData extends Data
         }
 
         /** @var list<array{denomination_g: int, count: int}> $perSide */
-        $perSide = array_values(array_map(
+        $perSide = array_map(
             static fn (array $step): array => [
                 'denomination_g' => (int) ($step['denomination_g'] ?? 0),
                 'count' => (int) ($step['count'] ?? 0),
             ],
             is_array($snapshot['per_side'] ?? null) ? $snapshot['per_side'] : [],
-        ));
+        )
+            |> array_values(...);
 
         return new self(
             barG: (int) $snapshot['bar_g'],

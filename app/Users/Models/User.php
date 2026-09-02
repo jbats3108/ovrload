@@ -103,10 +103,11 @@ class User extends Authenticatable
             return self::fallbackWarmUpSteps();
         }
 
-        return array_values(array_map(
+        return array_map(
             WarmUpStepSupport::toStorage(...),
             WarmUpStepSupport::normalizeList(array_values($this->warm_up_steps_default)),
-        ));
+        )
+            |> array_values(...);
     }
 
     /**
