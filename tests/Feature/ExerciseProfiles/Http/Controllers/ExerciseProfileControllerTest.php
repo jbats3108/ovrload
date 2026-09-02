@@ -15,6 +15,7 @@ use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Models\User;
 use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -62,8 +63,8 @@ class ExerciseProfileControllerTest extends TestCase
             ->get(route('training.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('exercise_profiles.profiles', function (array $profiles) use ($profile, $routine): bool {
-                    $match = collect($profiles)->firstWhere('id', $profile->id);
+                ->where('exercise_profiles.profiles', function (Collection $profiles) use ($profile, $routine): bool {
+                    $match = $profiles->firstWhere('id', $profile->id);
 
                     return $match !== null
                         && $match['assigned_routines'] === [
@@ -308,8 +309,8 @@ class ExerciseProfileControllerTest extends TestCase
             ->get(route('training.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('exercise_profiles.profiles', function (array $profiles) use ($profile): bool {
-                    $match = collect($profiles)->firstWhere('id', $profile->id);
+                ->where('exercise_profiles.profiles', function (Collection $profiles) use ($profile): bool {
+                    $match = $profiles->firstWhere('id', $profile->id);
 
                     return $match !== null && $match['stale_assignment_count'] === 0;
                 }));
@@ -324,8 +325,8 @@ class ExerciseProfileControllerTest extends TestCase
             ->get(route('training.edit'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('exercise_profiles.profiles', function (array $profiles) use ($profile): bool {
-                    $match = collect($profiles)->firstWhere('id', $profile->id);
+                ->where('exercise_profiles.profiles', function (Collection $profiles) use ($profile): bool {
+                    $match = $profiles->firstWhere('id', $profile->id);
 
                     return $match !== null && $match['stale_assignment_count'] === 2;
                 }));
