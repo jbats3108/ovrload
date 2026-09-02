@@ -105,7 +105,7 @@ class User extends Authenticatable
 
         return array_values(array_map(
             WarmUpStepSupport::toStorage(...),
-            WarmUpStepSupport::normalizeList($this->warm_up_steps_default),
+            WarmUpStepSupport::normalizeList(array_values($this->warm_up_steps_default)),
         ));
     }
 

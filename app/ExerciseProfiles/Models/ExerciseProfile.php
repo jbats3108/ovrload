@@ -106,7 +106,7 @@ class ExerciseProfile extends Model
 
         return array_values(array_map(
             WarmUpStepSupport::toStorage(...),
-            WarmUpStepSupport::normalizeList($steps),
+            WarmUpStepSupport::normalizeList(array_values($steps)),
         ));
     }
 

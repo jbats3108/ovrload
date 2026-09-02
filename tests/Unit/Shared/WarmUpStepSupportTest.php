@@ -35,7 +35,7 @@ class WarmUpStepSupportTest extends TestCase
             WarmUpStepSupport::toStorage([
                 'mode' => WarmUpWeightMode::Fixed,
                 'percent' => null,
-                'weight_kg' => 60,
+                'weight_g' => 60_000,
                 'reps' => 5,
             ]),
         );

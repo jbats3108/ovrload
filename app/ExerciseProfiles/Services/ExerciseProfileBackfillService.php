@@ -109,7 +109,7 @@ final class ExerciseProfileBackfillService
             targetReps: $user->resolvedDefaultTargetReps(),
             floorOverride: $user->achievement_floor_default ?? 1,
             workingRestSeconds: 120,
-            warmUpSteps: WarmUpStepSupport::normalizeList($warmUpSteps),
+            warmUpSteps: array_values($warmUpSteps),
         );
 
         return $this->profileForRecipe($user, $recipe);
@@ -132,7 +132,12 @@ final class ExerciseProfileBackfillService
                         'percent' => $step->percent_of_working,
                         'weight_g' => $step->weight_g,
                         'reps' => (int) ($step->reps ?? 5),
-                    ]) ?? ['mode' => 'percent', 'percent' => 50, 'reps' => 5],
+                    ]) ?? [
+                        'mode' => WarmUpWeightMode::Percent,
+                        'percent' => 50,
+                        'weight_g' => null,
+                        'reps' => 5,
+                    ],
                 ))
                 ->all())
             : [];

@@ -23,6 +23,7 @@ class WeightKgSegmentData extends Data
     }
 
     /**
+     * @param  DataCollection<int, self>  $segments
      * @return list<int>
      */
     public static function gramsList(DataCollection $segments): array

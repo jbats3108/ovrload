@@ -54,7 +54,12 @@ class TrainingDefaultsController extends Controller
                         'percent' => $step->percent,
                         'weight_kg' => $step->weightKg,
                         'reps' => $step->reps,
-                    ]) ?? ['mode' => WarmUpWeightMode::Percent->value, 'percent' => 50, 'reps' => 5],
+                    ]) ?? [
+                        'mode' => WarmUpWeightMode::Percent,
+                        'percent' => 50,
+                        'weight_g' => null,
+                        'reps' => 5,
+                    ],
                 ),
                 $data->warmUpStepsDefault->all()
             ));
