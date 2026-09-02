@@ -7,6 +7,16 @@ import { formatRestSeconds, groupLabel, setupHintText, workoutProgressLabel } fr
 import { bumpedWeightKg, qualifiesForMidBlockBump, workingSetPrefillKg, type MidBlockBumpOffer } from '@/workouts/lib/midBlockBump';
 import { changePlateCount, formatPlateStackLabel, resolvePlateLoad, resolvePlateStack, serializePlateStack } from '@/workouts/lib/plates';
 import { preparePlayerInteraction } from '@/workouts/lib/playerInteraction';
+import {
+    addAdHocExercise as addAdHocExerciseMutation,
+    addWorkingSet as addWorkingSetMutation,
+    demoteFromDropset as demoteFromDropsetMutation,
+    postCompleteSet,
+    promoteToDropset as promoteToDropsetMutation,
+    removeAdHocBlock as removeAdHocBlockMutation,
+    removeWorkingSet as removeWorkingSetMutation,
+    skipRestOfBlock as skipRestOfBlockMutation,
+} from '@/workouts/lib/playerSessionMutations';
 import { buildCompleteSetPayload } from '@/workouts/lib/playerSetLog';
 import { notifyRestCountdown, notifyRestEnded, shouldBeepRestCountdown } from '@/workouts/lib/restAlert';
 import { releaseScreenWake, requestScreenWake } from '@/workouts/lib/screenWake';
@@ -558,39 +568,35 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
         pendingRestSeconds.value = restAfter;
 
-        setForm
-            .transform(() => payload)
-            .post(route('workouts.sets.complete', { workout: props.workout.id, set: set.id }), {
-                preserveScroll: true,
-                only: ['workout'],
-                onSuccess: () => {
-                    if (!set.is_dropset && set.group_type === 'working' && typeof loggedWeightKg === 'number') {
-                        lastWorkingWeightKg.value[set.workout_block_exercise_id] = loggedWeightKg;
+        postCompleteSet(setForm, props.workout.id, set.id, payload, {
+            onSuccess: () => {
+                if (!set.is_dropset && set.group_type === 'working' && typeof loggedWeightKg === 'number') {
+                    lastWorkingWeightKg.value[set.workout_block_exercise_id] = loggedWeightKg;
+                }
+                if (finalPlateLoad) {
+                    stagePlateLoadOverrides.value[set.id] = finalPlateLoad;
+                }
+                logPlateLoadDraft.value = null;
+
+                const afterLog = async (): Promise<void> => {
+                    if (!set.is_dropset && set.group_type === 'working' && typeof loggedReps === 'number' && typeof loggedWeightKg === 'number') {
+                        await applyMidBlockBumpAfterLog(block, set, loggedWeightKg, loggedReps, restAfter);
                     }
-                    if (finalPlateLoad) {
-                        stagePlateLoadOverrides.value[set.id] = finalPlateLoad;
+
+                    if (restAfter > 0) {
+                        startRest(restAfter);
+                    } else {
+                        pendingRestSeconds.value = 0;
+                        focus.value = firstIncomplete();
                     }
-                    logPlateLoadDraft.value = null;
+                };
 
-                    const afterLog = async (): Promise<void> => {
-                        if (!set.is_dropset && set.group_type === 'working' && typeof loggedReps === 'number' && typeof loggedWeightKg === 'number') {
-                            await applyMidBlockBumpAfterLog(block, set, loggedWeightKg, loggedReps, restAfter);
-                        }
-
-                        if (restAfter > 0) {
-                            startRest(restAfter);
-                        } else {
-                            pendingRestSeconds.value = 0;
-                            focus.value = firstIncomplete();
-                        }
-                    };
-
-                    void afterLog();
-                },
-                onError: () => {
-                    pendingRestSeconds.value = 0;
-                },
-            });
+                void afterLog();
+            },
+            onError: () => {
+                pendingRestSeconds.value = 0;
+            },
+        });
     };
 
     const addDropSegment = () => {
@@ -625,41 +631,19 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     );
 
     const promoteToDropset = () => {
-        if (mutating.value || !current.value || !canPromoteToDropset.value) {
+        if (!current.value || !canPromoteToDropset.value) {
             return;
         }
         const entry = current.value;
-        mutating.value = true;
-        router.post(
-            route('workouts.sets.promote-dropset', { workout: props.workout.id, set: entry.set.id }),
-            { segments: defaultPromoteSegments(workingWeightForSet(entry)) },
-            {
-                preserveScroll: true,
-                only: ['workout'],
-                onFinish: () => {
-                    mutating.value = false;
-                },
-            },
-        );
+        promoteToDropsetMutation(props.workout.id, entry.set.id, defaultPromoteSegments(workingWeightForSet(entry)), { mutating });
     };
 
     const demoteFromDropset = () => {
-        if (mutating.value || !current.value || !canDemoteFromDropset.value) {
+        if (!current.value || !canDemoteFromDropset.value) {
             return;
         }
         const entry = current.value;
-        mutating.value = true;
-        router.post(
-            route('workouts.sets.demote-dropset', { workout: props.workout.id, set: entry.set.id }),
-            {},
-            {
-                preserveScroll: true,
-                only: ['workout'],
-                onFinish: () => {
-                    mutating.value = false;
-                },
-            },
-        );
+        demoteFromDropsetMutation(props.workout.id, entry.set.id, { mutating });
     };
 
     const skipRest = () => {
@@ -897,22 +881,11 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const canSkipRestOfBlock = computed(() => skipRestOfBlockTarget.value !== null);
 
     const addAdHocExercise = (exerciseId: number | null): void => {
-        if (mutating.value || exerciseId === null || props.workout.status !== 'in_progress') {
+        if (exerciseId === null || props.workout.status !== 'in_progress') {
             return;
         }
 
-        mutating.value = true;
-        router.post(
-            route('workouts.ad-hoc-exercises.store', props.workout.id),
-            { exercise_id: exerciseId },
-            {
-                preserveScroll: true,
-                only: ['workout'],
-                onFinish: () => {
-                    mutating.value = false;
-                },
-            },
-        );
+        addAdHocExerciseMutation(props.workout.id, exerciseId, { mutating });
     };
 
     const canRemoveAdHocBlock = computed(() => {
@@ -937,51 +910,28 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             return;
         }
 
-        mutating.value = true;
-        router.delete(route('workouts.ad-hoc-blocks.destroy', [props.workout.id, block.id]), {
-            preserveScroll: true,
-            only: ['workout'],
+        removeAdHocBlockMutation(props.workout.id, block.id, {
+            mutating,
             onSuccess: () => {
                 clearRest();
                 pendingRestSeconds.value = 0;
                 focus.value = firstIncomplete();
             },
-            onFinish: () => {
-                mutating.value = false;
-            },
         });
     };
 
     const addWorkingSet = () => {
-        if (mutating.value || !current.value) {
+        if (!current.value) {
             return;
         }
-        mutating.value = true;
-        router.post(
-            route('workouts.working-sets.add', [props.workout.id, current.value.block.id]),
-            {},
-            {
-                preserveScroll: true,
-                only: ['workout'],
-                onFinish: () => {
-                    mutating.value = false;
-                },
-            },
-        );
+        addWorkingSetMutation(props.workout.id, current.value.block.id, { mutating });
     };
 
     const removeWorkingSet = () => {
-        if (mutating.value || !current.value || !canRemoveWorkingSet.value) {
+        if (!current.value || !canRemoveWorkingSet.value) {
             return;
         }
-        mutating.value = true;
-        router.delete(route('workouts.sets.remove', [props.workout.id, current.value.set.id]), {
-            preserveScroll: true,
-            only: ['workout'],
-            onFinish: () => {
-                mutating.value = false;
-            },
-        });
+        removeWorkingSetMutation(props.workout.id, current.value.set.id, { mutating });
     };
 
     const skipRestOfBlock = async () => {
@@ -999,22 +949,13 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             return;
         }
 
-        mutating.value = true;
-        router.post(
-            route('workouts.blocks.skip-rest', [props.workout.id, block.id]),
-            {},
-            {
-                preserveScroll: true,
-                only: ['workout'],
-                onSuccess: () => {
-                    clearRest();
-                    focus.value = firstIncomplete();
-                },
-                onFinish: () => {
-                    mutating.value = false;
-                },
+        skipRestOfBlockMutation(props.workout.id, block.id, {
+            mutating,
+            onSuccess: () => {
+                clearRest();
+                focus.value = firstIncomplete();
             },
-        );
+        });
     };
 
     const plateLoad = computed(() => {
