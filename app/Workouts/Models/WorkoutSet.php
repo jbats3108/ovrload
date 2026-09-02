@@ -68,9 +68,11 @@ class WorkoutSet extends Model
     /**
      * @param  list<int>  $weightGrams
      */
-    public function replaceSegments(array $weightGrams): void
+    public function replaceSegments(array $weightGrams, bool $deleteExisting = true): void
     {
-        $this->segments()->delete();
+        if ($deleteExisting) {
+            $this->segments()->delete();
+        }
 
         foreach ($weightGrams as $index => $grams) {
             WorkoutSetSegment::create([

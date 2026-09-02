@@ -60,7 +60,7 @@ jobs:
 
       - name: Commit quality fixes
         id: quality_commit
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Apply CI quality fixes
           commit_user_name: github-actions[bot]
