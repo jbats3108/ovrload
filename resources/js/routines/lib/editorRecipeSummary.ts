@@ -2,7 +2,7 @@ import { formatRest } from '@/routines/lib/formatRest';
 import { formatWarmUpStep, warmUpText } from '@/routines/lib/warmUp';
 import type { Block, BlockExercise } from '@/routines/types';
 
-/** Target / Floor / deload alt are editable when the exercise is Custom (no profile). */
+/** Target / Floor are editable when the exercise is Custom (no profile). Deload alt is always available. */
 export function exerciseRecipeIsCustom(exercise: BlockExercise): boolean {
     return exercise.exercise_profile_id == null;
 }

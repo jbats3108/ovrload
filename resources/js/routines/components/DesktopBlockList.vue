@@ -123,7 +123,6 @@ const toggleDropsets = (blockIndex: number): void => {
                                         </div>
                                     </div>
                                     <DeloadAlternateFields
-                                        v-if="exerciseRecipeIsCustom(ex)"
                                         :deload-exercise-id="ex.deload_exercise_id"
                                         :deload-working-weight-kg="ex.deload_working_weight_kg"
                                         :working-weight-kg="ex.working_weight_kg"

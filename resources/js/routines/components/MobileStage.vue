@@ -240,6 +240,15 @@ const customizeSharedRecipe = (block: Block): void => {
                         />
                     </div>
 
+                    <DeloadAlternateFields
+                        :deload-exercise-id="ex.deload_exercise_id"
+                        :deload-working-weight-kg="ex.deload_working_weight_kg"
+                        :working-weight-kg="ex.working_weight_kg"
+                        variant="mobile"
+                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
+                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
+                    />
+
                     <template v-if="exerciseRecipeIsCustom(ex)">
                         <div class="mt-2 grid grid-cols-2 gap-2">
                             <label class="block">
@@ -275,14 +284,6 @@ const customizeSharedRecipe = (block: Block): void => {
                         >
                             Save as profile
                         </button>
-                        <DeloadAlternateFields
-                            :deload-exercise-id="ex.deload_exercise_id"
-                            :deload-working-weight-kg="ex.deload_working_weight_kg"
-                            :working-weight-kg="ex.working_weight_kg"
-                            variant="mobile"
-                            @update:deload-exercise-id="ex.deload_exercise_id = $event"
-                            @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
-                        />
                     </template>
                     <div v-else class="mt-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2">
                         <p class="font-mono text-sm text-foreground">
