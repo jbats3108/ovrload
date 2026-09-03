@@ -229,9 +229,10 @@ describe('MobileStage', () => {
 });
 
 describe('RoutineEditorHeader', () => {
-    it('keeps Deload out of the header (mobile uses the Routine sheet)', () => {
+    it('keeps Routine profile and Deload out of the header (desktop uses Routine settings; mobile uses the Routine sheet)', () => {
         const { wrapper } = mountWithEditor(RoutineEditorHeader);
         expect(document.body.querySelector('[data-routine-deload]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Routine profile');
         wrapper.unmount();
     });
 });
