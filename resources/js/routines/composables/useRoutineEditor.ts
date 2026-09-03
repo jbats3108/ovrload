@@ -35,7 +35,7 @@ import { formatRest, normalizeRestSeconds } from '@/routines/lib/formatRest';
 import { optionalRepsPlaceholder } from '@/routines/lib/optionalReps';
 import { deleteRoutine as deleteRoutineMutation, duplicateRoutine as duplicateRoutineMutation } from '@/routines/lib/routineMutations';
 import { addWarmUpStep, clearWarmUp, removeWarmUpStep, sanitizeWarmUpStepsForSave, setWarmUpText, warmUpText } from '@/routines/lib/warmUp';
-import type { Block, EquipmentOption, ExerciseOption, MuscleGroupOption, RoutinePayload, WarmUpStep } from '@/routines/types';
+import type { Block, BlockExercise, EquipmentOption, ExerciseOption, MuscleGroupOption, RoutinePayload, WarmUpStep } from '@/routines/types';
 import type { ExerciseProfileOption, WarmUpDefaultsScope } from '@/settings/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
 import { useForm } from '@inertiajs/vue3';
