@@ -211,7 +211,9 @@ final readonly class ExerciseProfileAssignmentService
             }
         }
 
-        return array_values(array_unique($ids));
+        return $ids
+            |> array_unique(...)
+            |> array_values(...);
     }
 
     private function materializeSharedRecipe(RoutineBlock $block, ExerciseProfileRecipe $recipe): void

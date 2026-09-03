@@ -49,13 +49,14 @@ class SyncWarmUpData extends Data
             return [];
         }
 
-        return array_values(array_filter(
+        return array_filter(
             $this->steps->all(),
             static fn (SyncWarmUpStepData $step): bool => match ($step->mode) {
                 WarmUpWeightMode::Bar => $step->reps > 0,
                 WarmUpWeightMode::Fixed => $step->reps > 0 && ($step->weightKg ?? 0) >= 0.25,
                 WarmUpWeightMode::Percent => $step->reps > 0 && ($step->percent ?? 0) > 0,
             },
-        ));
+        )
+            |> array_values(...);
     }
 }

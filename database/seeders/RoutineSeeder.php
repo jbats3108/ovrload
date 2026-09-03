@@ -30,10 +30,10 @@ use RuntimeException;
  * | Superset Pump | Supersets, WU on some blocks only, mixed equipment |
  * | Dropset Finishers | Dropsets mixed with single sets, barbell + DB |
  */
-class RoutineSeeder extends Seeder
+final class RoutineSeeder extends Seeder
 {
     /** @var list<string> */
-    public const DEMO_NAMES = [
+    public const array DEMO_NAMES = [
         'Barbell Strength',
         'Dumbbell Accessories',
         'Superset Pump',
@@ -44,7 +44,7 @@ class RoutineSeeder extends Seeder
     private array $profiles = [];
 
     /** @var list<array{percent: int, reps: int}> */
-    private const DEFAULT_WARM_UPS = [
+    private const array DEFAULT_WARM_UPS = [
         ['percent' => 50, 'reps' => 5],
         ['percent' => 75, 'reps' => 3],
         ['percent' => 90, 'reps' => 1],

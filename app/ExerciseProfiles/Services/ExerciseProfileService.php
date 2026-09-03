@@ -348,7 +348,9 @@ class ExerciseProfileService
 
     private function assertNameAvailable(User $user, string $name, ?ExerciseProfile $except = null): void
     {
-        $normalized = mb_strtolower(trim($name));
+        $normalized = $name
+            |> trim(...)
+            |> mb_strtolower(...);
         if ($normalized === '') {
             throw new InvalidArgumentException('Profile name is required.');
         }

@@ -20,60 +20,60 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Spatie\LaravelData\DataCollection;
 
-class WorkoutService
+final readonly class WorkoutService
 {
-    public const ROUTINE_HAS_NO_EXERCISES_ERROR = 'Unable to create a workout for a routine with no exercises';
+    public const string ROUTINE_HAS_NO_EXERCISES_ERROR = 'Unable to create a workout for a routine with no exercises';
 
-    public const ALREADY_IN_PROGRESS_ERROR = 'You already have a workout in progress';
+    public const string ALREADY_IN_PROGRESS_ERROR = 'You already have a workout in progress';
 
-    public const WORKOUT_NOT_IN_PROGRESS_ERROR = 'This workout is not in progress';
+    public const string WORKOUT_NOT_IN_PROGRESS_ERROR = 'This workout is not in progress';
 
-    public const SET_ALREADY_COMPLETED_ERROR = 'Completed sets cannot be removed';
+    public const string SET_ALREADY_COMPLETED_ERROR = 'Completed sets cannot be removed';
 
-    public const SET_ALREADY_LOGGED_ERROR = 'This set is already logged';
+    public const string SET_ALREADY_LOGGED_ERROR = 'This set is already logged';
 
-    public const CANNOT_REMOVE_LAST_WORKING_SET_ERROR = 'At least one working set is required';
+    public const string CANNOT_REMOVE_LAST_WORKING_SET_ERROR = 'At least one working set is required';
 
-    public const NOTHING_TO_SKIP_IN_BLOCK_ERROR = 'Nothing left to skip in this group';
+    public const string NOTHING_TO_SKIP_IN_BLOCK_ERROR = 'Nothing left to skip in this group';
 
-    public const WORKING_SET_GROUP_MISSING_ERROR = 'This group has no working sets';
+    public const string WORKING_SET_GROUP_MISSING_ERROR = 'This group has no working sets';
 
-    public const DROPSET_REQUIRES_SEGMENTS_ERROR = 'A dropset requires at least two segments';
+    public const string DROPSET_REQUIRES_SEGMENTS_ERROR = 'A dropset requires at least two segments';
 
-    public const PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR = 'This set is a dropset and must be logged with segments';
+    public const string PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR = 'This set is a dropset and must be logged with segments';
 
-    public const CANNOT_PROMOTE_COMPLETED_SET_ERROR = 'Completed sets cannot be promoted to a dropset';
+    public const string CANNOT_PROMOTE_COMPLETED_SET_ERROR = 'Completed sets cannot be promoted to a dropset';
 
-    public const CANNOT_PROMOTE_WARM_UP_ERROR = 'Only working sets can be promoted to a dropset';
+    public const string CANNOT_PROMOTE_WARM_UP_ERROR = 'Only working sets can be promoted to a dropset';
 
-    public const CANNOT_PROMOTE_SUPERSET_ERROR = 'Dropsets are not supported on supersets';
+    public const string CANNOT_PROMOTE_SUPERSET_ERROR = 'Dropsets are not supported on supersets';
 
-    public const ALREADY_A_DROPSET_ERROR = 'This set is already a dropset';
+    public const string ALREADY_A_DROPSET_ERROR = 'This set is already a dropset';
 
-    public const CANNOT_DEMOTE_COMPLETED_SET_ERROR = 'Completed sets cannot be demoted from a dropset';
+    public const string CANNOT_DEMOTE_COMPLETED_SET_ERROR = 'Completed sets cannot be demoted from a dropset';
 
-    public const CANNOT_DEMOTE_WARM_UP_ERROR = 'Only working sets can be demoted from a dropset';
+    public const string CANNOT_DEMOTE_WARM_UP_ERROR = 'Only working sets can be demoted from a dropset';
 
-    public const NOT_A_DROPSET_ERROR = 'This set is not a dropset';
+    public const string NOT_A_DROPSET_ERROR = 'This set is not a dropset';
 
-    public const AD_HOC_EXERCISE_NOT_AVAILABLE_ERROR = 'This exercise is not available to you';
+    public const string AD_HOC_EXERCISE_NOT_AVAILABLE_ERROR = 'This exercise is not available to you';
 
-    public const AD_HOC_BLOCK_ONLY_ERROR = 'Only ad-hoc blocks can be removed this way';
+    public const string AD_HOC_BLOCK_ONLY_ERROR = 'Only ad-hoc blocks can be removed this way';
 
-    public const AD_HOC_BLOCK_HAS_LOGGED_SETS_ERROR = 'An ad-hoc block with logged sets cannot be removed';
+    public const string AD_HOC_BLOCK_HAS_LOGGED_SETS_ERROR = 'An ad-hoc block with logged sets cannot be removed';
 
-    public const HISTORICAL_NO_BLOCKS_ERROR = 'Add at least one group to log a historical workout';
+    public const string HISTORICAL_NO_BLOCKS_ERROR = 'Add at least one group to log a historical workout';
 
-    public const HISTORICAL_UNKNOWN_BLOCK_ERROR = 'One or more groups are not part of this routine';
+    public const string HISTORICAL_UNKNOWN_BLOCK_ERROR = 'One or more groups are not part of this routine';
 
-    public const HISTORICAL_SET_MISMATCH_ERROR = 'Logged sets must cover every working set in the kept groups';
+    public const string HISTORICAL_SET_MISMATCH_ERROR = 'Logged sets must cover every working set in the kept groups';
 
-    public const HISTORICAL_FUTURE_FINISHED_AT_ERROR = 'Finished time cannot be in the future';
+    public const string HISTORICAL_FUTURE_FINISHED_AT_ERROR = 'Finished time cannot be in the future';
 
     public function __construct(
-        private readonly WorkoutSessionService $sessions,
-        private readonly WorkoutSnapshotService $snapshots,
-        private readonly WorkoutProgressionService $progressionService,
+        private WorkoutSessionService $sessions,
+        private WorkoutSnapshotService $snapshots,
+        private WorkoutProgressionService $progressionService,
     ) {}
 
     /**

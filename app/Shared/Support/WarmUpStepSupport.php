@@ -63,10 +63,11 @@ final class WarmUpStepSupport
      */
     public static function normalizeList(array $steps): array
     {
-        return array_values(array_filter(
+        return array_filter(
             array_map(self::normalize(...), $steps),
             static fn (?array $step): bool => $step !== null,
-        ));
+        )
+            |> array_values(...);
     }
 
     /**

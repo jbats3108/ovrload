@@ -158,9 +158,8 @@ final readonly class ExerciseProfilePresetService
 
     private function adminName(string $name): string
     {
-        $name = trim($name);
+        $name = $name |> trim(...);
         $normalized = mb_strtolower($name);
-
         if ($name === '') {
             throw new InvalidArgumentException('Preset name is required.');
         }

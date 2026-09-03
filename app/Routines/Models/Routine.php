@@ -20,14 +20,14 @@ use Override;
 class Routine extends Model
 {
     /** @var list<string> */
-    public const EDITOR_STRUCTURE = [
+    public const array EDITOR_STRUCTURE = [
         'blocks.blockExercises.exercise',
         'blocks.setGroups.warmUpSteps',
         'blocks.setGroups.dropsetSegments',
     ];
 
     /** @var list<string> */
-    public const EDITOR_STRUCTURE_WITH_DELOAD = [
+    public const array EDITOR_STRUCTURE_WITH_DELOAD = [
         'blocks.blockExercises.exercise',
         'blocks.blockExercises.deloadExercise',
         'blocks.setGroups.warmUpSteps',
@@ -35,7 +35,7 @@ class Routine extends Model
     ];
 
     /** @var list<string> */
-    public const SNAPSHOT_STRUCTURE = [
+    public const array SNAPSHOT_STRUCTURE = [
         'blocks.blockExercises.exercise',
         'blocks.blockExercises.deloadExercise',
         'blocks.blockExercises.exerciseProfile',

@@ -11,10 +11,10 @@ use Illuminate\Support\Str;
 /**
  * Minimal shared exercises for Playwright e2e (RoutineSeeder demo routines).
  */
-class E2eExerciseSeeder extends Seeder
+final class E2eExerciseSeeder extends Seeder
 {
     /** @var list<array{name: string, equipment: ExerciseEquipment}> */
-    private const EXERCISES = [
+    private const array EXERCISES = [
         ['name' => 'Barbell Bench Press - Medium Grip', 'equipment' => ExerciseEquipment::Barbell],
         ['name' => 'Bent Over Barbell Row', 'equipment' => ExerciseEquipment::Barbell],
         ['name' => 'Barbell Squat', 'equipment' => ExerciseEquipment::Barbell],
