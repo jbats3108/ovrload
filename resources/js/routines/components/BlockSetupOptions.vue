@@ -12,34 +12,36 @@ const { form, toggleSuperset } = useRoutineEditor();
 
 const block = computed(() => form.blocks[blockIndex]);
 const canSetupAfter = computed(() => canSetupAfterBlock(blockIndex, form.blocks.length));
-const setupAfterLabel = computed(() => (variant === 'desktop' ? 'Setup→next' : 'Setup after exercise'));
+const setupAfterLabel = computed(() => (variant === 'desktop' ? 'Setup before next exercise' : 'Setup after exercise'));
 </script>
 
 <template>
-    <div :class="variant === 'desktop' ? 'flex flex-col gap-1 text-xs' : 'flex flex-wrap gap-4 text-sm'">
-        <label :class="variant === 'desktop' ? 'flex items-center gap-1.5 whitespace-nowrap' : 'flex items-center gap-2'">
-            <input type="checkbox" :checked="block.is_superset" @change="toggleSuperset(block)" />
-            Superset
+    <div :class="variant === 'desktop' ? 'flex max-w-full flex-col gap-1.5 text-xs' : 'flex flex-wrap gap-4 text-sm'">
+        <label :class="variant === 'desktop' ? 'flex items-start gap-1.5' : 'flex items-center gap-1.5'">
+            <input type="checkbox" class="mt-0.5 shrink-0" :checked="block.is_superset" @change="toggleSuperset(block)" />
+            <span class="min-w-0 leading-snug">Superset</span>
         </label>
         <label
             :class="[
-                variant === 'desktop' ? 'flex items-center gap-1.5 whitespace-nowrap' : 'flex items-center gap-2',
+                variant === 'desktop' ? 'flex items-start gap-1.5' : 'flex items-center gap-1.5',
                 block.warm_up.steps.length ? '' : 'opacity-40',
             ]"
             :title="block.warm_up.steps.length ? undefined : 'Add warm-up steps first'"
         >
-            <input v-model="form.blocks[blockIndex].has_setup_after_warm_up" type="checkbox" :disabled="!block.warm_up.steps.length" />
-            Setup before working
+            <input
+                v-model="form.blocks[blockIndex].has_setup_after_warm_up"
+                type="checkbox"
+                class="mt-0.5 shrink-0"
+                :disabled="!block.warm_up.steps.length"
+            />
+            <span class="min-w-0 leading-snug">Setup before working</span>
         </label>
         <label
-            :class="[
-                variant === 'desktop' ? 'flex items-center gap-1 whitespace-nowrap' : 'flex items-center gap-2',
-                canSetupAfter ? '' : 'opacity-40',
-            ]"
+            :class="[variant === 'desktop' ? 'flex items-start gap-1.5' : 'flex items-center gap-1.5', canSetupAfter ? '' : 'opacity-40']"
             :title="canSetupAfter ? undefined : 'Not on the final exercise'"
         >
-            <input v-model="form.blocks[blockIndex].has_setup_after" type="checkbox" :disabled="!canSetupAfter" />
-            {{ setupAfterLabel }}
+            <input v-model="form.blocks[blockIndex].has_setup_after" type="checkbox" class="mt-0.5 shrink-0" :disabled="!canSetupAfter" />
+            <span class="min-w-0 leading-snug">{{ setupAfterLabel }}</span>
         </label>
     </div>
 </template>
