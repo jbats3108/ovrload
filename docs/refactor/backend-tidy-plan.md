@@ -14,7 +14,7 @@ Refactoring backlog after the exercise-profiles pivot and related feature growth
 | Dual FKs (`shared_exercise_profile_id`, `exercise_profile_id`, fingerprints) | ADR-0007 copied recipes |
 | `RoutineEditorService` delete-all-blocks on save | Position-based workout matching; block IDs change each save |
 | Legacy user training columns | Still read/written until profiles fully own defaults |
-| `ExerciseProfileBackfillService` in seeders | Idempotent migration path for fresh DBs |
+| Published presets via `ExerciseProfileSeeder` + JSON | Idempotent migration/seed path for fresh DBs |
 | `warmUpSetGroup()` / `workingSetGroup()` on block models | Live in `WorkoutService`; prod uses `setGroups` + type elsewhere |
 
 ---
@@ -41,7 +41,7 @@ Refactoring backlog after the exercise-profiles pivot and related feature growth
 
 | Task | Files | Notes |
 |------|-------|-------|
-| B1. Fingerprint / assignment helper | New `ExerciseProfileAssignment` (or static helper on existing service) | Unify branching in `RoutineEditorService`, `ExerciseProfileService::syncProfile`, `ExerciseProfileBackfillService` |
+| B1. Fingerprint / assignment helper | New `ExerciseProfileAssignment` (or static helper on existing service) | Unify branching in `RoutineEditorService`, `ExerciseProfileService::syncProfile` |
 | B2. Deferred exercise picker payload | New builder; `EditRoutineController`, `PlayWorkoutController`, optionally `IndexAdminExercisesController` | Shared `ExercisePickerOptions::deferFor(User)` |
 | B3. Published profiles query | `ExerciseProfileService` | Private `publishedProfilesFor(User, ?includeArchivedIds)` for `pageDataFor`, `optionsForUser`, `optionsForRoutineEditor` |
 | B4. Routine structure eager-load | Constant or scope on `Routine` | Reuse graph in `WorkoutService`, `RoutineEditorPageData`, `RoutineDuplicator`, `HistoricalCreatePageData` |

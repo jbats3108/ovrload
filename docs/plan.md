@@ -133,12 +133,14 @@ Public order matches `/beta-tester-faqs`.
 
 ### Code quality & security
 
-- **PHPStan warmup-step / profile typing** — ~~advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`~~ done (#99)
+- **PHPStan warmup-step / profile typing** — ~~advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, …); `toStorage()` / profile Data constructors still typed without `mode`; `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`~~ done (#99)
 - **Node 20 on git-auto-commit-action** — ~~`stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24~~ done (`@v7`, Node 24)
 - **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface. **Done (refactor/backend-tidy):** `exerciseProfileAssignment.ts` + `exerciseProfileApply.ts`; `playerSetLog.ts` + `buildCompleteSetPayload()`; `playerSessionMutations.ts` (session route visits mirroring `WorkoutSessionService`); `useWorkoutPlayer` keeps orchestration. ~~**PHP tidy leftover:** inline `assignedRoutinesForReferencedIds` callable in `ExerciseProfileAssignmentService` (Slice A dual-path artifact; one strategy remains).~~ done
 - **Find N+1 queries (Sentry)** — ~~triage / fix N+1s flagged in Sentry~~ done (OVRLOAD-3: bulk-delete workout set segments on historical create)
 - **PHP 8.5 typed class constants** — ~~`rector.php` `withPhpSets()` includes PHP 8.3 `AddTypeToConstRector`, but ~31 untyped public consts remain on non-final classes (`WorkoutService`, `WorkoutHistoryService`, …); Rector skips them (subclass override risk). Mark services `final` / consts `final const`, or hand-type `string`/`int`/`array`~~ done
 - **PHP 8.5 pipe operator (`|>`)** — ~~Rector has `NestedFuncCallsToPipeOperatorRector` + `SequentialAssignmentsToPipeOperatorRector` but they are **not** in the default `php85` set (style, not migration). Opt in via `rector.php`, dry-run, then apply where readability wins~~ done
+- **Remove dead / one-time code** — ~~retire `exercises:import` + `exercises:audit`; drop legacy `ExerciseProfileBackfillService`; keep JSON + seeders~~ done
+- **Exercise preset defs in code** — ~~moved OVRLOAD presets to `database/data/exercise-profile-presets.json`; seeder + migrate path read JSON~~ done
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)
