@@ -19,8 +19,11 @@ const props = withDefaults(
         required?: boolean;
         disabled?: boolean;
         outdated?: boolean;
+        /** Empty string hides the visible label (e.g. Profile column header already names it). */
         label?: string;
         variant?: 'routine' | 'compact';
+        /** When false, hide Target/Floor chips and Profile Details under the select. */
+        showMeta?: boolean;
     }>(),
     {
         required: true,
@@ -28,11 +31,13 @@ const props = withDefaults(
         outdated: false,
         label: 'Profile',
         variant: 'routine',
+        showMeta: true,
     },
 );
 
 const selected = computed(() => props.profiles.find((profile) => profile.id === model.value) ?? null);
 const visibleProfiles = computed(() => props.profiles.filter((profile) => profile.status === 'published' || profile.id === model.value));
+const showLabel = computed(() => props.label.trim() !== '');
 const optionLabel = (profile: ExerciseProfileOption): string =>
     `${profile.display_name}${profile.is_default ? ' (Default)' : ''}${profile.status === 'archived' ? ' (Archived)' : ''}${
         props.outdated && profile.id === model.value ? ' (Update available)' : ''
@@ -40,15 +45,16 @@ const optionLabel = (profile: ExerciseProfileOption): string =>
 </script>
 
 <template>
-    <div class="space-y-2">
+    <div :class="showLabel || (showMeta && selected) ? 'space-y-2' : ''">
         <label class="flex flex-col gap-1 text-sm text-muted-foreground">
-            {{ props.label }}
+            <span v-if="showLabel">{{ props.label }}</span>
             <select
                 :value="model ?? ''"
                 :required="props.required"
                 :disabled="props.disabled"
-                class="rounded-xl border border-border bg-card px-3 py-2 text-foreground outline-none focus:border-primary"
-                :class="props.variant === 'compact' ? 'w-full text-sm' : 'w-full text-base'"
+                :aria-label="showLabel ? undefined : props.label || 'Profile'"
+                class="border border-border bg-card text-foreground outline-none focus:border-primary"
+                :class="props.variant === 'compact' ? 'h-8 w-full rounded px-2 py-1 text-sm' : 'w-full rounded-xl px-3 py-2 text-base'"
                 @change="onSelectChange"
             >
                 <option v-if="!props.required" :value="null">Custom settings</option>
@@ -58,7 +64,7 @@ const optionLabel = (profile: ExerciseProfileOption): string =>
             </select>
         </label>
 
-        <div v-if="selected" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div v-if="showMeta && selected" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span class="font-semibold text-foreground">
                 <template v-if="selected.kind === 'preset'"><BrandName class="mr-1 text-xs" />{{ selected.name }}</template>
                 <template v-else>{{ selected.display_name }}</template>
@@ -76,5 +82,6 @@ const optionLabel = (profile: ExerciseProfileOption): string =>
                 </div>
             </details>
         </div>
+        <p v-else-if="props.outdated" class="text-[11px] text-amber-400">Update available</p>
     </div>
 </template>

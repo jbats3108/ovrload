@@ -65,7 +65,7 @@ const onWeightInput = (event: Event) => {
 </script>
 
 <template>
-    <div :class="variant === 'mobile' ? 'mt-3 border-t border-border pt-3' : 'mt-1'">
+    <div data-deload-alternate :class="variant === 'mobile' ? 'mt-3 border-t border-border pt-3' : 'mt-1'">
         <button
             type="button"
             class="flex w-full items-center justify-between gap-2 text-left"

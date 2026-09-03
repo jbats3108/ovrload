@@ -165,7 +165,7 @@ const submitCreate = () => {
                       ? 'flex w-full items-center justify-center rounded-md border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-50'
                       : props.variant === 'compact'
                         ? 'flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 text-left text-sm text-muted-foreground hover:bg-secondary hover:text-foreground'
-                        : 'flex w-44 items-center justify-between gap-2 rounded border border-border bg-card px-2 py-1 text-left text-sm',
+                        : 'flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded border border-border bg-card px-2 text-left text-sm',
                 props.active ? 'border-primary' : '',
             ]"
             :disabled="props.disabled || (!catalog.length && !muscleGroups.length)"

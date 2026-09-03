@@ -184,7 +184,7 @@ describe('MobileStage', () => {
         wrapper.unmount();
     });
 
-    it('reveals Target and Floor after Customize', async () => {
+    it('shows Deload alternate while a profile is assigned', async () => {
         const { wrapper } = mountStage({
             achievement_floor_default: 1,
             exercise_profiles: [strength, hypertrophy],
@@ -193,9 +193,24 @@ describe('MobileStage', () => {
 
         await openFirstExerciseTab();
 
-        const customize = document.body.querySelector<HTMLButtonElement>('[data-customize-exercise]');
-        expect(customize).toBeTruthy();
-        customize!.click();
+        expect(document.body.querySelectorAll('[data-deload-alternate]')).toHaveLength(2);
+        expect(document.body.querySelectorAll('[data-exercise-target]')).toHaveLength(0);
+
+        wrapper.unmount();
+    });
+
+    it('reveals Target and Floor after Customise', async () => {
+        const { wrapper } = mountStage({
+            achievement_floor_default: 1,
+            exercise_profiles: [strength, hypertrophy],
+            routine: profiledSupersetRoutine(),
+        });
+
+        await openFirstExerciseTab();
+
+        const customise = document.body.querySelector<HTMLButtonElement>('[data-customise-exercise]');
+        expect(customise).toBeTruthy();
+        customise!.click();
         await nextTick();
 
         const floors = Array.from(document.body.querySelectorAll<HTMLInputElement>('[data-exercise-floor]'));
@@ -208,7 +223,38 @@ describe('MobileStage', () => {
         wrapper.unmount();
     });
 
-    it('reveals Rest and Warm-up editors after Customize on shared recipe', async () => {
+    it('restores the profile snapshot after Cancel Customise', async () => {
+        const { wrapper, editor } = mountStage({
+            achievement_floor_default: 1,
+            exercise_profiles: [strength, hypertrophy],
+            routine: profiledSupersetRoutine(),
+        });
+
+        await openFirstExerciseTab();
+
+        document.body.querySelector<HTMLButtonElement>('[data-customise-exercise]')!.click();
+        await nextTick();
+
+        const exercise = editor.form.blocks[0].exercises[0];
+        exercise.deload_exercise_id = 2;
+        exercise.deload_working_weight_kg = 42;
+        editor.setExerciseTarget(exercise, '9');
+        await nextTick();
+
+        document.body.querySelector<HTMLButtonElement>('[data-cancel-customise-exercise]')!.click();
+        await nextTick();
+
+        expect(exercise.exercise_profile_id).toBe(1);
+        expect(exercise.prescribed_reps).toBe(6);
+        expect(exercise.deload_exercise_id).toBe(2);
+        expect(exercise.deload_working_weight_kg).toBe(42);
+        expect(document.body.querySelectorAll('[data-exercise-target]')).toHaveLength(0);
+        expect(document.body.textContent).toContain('Target 6 · Floor 4');
+
+        wrapper.unmount();
+    });
+
+    it('reveals Rest and Warm-up editors after Customise on shared recipe', async () => {
         const { wrapper } = mountStage({
             exercise_profiles: [strength, hypertrophy],
             routine: profiledSupersetRoutine(),
@@ -218,7 +264,7 @@ describe('MobileStage', () => {
 
         expect(document.body.textContent).not.toContain('Compact (40%×5, 60%×3)');
 
-        document.body.querySelector<HTMLButtonElement>('[data-customize-shared]')!.click();
+        document.body.querySelector<HTMLButtonElement>('[data-customise-shared]')!.click();
         await nextTick();
 
         expect(document.body.textContent).toContain('Compact (40%×5, 60%×3)');
@@ -226,12 +272,37 @@ describe('MobileStage', () => {
 
         wrapper.unmount();
     });
+
+    it('restores shared rest after Cancel Customise', async () => {
+        const { wrapper, editor } = mountStage({
+            exercise_profiles: [strength, hypertrophy],
+            routine: profiledSupersetRoutine(),
+        });
+
+        await openFirstExerciseTab();
+
+        document.body.querySelector<HTMLButtonElement>('[data-customise-shared]')!.click();
+        await nextTick();
+
+        editor.form.blocks[0].working.rest_seconds = 45;
+        await nextTick();
+
+        document.body.querySelector<HTMLButtonElement>('[data-cancel-customise-shared]')!.click();
+        await nextTick();
+
+        expect(editor.form.blocks[0].shared_profile_id).toBe(1);
+        expect(editor.form.blocks[0].working.rest_seconds).toBe(180);
+        expect(document.body.querySelector('[data-shared-recipe-summary]')).toBeTruthy();
+
+        wrapper.unmount();
+    });
 });
 
 describe('RoutineEditorHeader', () => {
-    it('keeps Deload out of the header (mobile uses the Routine sheet)', () => {
+    it('keeps Routine profile and Deload out of the header (desktop uses Routine settings; mobile uses the Routine sheet)', () => {
         const { wrapper } = mountWithEditor(RoutineEditorHeader);
         expect(document.body.querySelector('[data-routine-deload]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Routine profile');
         wrapper.unmount();
     });
 });

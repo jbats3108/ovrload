@@ -141,9 +141,11 @@ const toc = [
                 </ul>
                 <p class="text-muted-foreground">
                     In the routine editor, each exercise has a profile selector. Selecting a different profile copies its Profile Details into that
-                    exercise. On mobile, Target and Floor stay collapsed until you choose Custom; desktop still exposes them under the profile.
-                    Editing a profile-owned value makes that block or exercise
-                    <strong class="text-foreground">Custom</strong>; saving those Profile Details as a profile is explicit.
+                    exercise. Target, Floor, Rest, and warm-up stay collapsed until you choose Custom settings (or Customise). Editing a profile-owned
+                    value makes that block or exercise
+                    <strong class="text-foreground">Custom</strong>; saving those Profile Details as a profile is explicit. Use
+                    <strong class="text-foreground">Cancel</strong> to discard in-session Customise edits and restore the previous profile values
+                    (nothing is written until you Save the routine).
                 </p>
                 <p class="text-muted-foreground">
                     Supersets can use a different profile for A and B. Their Target/Floor values are separate, but warm-ups and working Rest are
@@ -169,11 +171,13 @@ const toc = [
                 <p class="text-muted-foreground">
                     Choose a profile before naming the routine. A routine is a list of exercises (internally, blocks). Each exercise has working sets
                     and a profile. On mobile, the first tab is a
-                    <strong class="text-foreground">Routine</strong> sheet (name, routine profile, Deload); exercise tabs come after. Target, Floor,
-                    Rest, warm-ups, and Deload Alternate stay hidden while a profile is selected — choose
-                    <strong class="text-foreground">Custom settings</strong> (or Customize) to override them. Optional dropsets are per exercise. Pick
-                    lifts from the catalog, or add a private custom that only you see. Per-exercise
-                    <strong class="text-foreground">Deload Alternate</strong> is covered under Deloads below.
+                    <strong class="text-foreground">Routine</strong> sheet (name, routine profile, Deload); exercise tabs come after. On desktop, the
+                    same routine-level controls live in a collapsed <strong class="text-foreground">Routine settings</strong> strip under the title.
+                    Target, Floor, Rest, and warm-ups stay hidden while a profile is selected — choose
+                    <strong class="text-foreground">Custom settings</strong> (or Customise) to override them; Cancel restores the prior profile
+                    snapshot for that Customise session. Optional dropsets are per exercise. Pick lifts from the catalog, or add a private custom that
+                    only you see. Per-exercise <strong class="text-foreground">Deload Alternate</strong> stays available on every exercise (separate
+                    from Customise) and is covered under Deloads below.
                 </p>
                 <p class="text-muted-foreground">
                     <strong class="text-foreground">Setup</strong> is a pause so you can load the bar or walk to a machine. You can put setup before
@@ -183,7 +187,7 @@ const toc = [
                 <TutorialShot
                     name="editor"
                     alt="Routine editor with profile selectors, setup options, and deload alternate"
-                    caption="Editor: each exercise has a profile selector; Target and Floor appear when you choose Custom (a superset can still differ)."
+                    caption="Editor: each exercise has a profile selector; Target and Floor appear when you choose Customise (Deload alternate stays separate)."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>
