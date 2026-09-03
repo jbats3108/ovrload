@@ -125,7 +125,7 @@ Public order matches `/beta-tester-faqs`.
 
 ### Polish & mobile integration
 
-- **Editor vs Preferences density** — review what must live on the routine edit page vs what can stay in Preferences and appear only as an override. Current editor is cluttered and overwhelming on mobile
+- **Editor vs Preferences density** — mobile: first Routine sheet (name/profile/Deload); Target/Floor/Rest/WU/deload-alt collapsed until Custom. Remaining: desktop acronym/disclosure pass; swap superset A↔B
 
 ### Bugfixes
 

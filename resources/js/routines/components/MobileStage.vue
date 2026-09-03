@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InputError from '@/components/InputError.vue';
 import BlockSetupOptions from '@/routines/components/BlockSetupOptions.vue';
 import DeloadAlternateFields from '@/routines/components/DeloadAlternateFields.vue';
 import DeloadSettings from '@/routines/components/DeloadSettings.vue';
@@ -9,9 +10,15 @@ import ExerciseProfilePicker from '@/routines/components/ExerciseProfilePicker.v
 import RoutineEditorErrors from '@/routines/components/RoutineEditorErrors.vue';
 import SaveExerciseProfileDialog from '@/routines/components/SaveExerciseProfileDialog.vue';
 import { useRoutineEditor } from '@/routines/composables/useRoutineEditor';
+import {
+    blockSharedRecipeIsCustom,
+    exerciseRecipeIsCustom,
+    formatBlockSharedRecipeSummary,
+    formatExerciseTargetFloorSummary,
+} from '@/routines/lib/editorRecipeSummary';
 import type { Block, ExerciseProfileOption } from '@/routines/types';
 import { Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const {
     form,
@@ -36,6 +43,7 @@ const {
     dropsetSummary,
     profileOptions,
     applyProfile,
+    setRoutineProfile,
     setExerciseTarget,
     setExerciseFloor,
     exerciseFloorPlaceholder,
@@ -44,13 +52,38 @@ const {
     sharedProfileIsOutdated,
     registerProfile,
     save,
+    duplicateRoutine,
     deleteRoutine,
     mutating,
 } = useRoutineEditor();
 
+/** First mobile sheet = routine chrome; later tabs = one exercise stage each. */
+const mobilePane = ref<'routine' | 'exercise'>('routine');
+
+const routineProfileModel = computed({
+    get: () => form.default_exercise_profile_id ?? null,
+    set: (profileId: number | null) => {
+        void setRoutineProfile(profileId);
+    },
+});
+
 const saveDialogOpen = ref(false);
 const saveDialogBlock = ref<Block | null>(null);
 const saveDialogExerciseIndex = ref(0);
+
+const openRoutinePane = (): void => {
+    mobilePane.value = 'routine';
+};
+
+const openExercisePane = (blockIndex: number, exerciseIndex = 0): void => {
+    mobilePane.value = 'exercise';
+    selectBlockExercise(blockIndex, exerciseIndex);
+};
+
+const addExerciseBlock = (superset: boolean): void => {
+    addBlock(superset);
+    openExercisePane(form.blocks.length - 1);
+};
 
 const openSaveProfile = (block: Block, exerciseIndex: number): void => {
     saveDialogBlock.value = block;
@@ -66,19 +99,44 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
     registerProfile(profile);
     applyProfile(saveDialogBlock.value, profile.id, saveDialogExerciseIndex.value);
 };
+
+const customizeExercise = (block: Block, exerciseIndex: number): void => {
+    applyProfile(block, null, exerciseIndex);
+};
+
+const customizeSharedRecipe = (block: Block): void => {
+    markSharedCustom(block);
+    if (!warmUpExpanded.value) {
+        toggleWarmUpExpanded();
+    }
+};
 </script>
 
 <template>
     <div class="flex flex-col md:hidden">
         <div class="px-4 pt-3 pb-4">
-            <div class="flex gap-2 overflow-x-auto pb-1">
+            <div class="flex gap-2 overflow-x-auto pb-1" data-mobile-stage-tabs>
+                <button
+                    type="button"
+                    data-routine-pane-tab
+                    class="shrink-0 rounded-lg border px-3 py-2 text-left text-sm"
+                    :class="mobilePane === 'routine' ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'"
+                    @click="openRoutinePane"
+                >
+                    <div class="font-mono text-xs">Routine</div>
+                    <div class="max-w-28 truncate">{{ form.name || 'Untitled' }}</div>
+                </button>
                 <button
                     v-for="(b, i) in form.blocks"
                     :key="i"
                     type="button"
                     class="shrink-0 rounded-lg border px-3 py-2 text-left text-sm"
-                    :class="i === active ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'"
-                    @click="selectBlockExercise(i, 0)"
+                    :class="
+                        mobilePane === 'exercise' && i === active
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-muted-foreground'
+                    "
+                    @click="openExercisePane(i)"
                 >
                     <div class="font-mono text-xs">{{ i + 1 }}{{ b.is_superset ? ' SS' : '' }}</div>
                     <div class="max-w-28 truncate">{{ exerciseName(b.exercises[0]?.exercise_id) }}</div>
@@ -86,13 +144,60 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
             </div>
         </div>
 
-        <div class="mx-auto w-full max-w-lg px-4 pb-4">
+        <main v-if="mobilePane === 'routine'" class="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-4" data-routine-pane>
             <div class="rounded-2xl border border-border bg-card p-4">
-                <DeloadSettings variant="mobile" flush />
-            </div>
-        </div>
+                <h2 class="text-base font-semibold">Routine</h2>
+                <p class="mt-1 text-xs text-muted-foreground">Name, default profile for new exercises, and Deload for this routine.</p>
 
-        <main v-if="activeBlock" class="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-4">
+                <label class="mt-4 block">
+                    <span class="text-xs text-muted-foreground">Name</span>
+                    <input
+                        v-model="form.name"
+                        class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-lg font-semibold outline-none focus:border-primary"
+                        required
+                    />
+                    <InputError :message="form.errors.name" />
+                </label>
+
+                <div class="mt-4">
+                    <ExerciseProfilePicker v-model="routineProfileModel" :profiles="profileOptions" label="Routine profile" />
+                    <p class="mt-1 text-xs text-muted-foreground">Used for new exercises; existing ones stay unchanged.</p>
+                    <InputError :message="form.errors.default_exercise_profile_id" />
+                </div>
+
+                <div class="mt-4 rounded-xl border border-border bg-background/50 p-3">
+                    <DeloadSettings variant="mobile" flush />
+                </div>
+
+                <button
+                    type="button"
+                    class="mt-4 w-full rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50"
+                    :disabled="mutating || form.processing"
+                    @click="duplicateRoutine"
+                >
+                    Duplicate routine
+                </button>
+            </div>
+
+            <div class="flex gap-2">
+                <button
+                    type="button"
+                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock(false)"
+                >
+                    Add exercise
+                </button>
+                <button
+                    type="button"
+                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock(true)"
+                >
+                    Add superset
+                </button>
+            </div>
+        </main>
+
+        <main v-else-if="activeBlock" class="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-4">
             <div class="rounded-2xl border border-border bg-card p-4">
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="text-base font-semibold">
@@ -110,7 +215,7 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                         v-model="ex.exercise_id"
                         variant="mobile"
                         :active="ei === activeExerciseIndex"
-                        @open="selectBlockExercise(active, ei)"
+                        @open="openExercisePane(active, ei)"
                     />
                     <div class="mt-2 grid grid-cols-2 gap-2">
                         <label class="block">
@@ -134,51 +239,67 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                             @update:model-value="applyProfile(activeBlock, $event, ei)"
                         />
                     </div>
-                    <div class="mt-2 grid grid-cols-2 gap-2">
-                        <label class="block">
-                            <span class="text-xs text-muted-foreground">Target reps</span>
-                            <input
-                                :value="ex.prescribed_reps"
-                                type="number"
-                                min="1"
-                                max="100"
-                                data-exercise-target
-                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
-                            />
-                        </label>
-                        <label class="block">
-                            <span class="text-xs text-muted-foreground">Floor</span>
-                            <input
-                                :value="ex.achievement_floor ?? ''"
-                                type="number"
-                                min="1"
-                                max="100"
-                                data-exercise-floor
-                                :placeholder="exerciseFloorPlaceholder(activeBlock, ei)"
-                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
-                            />
-                        </label>
+
+                    <template v-if="exerciseRecipeIsCustom(ex)">
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Target reps</span>
+                                <input
+                                    :value="ex.prescribed_reps"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    data-exercise-target
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                    @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
+                                />
+                            </label>
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Floor</span>
+                                <input
+                                    :value="ex.achievement_floor ?? ''"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    data-exercise-floor
+                                    :placeholder="exerciseFloorPlaceholder(activeBlock, ei)"
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                    @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
+                                />
+                            </label>
+                        </div>
+                        <button
+                            type="button"
+                            class="mt-2 text-left text-xs text-primary underline-offset-2 hover:underline"
+                            @click="openSaveProfile(activeBlock, ei)"
+                        >
+                            Save as profile
+                        </button>
+                        <DeloadAlternateFields
+                            :deload-exercise-id="ex.deload_exercise_id"
+                            :deload-working-weight-kg="ex.deload_working_weight_kg"
+                            :working-weight-kg="ex.working_weight_kg"
+                            variant="mobile"
+                            @update:deload-exercise-id="ex.deload_exercise_id = $event"
+                            @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
+                        />
+                    </template>
+                    <div v-else class="mt-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2">
+                        <p class="font-mono text-sm text-foreground">
+                            {{ formatExerciseTargetFloorSummary(ex, exerciseFloorPlaceholder(activeBlock, ei)) }}
+                        </p>
+                        <p class="mt-0.5 text-xs text-muted-foreground">From profile — choose Custom settings to edit.</p>
+                        <button
+                            type="button"
+                            class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
+                            data-customize-exercise
+                            @click="customizeExercise(activeBlock, ei)"
+                        >
+                            Customize
+                        </button>
                     </div>
-                    <button
-                        v-if="ex.exercise_profile_id == null"
-                        type="button"
-                        class="mt-2 text-left text-xs text-primary underline-offset-2 hover:underline"
-                        @click="openSaveProfile(activeBlock, ei)"
-                    >
-                        Save as profile
-                    </button>
-                    <DeloadAlternateFields
-                        :deload-exercise-id="ex.deload_exercise_id"
-                        :deload-working-weight-kg="ex.deload_working_weight_kg"
-                        :working-weight-kg="ex.working_weight_kg"
-                        variant="mobile"
-                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
-                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
-                    />
                 </div>
-                <p class="mt-1 text-xs text-muted-foreground">
+                <p v-if="activeBlock.exercises.some(exerciseRecipeIsCustom)" class="mt-1 text-xs text-muted-foreground">
                     Blank Floor uses that exercise's profile. Custom exercises fall back to Preferences. Weight bumps follow the exercise Target reps.
                 </p>
 
@@ -193,24 +314,48 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                             @change="trimDropsetsToSetCount(activeBlock)"
                         />
                     </label>
-                    <label>
+                    <div v-if="blockSharedRecipeIsCustom(activeBlock)">
+                        <label>
+                            <span class="text-xs text-muted-foreground">Rest</span>
+                            <details class="mt-1">
+                                <summary class="cursor-pointer rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg">
+                                    {{ formatRest(activeBlock.working.rest_seconds) }}
+                                    <span v-if="sharedProfileIsOutdated(activeBlock)" class="text-sm text-amber-400">· Update available</span>
+                                </summary>
+                                <input
+                                    v-model.number="activeBlock.working.rest_seconds"
+                                    type="number"
+                                    min="0"
+                                    max="3600"
+                                    step="15"
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                    @input="markSharedCustom(activeBlock)"
+                                />
+                            </details>
+                        </label>
+                    </div>
+                    <div v-else class="flex flex-col justify-center">
                         <span class="text-xs text-muted-foreground">Rest</span>
-                        <details class="mt-1">
-                            <summary class="cursor-pointer rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg">
-                                {{ formatRest(activeBlock.working.rest_seconds) }}
-                                <span v-if="sharedProfileIsOutdated(activeBlock)" class="text-sm text-amber-400">· Update available</span>
-                            </summary>
-                            <input
-                                v-model.number="activeBlock.working.rest_seconds"
-                                type="number"
-                                min="0"
-                                max="3600"
-                                step="15"
-                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                @input="markSharedCustom(activeBlock)"
-                            />
-                        </details>
-                    </label>
+                        <p class="mt-1 font-mono text-lg text-foreground">{{ formatRest(activeBlock.working.rest_seconds) }}</p>
+                        <p v-if="sharedProfileIsOutdated(activeBlock)" class="text-xs text-amber-400">Update available</p>
+                    </div>
+                </div>
+
+                <div
+                    v-if="!blockSharedRecipeIsCustom(activeBlock)"
+                    class="mt-3 rounded-xl border border-border/60 bg-background/50 px-3 py-2"
+                    data-shared-recipe-summary
+                >
+                    <p class="truncate font-mono text-sm text-foreground">{{ formatBlockSharedRecipeSummary(activeBlock) }}</p>
+                    <p class="mt-0.5 text-xs text-muted-foreground">Rest &amp; warm-up from profile.</p>
+                    <button
+                        type="button"
+                        class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
+                        data-customize-shared
+                        @click="customizeSharedRecipe(activeBlock)"
+                    >
+                        Customize
+                    </button>
                 </div>
 
                 <EditorDisclosure
@@ -225,6 +370,7 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                 </EditorDisclosure>
 
                 <EditorDisclosure
+                    v-if="blockSharedRecipeIsCustom(activeBlock)"
                     :expanded="warmUpExpanded"
                     label="Warm-up"
                     :summary="activeBlock.warm_up.steps.length ? warmUpText(activeBlock) : 'None'"
@@ -341,14 +487,14 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                 <button
                     type="button"
                     class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addBlock(false)"
+                    @click="addExerciseBlock(false)"
                 >
                     Add exercise
                 </button>
                 <button
                     type="button"
                     class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addBlock(true)"
+                    @click="addExerciseBlock(true)"
                 >
                     Add superset
                 </button>
@@ -361,14 +507,14 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
                 <button
                     type="button"
                     class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addBlock(false)"
+                    @click="addExerciseBlock(false)"
                 >
                     Add exercise
                 </button>
                 <button
                     type="button"
                     class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addBlock(true)"
+                    @click="addExerciseBlock(true)"
                 >
                     Add superset
                 </button>

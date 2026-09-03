@@ -140,8 +140,9 @@ const toc = [
                     <li><BrandName class="mr-1" />Endurance — Target 17, Floor 15, 1-minute working Rest; Warm-up 50%×10, 75%×5.</li>
                 </ul>
                 <p class="text-muted-foreground">
-                    In the routine editor, each exercise has a profile selector with its own Target and Floor. Selecting a different profile copies
-                    its Profile Details into that exercise. Editing a profile-owned value makes that block or exercise
+                    In the routine editor, each exercise has a profile selector. Selecting a different profile copies its Profile Details into that
+                    exercise. On mobile, Target and Floor stay collapsed until you choose Custom; desktop still exposes them under the profile.
+                    Editing a profile-owned value makes that block or exercise
                     <strong class="text-foreground">Custom</strong>; saving those Profile Details as a profile is explicit.
                 </p>
                 <p class="text-muted-foreground">
@@ -166,9 +167,12 @@ const toc = [
             <section id="editor" class="mt-12 scroll-mt-20 space-y-3">
                 <h2 class="text-2xl font-bold tracking-tight">Create and edit a routine</h2>
                 <p class="text-muted-foreground">
-                    Choose a profile before naming the routine. A routine is a list of exercises (internally, blocks). Each exercise has working sets,
-                    optional warm-ups, Rest, and optional dropsets. Pick lifts from the catalog, or add a private custom that only you see.
-                    Per-exercise
+                    Choose a profile before naming the routine. A routine is a list of exercises (internally, blocks). Each exercise has working sets
+                    and a profile. On mobile, the first tab is a
+                    <strong class="text-foreground">Routine</strong> sheet (name, routine profile, Deload); exercise tabs come after. Target, Floor,
+                    Rest, warm-ups, and Deload Alternate stay hidden while a profile is selected — choose
+                    <strong class="text-foreground">Custom settings</strong> (or Customize) to override them. Optional dropsets are per exercise. Pick
+                    lifts from the catalog, or add a private custom that only you see. Per-exercise
                     <strong class="text-foreground">Deload Alternate</strong> is covered under Deloads below.
                 </p>
                 <p class="text-muted-foreground">
@@ -179,7 +183,7 @@ const toc = [
                 <TutorialShot
                     name="editor"
                     alt="Routine editor with profile selectors, setup options, and deload alternate"
-                    caption="Editor: each exercise has a profile selector; Target and Floor sit with that exercise so a superset can differ."
+                    caption="Editor: each exercise has a profile selector; Target and Floor appear when you choose Custom (a superset can still differ)."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>
