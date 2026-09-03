@@ -1,4 +1,5 @@
 import MobileStage from '@/routines/components/MobileStage.vue';
+import RoutineEditorHeader from '@/routines/components/RoutineEditorHeader.vue';
 import { createRoutineEditor, routineEditorKey, type EditRoutineProps } from '@/routines/composables/useRoutineEditor';
 import type { ExerciseProfileOption } from '@/settings/types';
 import { exerciseOption, routinePayload } from '@/test/factories';
@@ -41,7 +42,7 @@ const hypertrophy: ExerciseProfileOption = {
     is_default: false,
 };
 
-function mountStage(props: Partial<EditRoutineProps> = {}) {
+function mountWithEditor(Component: ReturnType<typeof defineComponent>, props: Partial<EditRoutineProps> = {}) {
     let editor!: ReturnType<typeof createRoutineEditor>;
     const Host = defineComponent({
         setup() {
@@ -54,7 +55,7 @@ function mountStage(props: Partial<EditRoutineProps> = {}) {
             });
             provide(routineEditorKey, editor);
 
-            return () => h(MobileStage);
+            return () => h(Component);
         },
     });
 
@@ -70,7 +71,70 @@ function mountStage(props: Partial<EditRoutineProps> = {}) {
     return { wrapper, editor };
 }
 
+function mountStage(props: Partial<EditRoutineProps> = {}) {
+    return mountWithEditor(MobileStage, props);
+}
+
+async function openFirstExerciseTab(): Promise<void> {
+    const tabs = document.body.querySelector('[data-mobile-stage-tabs]');
+    const exerciseTab = tabs?.querySelectorAll('button')[1] as HTMLButtonElement | undefined;
+    expect(exerciseTab).toBeTruthy();
+    exerciseTab!.click();
+    await nextTick();
+}
+
+function profiledSupersetRoutine() {
+    const base = routinePayload().blocks[0].exercises[0];
+
+    return routinePayload({
+        blocks: [
+            {
+                ...routinePayload().blocks[0],
+                is_superset: true,
+                shared_profile_id: 1,
+                shared_profile_fingerprint: 'shared-strength',
+                working: { ...routinePayload().blocks[0].working, rest_seconds: 180 },
+                warm_up: {
+                    set_count: 0,
+                    rest_seconds: 60,
+                    steps: [],
+                },
+                exercises: [
+                    {
+                        ...base,
+                        prescribed_reps: 6,
+                        achievement_floor: null,
+                        floor_is_derived: true,
+                        exercise_profile_id: 1,
+                        exercise_profile_fingerprint: 'exercise-strength',
+                    },
+                    {
+                        ...base,
+                        exercise_id: 2,
+                        prescribed_reps: 10,
+                        achievement_floor: null,
+                        floor_is_derived: true,
+                        exercise_profile_id: 2,
+                        exercise_profile_fingerprint: 'exercise-hypertrophy',
+                    },
+                ],
+            },
+        ],
+    });
+}
+
 describe('MobileStage', () => {
+    it('opens on the Routine sheet with name, profile, and Deload', () => {
+        const { wrapper } = mountStage();
+
+        expect(document.body.querySelector('[data-routine-pane]')).toBeTruthy();
+        expect(document.body.querySelector('[data-routine-deload]')).toBeTruthy();
+        expect(document.body.querySelector('[data-routine-pane-tab]')?.className).toContain('border-primary');
+        expect(document.body.querySelectorAll('[data-exercise-target]')).toHaveLength(0);
+
+        wrapper.unmount();
+    });
+
     it('keeps Cancel/Save in document flow under the stage content', () => {
         const { wrapper } = mountStage();
         const save = Array.from(document.body.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Save');
@@ -100,62 +164,74 @@ describe('MobileStage', () => {
         wrapper.unmount();
     });
 
-    it('shows a Floor input per superset exercise with that profile as the placeholder', () => {
-        const base = routinePayload().blocks[0].exercises[0];
+    it('hides Target and Floor inputs while a profile is assigned', async () => {
         const { wrapper } = mountStage({
             achievement_floor_default: 1,
             exercise_profiles: [strength, hypertrophy],
-            routine: routinePayload({
-                blocks: [
-                    {
-                        ...routinePayload().blocks[0],
-                        is_superset: true,
-                        shared_profile_id: 1,
-                        shared_profile_fingerprint: 'shared-strength',
-                        exercises: [
-                            {
-                                ...base,
-                                prescribed_reps: 6,
-                                achievement_floor: null,
-                                floor_is_derived: true,
-                                exercise_profile_id: 1,
-                                exercise_profile_fingerprint: 'exercise-strength',
-                            },
-                            {
-                                ...base,
-                                exercise_id: 2,
-                                prescribed_reps: 10,
-                                achievement_floor: null,
-                                floor_is_derived: true,
-                                exercise_profile_id: 2,
-                                exercise_profile_fingerprint: 'exercise-hypertrophy',
-                            },
-                        ],
-                    },
-                ],
-            }),
+            routine: profiledSupersetRoutine(),
         });
 
-        const floors = Array.from(document.body.querySelectorAll<HTMLInputElement>('[data-exercise-floor]'));
-        expect(floors).toHaveLength(2);
-        expect(floors[0]?.placeholder).toBe('4');
-        expect(floors[1]?.placeholder).toBe('8');
+        await openFirstExerciseTab();
 
-        const targets = Array.from(document.body.querySelectorAll<HTMLInputElement>('[data-exercise-target]'));
-        expect(targets.map((input) => input.value)).toEqual(['6', '10']);
+        expect(document.body.querySelector('[data-routine-pane]')).toBeNull();
+        expect(document.body.querySelector('[data-routine-deload]')).toBeNull();
+        expect(document.body.querySelectorAll('[data-exercise-floor]')).toHaveLength(0);
+        expect(document.body.querySelectorAll('[data-exercise-target]')).toHaveLength(0);
+        expect(document.body.textContent).toContain('Target 6 · Floor 4');
+        expect(document.body.textContent).toContain('Target 10 · Floor 8');
+        expect(document.body.querySelector('[data-shared-recipe-summary]')?.textContent).toContain('Rest 3m');
 
         wrapper.unmount();
     });
 
-    it('places the routine Deload recipe above the dropset editor', () => {
-        const { wrapper } = mountStage();
-        const deload = document.body.querySelector('[data-routine-deload]');
-        const dropsets = document.body.querySelector('[data-dropset-editor]');
+    it('reveals Target and Floor after Customize', async () => {
+        const { wrapper } = mountStage({
+            achievement_floor_default: 1,
+            exercise_profiles: [strength, hypertrophy],
+            routine: profiledSupersetRoutine(),
+        });
 
-        expect(deload).toBeTruthy();
-        expect(dropsets).toBeTruthy();
-        expect(deload!.compareDocumentPosition(dropsets!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        await openFirstExerciseTab();
 
+        const customize = document.body.querySelector<HTMLButtonElement>('[data-customize-exercise]');
+        expect(customize).toBeTruthy();
+        customize!.click();
+        await nextTick();
+
+        const floors = Array.from(document.body.querySelectorAll<HTMLInputElement>('[data-exercise-floor]'));
+        expect(floors).toHaveLength(1);
+        expect(floors[0]?.placeholder).toBe('4');
+
+        const targets = Array.from(document.body.querySelectorAll<HTMLInputElement>('[data-exercise-target]'));
+        expect(targets.map((input) => input.value)).toEqual(['6']);
+
+        wrapper.unmount();
+    });
+
+    it('reveals Rest and Warm-up editors after Customize on shared recipe', async () => {
+        const { wrapper } = mountStage({
+            exercise_profiles: [strength, hypertrophy],
+            routine: profiledSupersetRoutine(),
+        });
+
+        await openFirstExerciseTab();
+
+        expect(document.body.textContent).not.toContain('Compact (40%×5, 60%×3)');
+
+        document.body.querySelector<HTMLButtonElement>('[data-customize-shared]')!.click();
+        await nextTick();
+
+        expect(document.body.textContent).toContain('Compact (40%×5, 60%×3)');
+        expect(document.body.querySelector('[data-shared-recipe-summary]')).toBeNull();
+
+        wrapper.unmount();
+    });
+});
+
+describe('RoutineEditorHeader', () => {
+    it('keeps Deload out of the header (mobile uses the Routine sheet)', () => {
+        const { wrapper } = mountWithEditor(RoutineEditorHeader);
+        expect(document.body.querySelector('[data-routine-deload]')).toBeNull();
         wrapper.unmount();
     });
 });

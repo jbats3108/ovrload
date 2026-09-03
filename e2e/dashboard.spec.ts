@@ -16,8 +16,9 @@ test.describe('dashboard', () => {
     test('opens routine editor', async ({ page }) => {
         await page.getByLabel('Edit routine').first().click();
         await expect(page).toHaveURL(/\/routines\/[a-z0-9-]+\/edit/);
-        await expect(page.getByText('Routine', { exact: true })).toBeVisible();
-        await expect(page.getByLabel('Routine profile')).toBeVisible();
+        // Header chrome (desktop) — avoid getByText('Routine') which also matches the mobile Routine sheet/tab.
+        await expect(page.locator('header').getByLabel('Routine profile')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Save' }).first()).toBeVisible();
     });
 
     test('requires a profile when creating a routine', async ({ page }) => {

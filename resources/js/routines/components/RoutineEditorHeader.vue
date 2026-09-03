@@ -19,7 +19,7 @@ const routineProfileModel = computed({
 <template>
     <header class="border-b border-border px-4 py-4 md:px-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div class="min-w-0 flex-1">
+            <div class="hidden min-w-0 flex-1 md:block">
                 <p class="text-xs tracking-[0.2em] text-muted-foreground uppercase">Routine</p>
                 <input
                     v-model="form.name"
@@ -28,7 +28,7 @@ const routineProfileModel = computed({
                 />
                 <InputError :message="form.errors.name" />
             </div>
-            <div class="w-full md:max-w-xs">
+            <div class="hidden w-full md:block md:max-w-xs">
                 <ExerciseProfilePicker v-model="routineProfileModel" :profiles="profileOptions" label="Routine profile" />
                 <p class="mt-1 text-xs text-muted-foreground">Used for new blocks; existing blocks stay unchanged.</p>
                 <InputError :message="form.errors.default_exercise_profile_id" />
@@ -42,7 +42,7 @@ const routineProfileModel = computed({
                 </Link>
                 <button
                     type="button"
-                    class="rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                    class="hidden rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 md:inline-flex"
                     :disabled="mutating || form.processing"
                     @click="duplicateRoutine"
                 >
@@ -66,7 +66,7 @@ const routineProfileModel = computed({
                 </button>
             </div>
         </div>
-        <RoutineEditorErrors class="mt-3" />
-        <p v-if="form.recentlySuccessful" class="mt-2 text-sm text-primary">Saved.</p>
+        <RoutineEditorErrors class="mt-3 hidden md:block" />
+        <p v-if="form.recentlySuccessful" class="mt-2 hidden text-sm text-primary md:block">Saved.</p>
     </header>
 </template>
