@@ -33,7 +33,7 @@ Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first withi
 12. **Skip rest of block** — − Set trims incomplete rounds (never last); confirmed Skip rest of group deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History (#64)
 13. **Since-last-deload counts** — per-routine dashboard standards since latest finished deload; soft Deload hint at ≥ Deload Velocity (`deload_every_n`, editor + Training defaults; 0 = never); #47
 14. **Domain mail + beta forms + PWA icons** — Resend domain mailboxes; invite `MAIL_REPLY_TO_ADDRESS`; first-party `/invite-request` & `/feedback` (stored + notify invite@/feedback@); privacy drops Tally; Ko-Fi link; padded/maskable PWA icons (#56)
-15. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); `exercises:import` soft-deletes extras unless `--no-prune`
+15. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); seeder/`ExerciseCatalogImporter` soft-deletes extras on import
 16. **Nicer confirms** — ~~replace browser `confirm`/`alert` with in-app dialogs~~ done (`confirmDialog` + `ConfirmDialogHost`; RestStage inline skip unchanged)
 13. **"Block" naming** — ~~UI/copy only: Play/History drop “Block N” (show `Superset` when needed); Up next drops Block N; setup hints use exercise names; editor/settings leftover noun = Exercise; domain `Block` unchanged~~ done
 14. **Set x/y in exercise header (Play)** — ~~set progress in the big exercise header (and log sheet), labeled Warm-up / Working~~ done
@@ -70,7 +70,7 @@ Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first withi
 44. **More app-like mobile behaviour** — ~~chrome polish: safe areas, player full-bleed (no AppLayout), leave confirm, overscroll off on player+editor~~ done (PWA install #5; bottom nav in #1)
 45. **User default warm-up %s and reps** — ~~prefs on the user; per-step %×reps on warm-up steps; seed into new blocks; Preferences~~ done
 46. **Restyle whole app to match Overload branding** — ~~zinc + lime~~ done: dark-first near-black + neon yellow primary + cyan accent (`docs/branding.md`, `resources/css/app.css`)
-47. **Find and import exercises** — ~~shared catalog JSON + `exercises:import` + seeder; editor find filter; index scoped to `forUser`~~ done (~80 lifts)
+47. **Find and import exercises** — ~~shared catalog JSON + seeder/`ExerciseCatalogImporter`; editor find filter; index scoped to `forUser`~~ done (~80 lifts)
 48. **Admin panel** — ~~thin Inertia admin: exercises, muscle groups, read-only users; sidebar link for admins~~ done
 49. **Dead code audit (v1 leftovers)** — ~~JSON catalog APIs, unused MG update, starter UI packages, unused permission seeders~~ done
 50. **Strip Laravel starter-kit UI** — ~~remove obvious Breeze/starter chrome and behaviours that still read as the stock kit~~ done (branded OVRLOAD home; dead search/footer/auth variants removed)
