@@ -12,7 +12,8 @@ use Illuminate\Database\Seeder;
 /**
  * Dev fixture: user2@test.com with no default profile and one unused custom profile.
  *
- * Runs after ExerciseProfileBackfillService so backfill cannot re-assign a default.
+ * Clears any default assigned by LocalExerciseProfileSeeder so Preferences /
+ * create-routine flows can exercise the empty-default path.
  */
 final class LocalBlankSlateUserSeeder extends Seeder
 {

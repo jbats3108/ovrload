@@ -8,7 +8,6 @@ use App\MuscleGroups\Models\MuscleGroup;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
-use Illuminate\Testing\PendingCommand;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -143,37 +142,6 @@ class ExerciseCatalogImporterTest extends TestCase
     }
 
     #[Test]
-    public function artisan_command_imports_a_custom_path(): void
-    {
-        $path = storage_path('framework/testing/catalog.json');
-        File::ensureDirectoryExists(dirname($path));
-        File::put($path, json_encode([
-            'muscle_groups' => [
-                ['name' => 'Chest', 'slug' => 'chest'],
-            ],
-            'exercises' => [
-                [
-                    'name' => 'Test Press',
-                    'slug' => 'test-press',
-                    'primary' => 'chest',
-                    'secondary' => null,
-                ],
-            ],
-        ], JSON_THROW_ON_ERROR));
-
-        $command = $this->artisan('exercises:import', ['path' => $path]);
-        $this->assertInstanceOf(PendingCommand::class, $command);
-        $command->assertSuccessful()->run();
-
-        $this->assertDatabaseHas('exercises', [
-            'slug' => 'test-press',
-            'name' => 'Test Press',
-            'user_id' => null,
-            'equipment' => null,
-        ]);
-    }
-
-    #[Test]
     public function it_imports_equipment_from_a_custom_catalog(): void
     {
         $path = storage_path('framework/testing/catalog-equipment.json');
@@ -193,10 +161,9 @@ class ExerciseCatalogImporterTest extends TestCase
             ],
         ], JSON_THROW_ON_ERROR));
 
-        $command = $this->artisan('exercises:import', ['path' => $path]);
-        $this->assertInstanceOf(PendingCommand::class, $command);
-        $command->assertSuccessful()->run();
+        $result = (new ExerciseCatalogImporter)->importFromPath($path);
 
+        $this->assertSame(1, $result['created']);
         $this->assertDatabaseHas('exercises', [
             'slug' => 'db-press',
             'equipment' => 'dumbbell',

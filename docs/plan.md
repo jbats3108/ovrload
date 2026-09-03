@@ -33,7 +33,7 @@ Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first withi
 12. **Skip rest of block** — − Set trims incomplete rounds (never last); confirmed Skip rest of group deletes remaining incompletes (warm-ups + working → 0); Set + Rest; no shame rows in History (#64)
 13. **Since-last-deload counts** — per-routine dashboard standards since latest finished deload; soft Deload hint at ≥ Deload Velocity (`deload_every_n`, editor + Training defaults; 0 = never); #47
 14. **Domain mail + beta forms + PWA icons** — Resend domain mailboxes; invite `MAIL_REPLY_TO_ADDRESS`; first-party `/invite-request` & `/feedback` (stored + notify invite@/feedback@); privacy drops Tally; Ko-Fi link; padded/maskable PWA icons (#56)
-15. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); `exercises:import` soft-deletes extras unless `--no-prune`
+15. **Exercise catalog curation** — curated 174 shared lifts (original short list + selective free-exercise-db); seeder/`ExerciseCatalogImporter` soft-deletes extras on import
 16. **Nicer confirms** — ~~replace browser `confirm`/`alert` with in-app dialogs~~ done (`confirmDialog` + `ConfirmDialogHost`; RestStage inline skip unchanged)
 13. **"Block" naming** — ~~UI/copy only: Play/History drop “Block N” (show `Superset` when needed); Up next drops Block N; setup hints use exercise names; editor/settings leftover noun = Exercise; domain `Block` unchanged~~ done
 14. **Set x/y in exercise header (Play)** — ~~set progress in the big exercise header (and log sheet), labeled Warm-up / Working~~ done
@@ -70,7 +70,7 @@ Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first withi
 44. **More app-like mobile behaviour** — ~~chrome polish: safe areas, player full-bleed (no AppLayout), leave confirm, overscroll off on player+editor~~ done (PWA install #5; bottom nav in #1)
 45. **User default warm-up %s and reps** — ~~prefs on the user; per-step %×reps on warm-up steps; seed into new blocks; Preferences~~ done
 46. **Restyle whole app to match Overload branding** — ~~zinc + lime~~ done: dark-first near-black + neon yellow primary + cyan accent (`docs/branding.md`, `resources/css/app.css`)
-47. **Find and import exercises** — ~~shared catalog JSON + `exercises:import` + seeder; editor find filter; index scoped to `forUser`~~ done (~80 lifts)
+47. **Find and import exercises** — ~~shared catalog JSON + seeder/`ExerciseCatalogImporter`; editor find filter; index scoped to `forUser`~~ done (~80 lifts)
 48. **Admin panel** — ~~thin Inertia admin: exercises, muscle groups, read-only users; sidebar link for admins~~ done
 49. **Dead code audit (v1 leftovers)** — ~~JSON catalog APIs, unused MG update, starter UI packages, unused permission seeders~~ done
 50. **Strip Laravel starter-kit UI** — ~~remove obvious Breeze/starter chrome and behaviours that still read as the stock kit~~ done (branded OVRLOAD home; dead search/footer/auth variants removed)
@@ -133,12 +133,14 @@ Public order matches `/beta-tester-faqs`.
 
 ### Code quality & security
 
-- **PHPStan warmup-step / profile typing** — ~~advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, `ExerciseProfileBackfillService`); `toStorage()` / profile Data constructors still typed without `mode` (`TrainingDefaultsController`, backfill, `ExerciseProfileOptionData`, `AdminExerciseProfileData`); `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`~~ done (#99)
+- **PHPStan warmup-step / profile typing** — ~~advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, …); `toStorage()` / profile Data constructors still typed without `mode`; `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`~~ done (#99)
 - **Node 20 on git-auto-commit-action** — ~~`stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24~~ done (`@v7`, Node 24)
 - **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface. **Done (refactor/backend-tidy):** `exerciseProfileAssignment.ts` + `exerciseProfileApply.ts`; `playerSetLog.ts` + `buildCompleteSetPayload()`; `playerSessionMutations.ts` (session route visits mirroring `WorkoutSessionService`); `useWorkoutPlayer` keeps orchestration. ~~**PHP tidy leftover:** inline `assignedRoutinesForReferencedIds` callable in `ExerciseProfileAssignmentService` (Slice A dual-path artifact; one strategy remains).~~ done
 - **Find N+1 queries (Sentry)** — ~~triage / fix N+1s flagged in Sentry~~ done (OVRLOAD-3: bulk-delete workout set segments on historical create)
 - **PHP 8.5 typed class constants** — ~~`rector.php` `withPhpSets()` includes PHP 8.3 `AddTypeToConstRector`, but ~31 untyped public consts remain on non-final classes (`WorkoutService`, `WorkoutHistoryService`, …); Rector skips them (subclass override risk). Mark services `final` / consts `final const`, or hand-type `string`/`int`/`array`~~ done
 - **PHP 8.5 pipe operator (`|>`)** — ~~Rector has `NestedFuncCallsToPipeOperatorRector` + `SequentialAssignmentsToPipeOperatorRector` but they are **not** in the default `php85` set (style, not migration). Opt in via `rector.php`, dry-run, then apply where readability wins~~ done
+- **Remove dead / one-time code** — ~~retire `exercises:import` + `exercises:audit`; drop legacy `ExerciseProfileBackfillService`; keep JSON + seeders~~ done
+- **Exercise preset defs in code** — ~~moved OVRLOAD presets to `database/data/exercise-profile-presets.json`; seeder + migrate path read JSON~~ done
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)
