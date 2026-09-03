@@ -1,5 +1,5 @@
 import { formatRest } from '@/routines/lib/formatRest';
-import { warmUpText } from '@/routines/lib/warmUp';
+import { formatWarmUpStep, warmUpText } from '@/routines/lib/warmUp';
 import type { Block, BlockExercise } from '@/routines/types';
 
 /** Target / Floor / deload alt are editable when the exercise is Custom (no profile). */
@@ -19,8 +19,24 @@ export function formatExerciseTargetFloorSummary(exercise: BlockExercise, floorP
     return `Target ${exercise.prescribed_reps} · Floor ${floor}`;
 }
 
+export function formatBlockRestSummary(block: Block): string {
+    return formatRest(block.working.rest_seconds);
+}
+
+export function formatBlockWarmUpSummary(block: Block): { steps: string[]; rest: string | null } {
+    if (!block.warm_up.steps.length) {
+        return { steps: ['No warm-up'], rest: null };
+    }
+
+    return {
+        steps: block.warm_up.steps.map((step) => formatWarmUpStep(step)),
+        rest: formatRest(block.warm_up.rest_seconds),
+    };
+}
+
+/** Mobile / combined summary line. */
 export function formatBlockSharedRecipeSummary(block: Block): string {
-    const rest = `Rest ${formatRest(block.working.rest_seconds)}`;
+    const rest = `Rest ${formatBlockRestSummary(block)}`;
     const warmUp = block.warm_up.steps.length ? warmUpText(block) : 'No warm-up';
     const wuRest = block.warm_up.steps.length ? ` · WU rest ${formatRest(block.warm_up.rest_seconds)}` : '';
 
