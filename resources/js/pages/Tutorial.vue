@@ -141,8 +141,8 @@ const toc = [
                 </ul>
                 <p class="text-muted-foreground">
                     In the routine editor, each exercise has a profile selector. Selecting a different profile copies its Profile Details into that
-                    exercise. On mobile, Target and Floor stay collapsed until you choose Custom; desktop still exposes them under the profile.
-                    Editing a profile-owned value makes that block or exercise
+                    exercise. Target, Floor, Rest, and warm-up stay collapsed until you choose Custom (or Customize). Editing a profile-owned value
+                    makes that block or exercise
                     <strong class="text-foreground">Custom</strong>; saving those Profile Details as a profile is explicit.
                 </p>
                 <p class="text-muted-foreground">
@@ -169,8 +169,9 @@ const toc = [
                 <p class="text-muted-foreground">
                     Choose a profile before naming the routine. A routine is a list of exercises (internally, blocks). Each exercise has working sets
                     and a profile. On mobile, the first tab is a
-                    <strong class="text-foreground">Routine</strong> sheet (name, routine profile, Deload); exercise tabs come after. Target, Floor,
-                    Rest, warm-ups, and Deload Alternate stay hidden while a profile is selected — choose
+                    <strong class="text-foreground">Routine</strong> sheet (name, routine profile, Deload); exercise tabs come after. On desktop, the
+                    same routine-level controls live in a collapsed <strong class="text-foreground">Routine settings</strong> strip under the title.
+                    Target, Floor, Rest, warm-ups, and Deload Alternate stay hidden while a profile is selected — choose
                     <strong class="text-foreground">Custom settings</strong> (or Customize) to override them. Optional dropsets are per exercise. Pick
                     lifts from the catalog, or add a private custom that only you see. Per-exercise
                     <strong class="text-foreground">Deload Alternate</strong> is covered under Deloads below.
