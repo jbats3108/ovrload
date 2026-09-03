@@ -34,6 +34,12 @@ const {
     dropsetSummary,
     profileOptions,
     applyProfile,
+    customiseExercise,
+    cancelExerciseCustomise,
+    hasExerciseCustomiseSnapshot,
+    customiseSharedRecipe,
+    cancelSharedCustomise,
+    hasSharedCustomiseSnapshot,
     setExerciseTarget,
     setExerciseFloor,
     exerciseFloorPlaceholder,
@@ -62,14 +68,6 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
 
     registerProfile(profile);
     applyProfile(saveDialogBlock.value, profile.id, saveDialogExerciseIndex.value);
-};
-
-const customizeExercise = (block: Block, exerciseIndex: number): void => {
-    applyProfile(block, null, exerciseIndex);
-};
-
-const customizeSharedRecipe = (block: Block): void => {
-    markSharedCustom(block);
 };
 
 const toggleDropsets = (blockIndex: number): void => {
@@ -123,7 +121,6 @@ const toggleDropsets = (blockIndex: number): void => {
                                         </div>
                                     </div>
                                     <DeloadAlternateFields
-                                        v-if="exerciseRecipeIsCustom(ex)"
                                         :deload-exercise-id="ex.deload_exercise_id"
                                         :deload-working-weight-kg="ex.deload_working_weight_kg"
                                         :working-weight-kg="ex.working_weight_kg"
@@ -184,13 +181,24 @@ const toggleDropsets = (blockIndex: number): void => {
                                                 />
                                             </label>
                                         </div>
-                                        <button
-                                            type="button"
-                                            class="mt-1.5 text-xs text-primary underline-offset-2 hover:underline"
-                                            @click="openSaveProfile(block, ei)"
-                                        >
-                                            Save as profile
-                                        </button>
+                                        <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                                            <button
+                                                type="button"
+                                                class="text-xs text-primary underline-offset-2 hover:underline"
+                                                @click="openSaveProfile(block, ei)"
+                                            >
+                                                Save as profile
+                                            </button>
+                                            <button
+                                                v-if="hasExerciseCustomiseSnapshot(block, ei)"
+                                                type="button"
+                                                class="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                                data-cancel-customise-exercise
+                                                @click="cancelExerciseCustomise(block, ei)"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
                                     </div>
                                     <div v-else>
                                         <p class="font-mono text-xs text-foreground">
@@ -199,10 +207,10 @@ const toggleDropsets = (blockIndex: number): void => {
                                         <button
                                             type="button"
                                             class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
-                                            data-customize-exercise
-                                            @click="customizeExercise(block, ei)"
+                                            data-customise-exercise
+                                            @click="customiseExercise(block, ei)"
                                         >
-                                            Customize
+                                            Customise
                                         </button>
                                     </div>
                                 </div>
@@ -234,6 +242,15 @@ const toggleDropsets = (blockIndex: number): void => {
                                             />
                                             <span class="font-mono text-xs text-foreground">{{ formatRest(block.working.rest_seconds) }}</span>
                                         </label>
+                                        <button
+                                            v-if="hasSharedCustomiseSnapshot(block)"
+                                            type="button"
+                                            class="mt-1.5 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                            data-cancel-customise-shared
+                                            @click="cancelSharedCustomise(block)"
+                                        >
+                                            Cancel
+                                        </button>
                                     </div>
                                     <div v-else data-shared-rest-summary>
                                         <p class="font-mono text-sm text-foreground">{{ formatBlockRestSummary(block) }}</p>
@@ -241,10 +258,10 @@ const toggleDropsets = (blockIndex: number): void => {
                                         <button
                                             type="button"
                                             class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
-                                            data-customize-shared
-                                            @click="customizeSharedRecipe(block)"
+                                            data-customise-shared
+                                            @click="customiseSharedRecipe(block)"
                                         >
-                                            Customize
+                                            Customise
                                         </button>
                                     </div>
                                 </div>
@@ -402,10 +419,10 @@ const toggleDropsets = (blockIndex: number): void => {
                                         <button
                                             type="button"
                                             class="mt-2.5 self-start text-xs text-primary underline-offset-2 hover:underline"
-                                            data-customize-shared
-                                            @click="customizeSharedRecipe(block)"
+                                            data-customise-shared
+                                            @click="customiseSharedRecipe(block)"
                                         >
-                                            Customize
+                                            Customise
                                         </button>
                                     </div>
                                 </div>
