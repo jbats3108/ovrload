@@ -240,15 +240,6 @@ const customizeSharedRecipe = (block: Block): void => {
                         />
                     </div>
 
-                    <DeloadAlternateFields
-                        :deload-exercise-id="ex.deload_exercise_id"
-                        :deload-working-weight-kg="ex.deload_working_weight_kg"
-                        :working-weight-kg="ex.working_weight_kg"
-                        variant="mobile"
-                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
-                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
-                    />
-
                     <template v-if="exerciseRecipeIsCustom(ex)">
                         <div class="mt-2 grid grid-cols-2 gap-2">
                             <label class="block">
@@ -299,6 +290,15 @@ const customizeSharedRecipe = (block: Block): void => {
                             Customize
                         </button>
                     </div>
+
+                    <DeloadAlternateFields
+                        :deload-exercise-id="ex.deload_exercise_id"
+                        :deload-working-weight-kg="ex.deload_working_weight_kg"
+                        :working-weight-kg="ex.working_weight_kg"
+                        variant="mobile"
+                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
+                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
+                    />
                 </div>
                 <p v-if="activeBlock.exercises.some(exerciseRecipeIsCustom)" class="mt-1 text-xs text-muted-foreground">
                     Blank Floor uses that exercise's profile. Custom exercises fall back to Preferences. Weight bumps follow the exercise Target reps.
