@@ -43,6 +43,12 @@ const {
     dropsetSummary,
     profileOptions,
     applyProfile,
+    customiseExercise,
+    cancelExerciseCustomise,
+    hasExerciseCustomiseSnapshot,
+    customiseSharedRecipe,
+    cancelSharedCustomise,
+    hasSharedCustomiseSnapshot,
     setRoutineProfile,
     setExerciseTarget,
     setExerciseFloor,
@@ -100,12 +106,8 @@ const saveProfile = (profile: ExerciseProfileOption): void => {
     applyProfile(saveDialogBlock.value, profile.id, saveDialogExerciseIndex.value);
 };
 
-const customizeExercise = (block: Block, exerciseIndex: number): void => {
-    applyProfile(block, null, exerciseIndex);
-};
-
-const customizeSharedRecipe = (block: Block): void => {
-    markSharedCustom(block);
+const onCustomiseSharedRecipe = (block: Block): void => {
+    customiseSharedRecipe(block);
     if (!warmUpExpanded.value) {
         toggleWarmUpExpanded();
     }
@@ -268,26 +270,37 @@ const customizeSharedRecipe = (block: Block): void => {
                                 />
                             </label>
                         </div>
-                        <button
-                            type="button"
-                            class="mt-2 text-left text-xs text-primary underline-offset-2 hover:underline"
-                            @click="openSaveProfile(activeBlock, ei)"
-                        >
-                            Save as profile
-                        </button>
+                        <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                            <button
+                                type="button"
+                                class="text-left text-xs text-primary underline-offset-2 hover:underline"
+                                @click="openSaveProfile(activeBlock, ei)"
+                            >
+                                Save as profile
+                            </button>
+                            <button
+                                v-if="hasExerciseCustomiseSnapshot(activeBlock, ei)"
+                                type="button"
+                                class="text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                data-cancel-customise-exercise
+                                @click="cancelExerciseCustomise(activeBlock, ei)"
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </template>
                     <div v-else class="mt-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2">
                         <p class="font-mono text-sm text-foreground">
                             {{ formatExerciseTargetFloorSummary(ex, exerciseFloorPlaceholder(activeBlock, ei)) }}
                         </p>
-                        <p class="mt-0.5 text-xs text-muted-foreground">From profile — choose Custom settings to edit.</p>
+                        <p class="mt-0.5 text-xs text-muted-foreground">From profile — tap Customise to override.</p>
                         <button
                             type="button"
                             class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
-                            data-customize-exercise
-                            @click="customizeExercise(activeBlock, ei)"
+                            data-customise-exercise
+                            @click="customiseExercise(activeBlock, ei)"
                         >
-                            Customize
+                            Customise
                         </button>
                     </div>
 
@@ -334,6 +347,15 @@ const customizeSharedRecipe = (block: Block): void => {
                                 />
                             </details>
                         </label>
+                        <button
+                            v-if="hasSharedCustomiseSnapshot(activeBlock)"
+                            type="button"
+                            class="mt-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                            data-cancel-customise-shared
+                            @click="cancelSharedCustomise(activeBlock)"
+                        >
+                            Cancel
+                        </button>
                     </div>
                     <div v-else class="flex flex-col justify-center">
                         <span class="text-xs text-muted-foreground">Rest</span>
@@ -352,10 +374,10 @@ const customizeSharedRecipe = (block: Block): void => {
                     <button
                         type="button"
                         class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
-                        data-customize-shared
-                        @click="customizeSharedRecipe(activeBlock)"
+                        data-customise-shared
+                        @click="onCustomiseSharedRecipe(activeBlock)"
                     >
-                        Customize
+                        Customise
                     </button>
                 </div>
 

@@ -10,6 +10,14 @@ import {
     trimDropsetsToSetCount,
 } from '@/routines/lib/dropsets';
 import {
+    captureExerciseCustomiseSnapshot,
+    captureSharedCustomiseSnapshot,
+    restoreExerciseCustomiseSnapshot,
+    restoreSharedCustomiseSnapshot,
+    type ExerciseCustomiseSnapshot,
+    type SharedCustomiseSnapshot,
+} from '@/routines/lib/editorCustomiseSnapshot';
+import {
     achievementFloorForSave,
     applyProfileToBlock,
     applyProfileToExercise,
@@ -213,6 +221,19 @@ export function createRoutineEditor(props: EditRoutineProps) {
         }
     };
 
+    const exerciseCustomiseSnapshots = new WeakMap<BlockExercise, ExerciseCustomiseSnapshot>();
+    const sharedCustomiseSnapshots = new WeakMap<Block, SharedCustomiseSnapshot>();
+
+    const clearExerciseCustomiseSnapshot = (exercise: BlockExercise | undefined): void => {
+        if (exercise) {
+            exerciseCustomiseSnapshots.delete(exercise);
+        }
+    };
+
+    const clearSharedCustomiseSnapshot = (block: Block): void => {
+        sharedCustomiseSnapshots.delete(block);
+    };
+
     const applyProfile = (block: Block, profileId: number | null, exerciseIndex = 0): void => {
         const profile = profileById(profileId);
         if (profile === null) {
@@ -232,11 +253,60 @@ export function createRoutineEditor(props: EditRoutineProps) {
         }
 
         if (block.is_superset) {
+            clearExerciseCustomiseSnapshot(block.exercises[exerciseIndex]);
             applyProfileToSupersetExercise(block, exerciseIndex, profile);
             return;
         }
 
+        clearExerciseCustomiseSnapshot(block.exercises[0]);
+        clearSharedCustomiseSnapshot(block);
         applyProfileToBlock(block, profile);
+    };
+
+    const customiseExercise = (block: Block, exerciseIndex = 0): void => {
+        const exercise = block.exercises[exerciseIndex];
+        if (!exercise) {
+            return;
+        }
+
+        if (exercise.exercise_profile_id != null) {
+            exerciseCustomiseSnapshots.set(exercise, captureExerciseCustomiseSnapshot(exercise));
+        }
+
+        if (!block.is_superset && block.shared_profile_id != null) {
+            sharedCustomiseSnapshots.set(block, captureSharedCustomiseSnapshot(block));
+        }
+
+        applyProfile(block, null, exerciseIndex);
+    };
+
+    const cancelExerciseCustomise = (block: Block, exerciseIndex = 0): void => {
+        const exercise = block.exercises[exerciseIndex];
+        if (!exercise) {
+            return;
+        }
+
+        const snapshot = exerciseCustomiseSnapshots.get(exercise);
+        if (!snapshot) {
+            return;
+        }
+
+        restoreExerciseCustomiseSnapshot(exercise, snapshot);
+        exerciseCustomiseSnapshots.delete(exercise);
+
+        if (!block.is_superset) {
+            const sharedSnapshot = sharedCustomiseSnapshots.get(block);
+            if (sharedSnapshot) {
+                restoreSharedCustomiseSnapshot(block, sharedSnapshot);
+                sharedCustomiseSnapshots.delete(block);
+            }
+        }
+    };
+
+    const hasExerciseCustomiseSnapshot = (block: Block, exerciseIndex = 0): boolean => {
+        const exercise = block.exercises[exerciseIndex];
+
+        return exercise !== undefined && exerciseCustomiseSnapshots.has(exercise);
     };
 
     const setRoutineProfile = async (profileId: number | string | null): Promise<void> => {
@@ -331,6 +401,26 @@ export function createRoutineEditor(props: EditRoutineProps) {
             exercise.exercise_profile_fingerprint = profile.exercise_fingerprint;
         }
     };
+
+    const customiseSharedRecipe = (block: Block): void => {
+        if (block.shared_profile_id != null) {
+            sharedCustomiseSnapshots.set(block, captureSharedCustomiseSnapshot(block));
+        }
+
+        markSharedCustom(block);
+    };
+
+    const cancelSharedCustomise = (block: Block): void => {
+        const snapshot = sharedCustomiseSnapshots.get(block);
+        if (!snapshot) {
+            return;
+        }
+
+        restoreSharedCustomiseSnapshot(block, snapshot);
+        sharedCustomiseSnapshots.delete(block);
+    };
+
+    const hasSharedCustomiseSnapshot = (block: Block): boolean => sharedCustomiseSnapshots.has(block);
 
     const exerciseProfileIsOutdated = (block: Block, exerciseIndex: number): boolean => {
         const exercise = block.exercises[exerciseIndex];
@@ -486,6 +576,12 @@ export function createRoutineEditor(props: EditRoutineProps) {
         profileById,
         registerProfile,
         applyProfile,
+        customiseExercise,
+        cancelExerciseCustomise,
+        hasExerciseCustomiseSnapshot,
+        customiseSharedRecipe,
+        cancelSharedCustomise,
+        hasSharedCustomiseSnapshot,
         setRoutineProfile,
         setExerciseTarget,
         setExerciseFloor,
