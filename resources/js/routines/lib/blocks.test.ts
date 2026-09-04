@@ -1,4 +1,12 @@
-import { canSetupAfterBlock, emptyBlock, emptyExercise, normalizeBlock, syncSetupAfterBlockFlags, toggleSuperset } from '@/routines/lib/blocks';
+import {
+    canSetupAfterBlock,
+    emptyBlock,
+    emptyExercise,
+    normalizeBlock,
+    swapSupersetExercises,
+    syncSetupAfterBlockFlags,
+    toggleSuperset,
+} from '@/routines/lib/blocks';
 import { block } from '@/test/factories';
 import { describe, expect, it } from 'vitest';
 
@@ -108,5 +116,35 @@ describe('toggleSuperset', () => {
         expect(b.is_superset).toBe(true);
         expect(b.exercises).toHaveLength(2);
         expect(b.working.dropsets).toEqual([]);
+    });
+});
+
+describe('swapSupersetExercises', () => {
+    it('swaps A and B including weights and profiles', () => {
+        const a = emptyExercise(1);
+        a.working_weight_kg = 100;
+        a.exercise_profile_id = 10;
+        const bEx = emptyExercise(2);
+        bEx.working_weight_kg = 40;
+        bEx.exercise_profile_id = 20;
+        const b = block({
+            is_superset: true,
+            exercises: [a, bEx],
+        });
+
+        expect(swapSupersetExercises(b)).toBe(true);
+        expect(b.exercises[0].exercise_id).toBe(2);
+        expect(b.exercises[0].working_weight_kg).toBe(40);
+        expect(b.exercises[0].exercise_profile_id).toBe(20);
+        expect(b.exercises[1].exercise_id).toBe(1);
+        expect(b.exercises[1].working_weight_kg).toBe(100);
+        expect(b.exercises[1].exercise_profile_id).toBe(10);
+    });
+
+    it('is a no-op for non-supersets', () => {
+        const b = block({ is_superset: false });
+        const only = b.exercises[0];
+        expect(swapSupersetExercises(b)).toBe(false);
+        expect(b.exercises[0]).toBe(only);
     });
 });
