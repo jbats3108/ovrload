@@ -44,7 +44,13 @@ const blockRows = computed(() =>
 );
 
 const saveWorkout = () => {
-    form.put(route('history.update', props.history.workout.id));
+    if (form.processing || !form.isDirty) {
+        return;
+    }
+
+    form.put(route('history.update', props.history.workout.id), {
+        preserveScroll: true,
+    });
 };
 
 const removeWorkout = () => deleteWorkout(props.history.workout.id, props.history.workout.routine_name);
@@ -141,9 +147,10 @@ const removeWorkout = () => deleteWorkout(props.history.workout.id, props.histor
 
                 <div class="flex flex-wrap items-center gap-3">
                     <button
-                        type="submit"
+                        type="button"
                         class="rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
                         :disabled="form.processing || !form.isDirty"
+                        @click="saveWorkout"
                     >
                         Save
                     </button>

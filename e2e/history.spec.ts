@@ -29,21 +29,38 @@ test.describe('history', () => {
     });
 
     test('saves all working set edits with one Save and shows confirmation', async ({ page }) => {
+        const pageErrors: string[] = [];
+        page.on('pageerror', (error) => pageErrors.push(error.message));
+
         await addHistoricalDumbbellAccessories(page);
 
         await expect(page.getByRole('heading', { name: 'Dumbbell Accessories' })).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+        const save = page.getByRole('button', { name: 'Save', exact: true });
+        await expect(save).toBeDisabled();
 
         const weight = page.getByLabel('Weight (kg)').first();
         const current = await weight.inputValue();
         const next = String(Number(current) + 2.5);
+        await weight.click();
         await weight.fill(next);
+        await expect(save).toBeEnabled();
 
-        await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
-        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        const requestPromise = page.waitForRequest(
+            (request) => /\/history\/[0-9A-HJKMNP-TV-Z]{26}/i.test(request.url()) && ['PUT', 'POST'].includes(request.method()),
+            { timeout: 15_000 },
+        );
+        await save.click();
 
-        await expect(page.getByRole('status')).toHaveText('Workout saved.');
+        try {
+            const request = await requestPromise;
+            expect(pageErrors, `page errors: ${pageErrors.join('; ')}`).toEqual([]);
+            expect(['PUT', 'POST']).toContain(request.method());
+        } catch (error) {
+            throw new Error(`Save did not send a history request. pageErrors=${pageErrors.join('; ') || 'none'}. ${(error as Error).message}`);
+        }
+
+        await expect(page.getByText('Workout saved.')).toBeVisible({ timeout: 15_000 });
         await expect(page.getByLabel('Weight (kg)').first()).toHaveValue(next);
-        await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+        await expect(save).toBeDisabled();
     });
 });
