@@ -126,10 +126,15 @@ Public order matches `/beta-tester-faqs`.
 ### Polish & mobile integration
 
 - **Editor vs Preferences density** — mobile: first Routine sheet (name/profile/Deload); Target/Floor/Rest/WU/deload-alt collapsed until Custom. Desktop: Routine settings disclosure (profile + Deload); separate Rest vs Warm-up columns; Dropsets row under each block. Remaining: swap superset A↔B
+- **Plate guide on setup** — Setup only shows a one-line plate stack on Up next; show the loading guide there or setup is useless for loading
+- **Show both steps of a superset in setup** — A and B as distinct setup steps, not only the combined Up next list
+- **History edit save isn't obvious** — per-set Save on History is easy to miss; prefer one Save for the whole workout instead of a button per set
 
 ### Bugfixes
 
--
+- ~~**Plate editor not scrolling**~~ — Play plate editor/guide overflows / can't scroll — done (single stage scroll)
+- ~~**Previous plates not carrying over**~~ — next set doesn't reuse the prior plate stack — done (persist snapped nearest stack)
+- ~~**Resume is all messed up**~~ — Dashboard Resume of an in-progress workout is broken — done (setup/rest client state + progress inference)
 
 ### Code quality & security
 
