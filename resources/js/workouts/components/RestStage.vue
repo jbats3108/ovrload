@@ -41,7 +41,7 @@ function confirmSkip() {
 </script>
 
 <template>
-    <div class="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+    <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-y-auto overscroll-contain px-6 text-center">
         <p class="text-sm tracking-widest text-muted-foreground uppercase">Rest</p>
         <p class="font-mono text-6xl font-semibold text-primary">{{ restLabel }}</p>
         <UpcomingCard v-if="upcoming" class="mt-2" :upcoming="upcoming" :weight-unit="workout.weight_unit" />

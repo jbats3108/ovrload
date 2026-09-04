@@ -52,7 +52,7 @@ const maxPerSideFor = (count: number): number => Math.floor(count / 2);
                 {{ editing ? 'Done editing' : 'Edit plates' }}
             </button>
         </div>
-        <div v-if="editing" class="mt-4 space-y-2 text-left">
+        <div v-if="editing" data-testid="plate-editor" class="mt-4 space-y-2 text-left">
             <p class="text-xs tracking-wide text-muted-foreground uppercase">Adjust per side</p>
             <div
                 v-for="plate in plateProfile.plates"

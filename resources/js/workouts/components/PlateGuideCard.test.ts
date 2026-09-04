@@ -68,6 +68,7 @@ describe('PlateGuideCard', () => {
 
         expect(wrapper.find('button[aria-label="Add 10kg plate per side"]').exists()).toBe(true);
         expect(wrapper.findAll('button').some((button) => button.text() === 'Done editing')).toBe(true);
+        expect(wrapper.find('[data-testid="plate-editor"]').exists()).toBe(true);
     });
 
     it('emits per-side plate changes after expanding edit controls', async () => {
