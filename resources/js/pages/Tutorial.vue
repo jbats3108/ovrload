@@ -287,8 +287,9 @@ const toc = [
             <section id="afterward" class="mt-12 scroll-mt-20 space-y-3">
                 <h2 class="text-2xl font-bold tracking-tight">After you finish</h2>
                 <p class="text-muted-foreground">
-                    Finished sessions land in History. Editing working weight or reps on the latest non-deload finish can re-run progression — it may
-                    offer bumps again, or let you undo a bump you already confirmed. Add a historical workout if you trained without the phone.
+                    Finished sessions land in History. Change working weight or reps, then use one
+                    <strong class="text-foreground">Save</strong> for the whole workout. On the latest non-deload finish that can re-run progression —
+                    it may offer bumps again, or let you undo a bump you already confirmed. Add a historical workout if you trained without the phone.
                     Dashboard shows a short strip of recent finishes.
                 </p>
                 <TutorialShot
