@@ -56,4 +56,24 @@ test.describe('routine editor', () => {
         await expect(page.locator('[data-cancel-customise-shared]')).toHaveCount(0);
         await expect(page.locator('[data-shared-rest-summary]').first()).toContainText('3m');
     });
+
+    test('Swap A↔B reverses a superset pair', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await page.goto('/routines/superset-pump/edit');
+        await expect(page).toHaveURL(/\/routines\/superset-pump\/edit/);
+
+        const swap = page.locator('.md\\:flex [data-swap-superset]').first();
+        await expect(swap).toBeVisible();
+
+        const rowA = page
+            .locator('tbody tr')
+            .filter({ has: page.getByText('A', { exact: true }) })
+            .first();
+        const kgInput = rowA.locator('input[type="number"]').first();
+        await expect(kgInput).toHaveValue('60');
+
+        await swap.click();
+
+        await expect(kgInput).toHaveValue('30');
+    });
 });

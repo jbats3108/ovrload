@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 /** Isolated config so guide capture is not part of npm run test:e2e. */
 export default defineConfig({
     testDir: 'e2e',
-    testMatch: 'capture-guide-play.ts',
+    testMatch: /capture-guide-.*\.ts/,
     outputDir: '/tmp/ovrload-guide-test-results',
     fullyParallel: false,
     retries: 0,

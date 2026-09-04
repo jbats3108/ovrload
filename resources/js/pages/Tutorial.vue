@@ -182,12 +182,13 @@ const toc = [
                 <p class="text-muted-foreground">
                     <strong class="text-foreground">Setup</strong> is a pause so you can load the bar or walk to a machine. You can put setup before
                     the working sets, after warm-ups, or both. For a <strong class="text-foreground">superset</strong>, you pair two exercises in one
-                    block — Play will flip between them each round. Use the superset controls in the editor to add or split that pair.
+                    block — Play will flip between them each round. Use the superset controls in the editor to add or split that pair, or
+                    <strong class="text-foreground">Swap A↔B</strong> to reverse the order.
                 </p>
                 <TutorialShot
                     name="editor"
-                    alt="Routine editor with profile selectors, setup options, and deload alternate"
-                    caption="Editor: each exercise has a profile selector; Target and Floor appear when you choose Customise (Deload alternate stays separate)."
+                    alt="Routine editor showing a superset with Swap A↔B, profile selectors, and setup options"
+                    caption="Editor: supersets show A/B with Swap A↔B; each exercise has a profile selector; Target and Floor appear when you choose Customise."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>
@@ -316,8 +317,8 @@ const toc = [
                     <li>
                         <p class="font-medium text-foreground">Supersets</p>
                         <p class="mt-1">
-                            Two exercises share a block. Setup lists A and B as separate steps with targets and plates; then you complete a round of A
-                            then B, with the rest you set on that block.
+                            Two exercises share a block. In the editor, use Swap A↔B to reverse order. Setup lists A and B as separate steps with
+                            targets and plates; then you complete a round of A then B, with the rest you set on that block.
                         </p>
                     </li>
                     <li>
