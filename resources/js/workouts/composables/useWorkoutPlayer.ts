@@ -455,12 +455,22 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         logPlateLoadDraft.value = normalized;
     };
 
+    const syncStageWeightOverrideForSet = (setId: number | null): void => {
+        if (setId == null) {
+            stageWeightOverrideKg.value = null;
+            return;
+        }
+
+        const plateOverride = stagePlateLoadOverrides.value[setId];
+        stageWeightOverrideKg.value = plateOverride ? gramsToKg(plateOverride.total_g) : null;
+    };
+
     watch(
         current,
         (entry, previous) => {
             logSheetOpen.value = false;
             if (entry?.set.id !== previous?.set.id) {
-                stageWeightOverrideKg.value = null;
+                syncStageWeightOverrideForSet(entry?.set.id ?? null);
             }
             if (!entry) {
                 return;
@@ -811,11 +821,13 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                     : defaultPromoteSegments(workingWeightForSet(entry)).map((s) => s.weight_kg);
             weightLabel = segments.join(' → ');
             weightKg = segments[0] ?? null;
-        } else if (entry.set.group_type === 'warm_up') {
-            weightKg = entry.set.target_weight_kg;
-            weightLabel = weightKg != null ? String(weightKg) : null;
         } else {
-            weightKg = workingWeightForEntry(entry);
+            if (entry.set.group_type === 'warm_up') {
+                weightKg = entry.set.target_weight_kg;
+            } else {
+                weightKg = workingWeightForEntry(entry);
+            }
+
             const load = plateLoadForEntry(entry, weightKg);
             if (load) {
                 weightKg = gramsToKg(load.total_g);
@@ -865,6 +877,110 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
         return round.map((set, index) => previewForEntry({ blockIndex: entry.blockIndex, block: entry.block, set }, String.fromCharCode(65 + index)));
     });
+
+    type SetupStepView = {
+        setId: number;
+        letter: string | null;
+        exerciseName: string;
+        weightLabel: string | null;
+        reps: number | null;
+        groupLabel: string;
+        setNumber: number;
+        setCount: number;
+        isDropset: boolean;
+        plateLoad: PlateLoadResult | null;
+        formatPlateStack: string | null;
+    };
+
+    const setupStepEntries = (): FlatSetEntry[] => {
+        if (focus.value.kind !== 'setup') {
+            return [];
+        }
+
+        const entry = flatSets.value.find(({ set }) => !set.completed) ?? null;
+        if (!entry) {
+            return [];
+        }
+
+        if (entry.block.is_superset) {
+            const round = supersetRoundSets(entry.block, entry.set);
+            if (round.length >= 2) {
+                return round.map((set) => ({ blockIndex: entry.blockIndex, block: entry.block, set }));
+            }
+        }
+
+        return [entry];
+    };
+
+    const setupSteps = computed((): SetupStepView[] => {
+        const entries = setupStepEntries();
+        const isPair = entries.length > 1;
+
+        return entries.map((stepEntry, index) => {
+            const letter = isPair ? String.fromCharCode(65 + index) : null;
+            const preview = previewForEntry(stepEntry, letter);
+            let weightKg: number | null = null;
+            if (stepEntry.set.is_dropset) {
+                weightKg = null;
+            } else if (stepEntry.set.group_type === 'warm_up') {
+                weightKg = stepEntry.set.target_weight_kg;
+            } else {
+                weightKg = workingWeightForEntry(stepEntry);
+            }
+
+            const plateLoad = stepEntry.set.is_dropset ? null : plateLoadForEntry(stepEntry, weightKg);
+
+            return {
+                setId: stepEntry.set.id,
+                letter,
+                exerciseName: preview.exerciseName,
+                weightLabel: preview.weightLabel,
+                reps: preview.reps,
+                groupLabel: preview.groupLabel,
+                setNumber: preview.setNumber,
+                setCount: preview.setCount,
+                isDropset: preview.isDropset,
+                plateLoad,
+                formatPlateStack: plateLoad ? formatPlateStackLabel(plateLoad, props.workout.weight_unit) : null,
+            };
+        });
+    });
+
+    const changeSetupPlate = (setId: number, denominationG: number, change: 1 | -1): void => {
+        const entry = flatSets.value.find(({ set }) => set.id === setId);
+        if (!entry || entry.set.is_dropset) {
+            return;
+        }
+
+        const baseWeightKg = entry.set.group_type === 'warm_up' ? (entry.set.target_weight_kg ?? null) : workingWeightForEntry(entry);
+        const load = plateLoadForEntry(entry, baseWeightKg);
+        if (!load) {
+            return;
+        }
+
+        const weightKg = gramsToKg(load.total_g);
+        const next = changePlateCount(weightKg, load, denominationG, change, props.plate_profile);
+        if (!next) {
+            return;
+        }
+
+        stagePlateLoadOverrides.value[entry.set.id] = normalizePlateLoadForOwnWeight(entry, next);
+    };
+
+    const applySetupNearestLoad = (setId: number): void => {
+        const entry = flatSets.value.find(({ set }) => set.id === setId);
+        if (!entry || entry.set.is_dropset) {
+            return;
+        }
+
+        const baseWeightKg = entry.set.group_type === 'warm_up' ? (entry.set.target_weight_kg ?? null) : workingWeightForEntry(entry);
+        const load = plateLoadForEntry(entry, baseWeightKg);
+        if (!load) {
+            return;
+        }
+
+        stagePlateLoadOverrides.value[entry.set.id] = normalizePlateLoadForOwnWeight(entry, load);
+    };
 
     const finishWorkout = async () => {
         if (props.workout.status !== 'in_progress') {
@@ -1058,6 +1174,10 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (entry.set.is_dropset) {
             return null;
         }
+        const plateOverride = stagePlateLoadOverrides.value[entry.set.id];
+        if (plateOverride) {
+            return gramsToKg(plateOverride.total_g);
+        }
         if (stageWeightOverrideKg.value != null) {
             return stageWeightOverrideKg.value;
         }
@@ -1164,6 +1284,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         upcoming,
         setupHint,
         setupSupersetPair,
+        setupSteps,
+        changeSetupPlate,
+        applySetupNearestLoad,
         supersetNext,
         canPromoteToDropset,
         canDemoteFromDropset,
