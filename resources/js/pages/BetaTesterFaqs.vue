@@ -55,6 +55,20 @@ const backlogItems = [
         description:
             'Being able to see, and export, your data on how your strength has progressed over time, with charts and tables and spreadsheets, oh my!',
     },
+    {
+        title: 'Circuit workouts',
+        description:
+            'More than two exercises in a round, with short rests between stages and a longer rest at the end of the circuit — beyond today’s two-exercise supersets.',
+    },
+    {
+        title: 'Skip a block and come back later in Play',
+        description:
+            'When a machine is busy, park the current block, do a later one, then return to finish what you left — without deleting the remaining sets.',
+    },
+    {
+        title: 'Dropsets on supersets',
+        description: 'Use multi-segment dropsets inside a superset round, not only on single-exercise blocks.',
+    },
 ] as const;
 
 function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
