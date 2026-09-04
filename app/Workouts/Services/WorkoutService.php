@@ -335,6 +335,8 @@ final readonly class WorkoutService
         return DB::transaction(function () use ($workout): DataCollection {
             $locked = $this->sessions->lockInProgressWorkout($workout);
 
+            $this->sessions->clearParkedBlocks($locked);
+
             $locked->status = WorkoutStatus::Finished;
             $locked->finished_at = now();
             $locked->save();

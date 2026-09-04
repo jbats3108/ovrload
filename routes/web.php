@@ -39,6 +39,7 @@ use App\Shared\Http\Controllers\StoreInviteRequestController;
 use App\Workouts\Http\Controllers\AddAdHocExerciseController;
 use App\Workouts\Http\Controllers\AddWorkingSetController;
 use App\Workouts\Http\Controllers\ApplyProgressionBumpsController;
+use App\Workouts\Http\Controllers\ClearParkedBlocksController;
 use App\Workouts\Http\Controllers\CompleteWorkoutSetController;
 use App\Workouts\Http\Controllers\CreateHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\DeleteWorkoutHistoryController;
@@ -46,6 +47,7 @@ use App\Workouts\Http\Controllers\DemoteWorkoutSetFromDropsetController;
 use App\Workouts\Http\Controllers\DiscardWorkoutController;
 use App\Workouts\Http\Controllers\FinishWorkoutController;
 use App\Workouts\Http\Controllers\IndexWorkoutHistoryController;
+use App\Workouts\Http\Controllers\ParkBlockForLaterController;
 use App\Workouts\Http\Controllers\PickHistoricalWorkoutRoutineController;
 use App\Workouts\Http\Controllers\PlayWorkoutController;
 use App\Workouts\Http\Controllers\PromoteWorkoutSetToDropsetController;
@@ -199,6 +201,14 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/{workout}/blocks/{block}/skip-rest', SkipRestOfBlockController::class)
             ->can('update', 'workout')
             ->name('workouts.blocks.skip-rest');
+
+        Route::post('/{workout}/blocks/{block}/later', ParkBlockForLaterController::class)
+            ->can('update', 'workout')
+            ->name('workouts.blocks.later');
+
+        Route::post('/{workout}/clear-parked', ClearParkedBlocksController::class)
+            ->can('update', 'workout')
+            ->name('workouts.clear-parked');
 
         Route::delete('/{workout}/sets/{set}', RemoveWorkingSetController::class)
             ->can('update', 'workout')

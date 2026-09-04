@@ -50,6 +50,10 @@ function setupAfterBlockPassed(blocks: PlayerBlock[], blockIndex: number): boole
 export function findFirstIncompleteFocus(blocks: PlayerBlock[], setupDone: Record<string, boolean>): Focus {
     for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
         const block = blocks[blockIndex];
+        if (block.is_parked) {
+            continue;
+        }
+
         const stepIndexes = warmUpStepIndexes(block);
         const working = block.sets.filter((s) => s.group_type === 'working');
         const hasIncompleteWorking = working.some((s) => !s.completed);

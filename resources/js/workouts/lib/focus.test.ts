@@ -108,4 +108,33 @@ describe('findFirstIncompleteFocus', () => {
         ];
         expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'done' });
     });
+
+    it('skips parked blocks and focuses the next incomplete group', () => {
+        const blocks = [
+            playerBlock({
+                id: 1,
+                position: 1,
+                is_parked: true,
+                sets: [playerSet({ id: 1, completed: false })],
+            }),
+            playerBlock({
+                id: 2,
+                position: 2,
+                sets: [playerSet({ id: 2, completed: false })],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'set', blockIndex: 1, setId: 2 });
+    });
+
+    it('returns done when only parked incompletes remain', () => {
+        const blocks = [
+            playerBlock({
+                id: 1,
+                position: 1,
+                is_parked: true,
+                sets: [playerSet({ id: 1, completed: false })],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'done' });
+    });
 });

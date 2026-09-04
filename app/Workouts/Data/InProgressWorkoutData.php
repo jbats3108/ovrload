@@ -13,5 +13,6 @@ class InProgressWorkoutData extends Data
         public readonly string $id,
         public readonly string $routineName,
         public readonly string $mode,
+        public readonly int $parkedIncompleteCount = 0,
     ) {}
 }

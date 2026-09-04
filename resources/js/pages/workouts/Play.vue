@@ -18,7 +18,7 @@ const props = defineProps<PlayWorkoutProps>();
 const player = createWorkoutPlayer(props);
 provide(workoutPlayerKey, player);
 
-const { workout, focus, current, currentBlock, restSecondsLeft } = player;
+const { workout, focus, current, currentBlock, restSecondsLeft, awaitingParkedOffer } = player;
 
 const primedInteraction = ref(false);
 
@@ -42,7 +42,7 @@ const primeOnFirstInteraction = () => {
 
         <RestStage v-if="restSecondsLeft > 0" />
         <SetupStage v-else-if="focus.kind === 'setup' && currentBlock" />
-        <CompleteStage v-else-if="focus.kind === 'done'" />
+        <CompleteStage v-else-if="focus.kind === 'done' && !awaitingParkedOffer" />
         <SetStage v-else-if="current" />
         <ConfirmDialogHost />
     </div>

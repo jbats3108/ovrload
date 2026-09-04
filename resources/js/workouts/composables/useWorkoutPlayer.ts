@@ -5,13 +5,16 @@ import { hapticConfirm, hapticTap } from '@/shared/lib/haptics';
 import { findFirstIncompleteFocus, flattenPlayerSets, setupKey, type FlatSetEntry } from '@/workouts/lib/focus';
 import { formatRestSeconds, groupLabel, setupHintText, workoutProgressLabel } from '@/workouts/lib/labels';
 import { bumpedWeightKg, qualifiesForMidBlockBump, workingSetPrefillKg, type MidBlockBumpOffer } from '@/workouts/lib/midBlockBump';
+import { canParkBlockForLater, parkedIncompleteCount, skipGroupConfirmTitle } from '@/workouts/lib/park';
 import { changePlateCount, formatPlateStackLabel, resolvePlateLoad, resolvePlateStack, serializePlateStack } from '@/workouts/lib/plates';
 import { clearPlayerClientState, loadPlayerClientState, savePlayerClientState } from '@/workouts/lib/playerClientState';
 import { preparePlayerInteraction } from '@/workouts/lib/playerInteraction';
 import {
     addAdHocExercise as addAdHocExerciseMutation,
     addWorkingSet as addWorkingSetMutation,
+    clearParkedBlocks as clearParkedBlocksMutation,
     demoteFromDropset as demoteFromDropsetMutation,
+    parkBlockForLater as parkBlockForLaterMutation,
     postCompleteSet,
     promoteToDropset as promoteToDropsetMutation,
     removeAdHocBlock as removeAdHocBlockMutation,
@@ -986,6 +989,33 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (props.workout.status !== 'in_progress') {
             return;
         }
+
+        const parkedCount = parkedIncompleteCount(props.workout.blocks);
+        if (parkedCount > 0) {
+            const doParked = await confirmDialog({
+                title: parkedCount === 1 ? 'You left 1 group for later — do them now?' : `You left ${parkedCount} groups for later — do them now?`,
+                confirmLabel: 'Yes',
+                cancelLabel: 'No thanks',
+            });
+            if (doParked) {
+                clearParkedBlocksMutation(props.workout.id, {
+                    mutating,
+                    onSuccess: () => {
+                        clearRest();
+                        pendingRestSeconds.value = 0;
+                        focus.value = firstIncomplete();
+                    },
+                }).catch(() => undefined);
+                return;
+            }
+
+            try {
+                await clearParkedBlocksMutation(props.workout.id, { mutating });
+            } catch {
+                return;
+            }
+        }
+
         await finishWorkoutMutation(props.workout.id, {
             mutating,
             leaveConfirmed,
@@ -1071,7 +1101,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             return null;
         }
 
-        const upcomingEntry = flatSets.value.find(({ set }) => !set.completed) ?? null;
+        const upcomingEntry = flatSets.value.find(({ block, set }) => !block.is_parked && !set.completed) ?? null;
         if (!upcomingEntry?.block.sets.some((s) => !s.completed)) {
             return null;
         }
@@ -1080,6 +1110,87 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     });
 
     const canSkipRestOfBlock = computed(() => skipRestOfBlockTarget.value !== null);
+
+    const parkForLaterTarget = computed(() => {
+        const block = skipRestOfBlockTarget.value;
+        if (!block || props.workout.status !== 'in_progress') {
+            return null;
+        }
+        if (!canParkBlockForLater(block, props.workout.blocks)) {
+            return null;
+        }
+
+        return block;
+    });
+
+    const canParkForLater = computed(() => parkForLaterTarget.value !== null);
+
+    const skipRestOfBlockLabel = computed(() => {
+        const block = skipRestOfBlockTarget.value;
+        if (!block) {
+            return 'Skip group';
+        }
+
+        return block.sets.some((set) => set.completed) ? 'Skip rest of group' : 'Skip group';
+    });
+
+    const parkedGroupsRemaining = computed(() => parkedIncompleteCount(props.workout.blocks));
+
+    const awaitingParkedOffer = computed(
+        () => focus.value.kind === 'done' && parkedGroupsRemaining.value > 0 && props.workout.status === 'in_progress',
+    );
+
+    let offeringParkedGroups = false;
+
+    const offerParkedGroups = async (): Promise<void> => {
+        const count = parkedGroupsRemaining.value;
+        if (count === 0 || offeringParkedGroups || mutating.value) {
+            return;
+        }
+
+        offeringParkedGroups = true;
+        try {
+            const doParked = await confirmDialog({
+                title: count === 1 ? 'You left 1 group for later — do them now?' : `You left ${count} groups for later — do them now?`,
+                confirmLabel: 'Yes',
+                cancelLabel: 'No thanks',
+            });
+
+            if (doParked) {
+                await clearParkedBlocksMutation(props.workout.id, {
+                    mutating,
+                    onSuccess: () => {
+                        clearRest();
+                        pendingRestSeconds.value = 0;
+                        focus.value = firstIncomplete();
+                    },
+                });
+                return;
+            }
+
+            await clearParkedBlocksMutation(props.workout.id, {
+                mutating,
+                onSuccess: () => {
+                    focus.value = firstIncomplete();
+                },
+            });
+        } catch {
+            // Mutation busy or request failed — leave parks; user can Finish/retry.
+        } finally {
+            offeringParkedGroups = false;
+        }
+    };
+
+    watch(
+        () => [awaitingParkedOffer.value, mutating.value, restSecondsLeft.value] as const,
+        ([awaiting, isMutating, restLeft]) => {
+            if (!awaiting || isMutating || restLeft > 0) {
+                return;
+            }
+            void offerParkedGroups();
+        },
+        { immediate: true },
+    );
 
     const addAdHocExercise = (exerciseId: number | null): void => {
         if (exerciseId === null || props.workout.status !== 'in_progress') {
@@ -1142,7 +1253,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         }
 
         const ok = await confirmDialog({
-            title: 'Skip rest of this group?',
+            title: skipGroupConfirmTitle(block),
             description: 'Remaining sets won’t appear in History.',
             confirmLabel: 'Skip',
         });
@@ -1154,6 +1265,22 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             mutating,
             onSuccess: () => {
                 clearRest();
+                focus.value = firstIncomplete();
+            },
+        });
+    };
+
+    const parkForLater = (): void => {
+        const block = parkForLaterTarget.value;
+        if (mutating.value || !block || !canParkForLater.value) {
+            return;
+        }
+
+        parkBlockForLaterMutation(props.workout.id, block.id, {
+            mutating,
+            onSuccess: () => {
+                clearRest();
+                pendingRestSeconds.value = 0;
                 focus.value = firstIncomplete();
             },
         });
@@ -1293,6 +1420,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         canAddWorkingSet,
         canRemoveWorkingSet,
         canSkipRestOfBlock,
+        canParkForLater,
+        skipRestOfBlockLabel,
+        awaitingParkedOffer,
         canRemoveAdHocBlock,
         plateLoad,
         stagePlateLoad,
@@ -1319,6 +1449,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         addAdHocExercise,
         removeAdHocBlock,
         skipRestOfBlock,
+        parkForLater,
         applyNearestLoad,
         applyStageNearestLoad,
         changeLogPlate,
