@@ -57,123 +57,125 @@ const unlockInput = (event: PointerEvent) => {
 </script>
 
 <template>
-    <div v-if="current" class="flex min-h-0 flex-1 flex-col px-4 py-6 text-center">
-        <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 overflow-y-auto overscroll-contain">
-            <div class="space-y-2">
-                <h2 class="text-3xl leading-tight font-semibold">{{ current.set.exercise_name }}</h2>
-                <p class="text-2xl font-bold tracking-tight text-primary">
-                    {{ groupLabel(current.set.group_type) }}
-                    {{ current.set.set_index + 1 }} of {{ plannedSetCount(current.block, current.set) }}
+    <div v-if="current" class="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-6 text-center">
+        <div class="mx-auto flex min-h-full w-full max-w-lg flex-col">
+            <div class="flex flex-1 flex-col items-center justify-center gap-8">
+                <div class="space-y-2">
+                    <h2 class="text-3xl leading-tight font-semibold">{{ current.set.exercise_name }}</h2>
+                    <p class="text-2xl font-bold tracking-tight text-primary">
+                        {{ groupLabel(current.set.group_type) }}
+                        {{ current.set.set_index + 1 }} of {{ plannedSetCount(current.block, current.set) }}
+                    </p>
+                </div>
+
+                <p class="font-mono text-3xl font-semibold tracking-tight text-foreground">
+                    Target
+                    <template v-if="current.set.is_dropset">
+                        {{ stageDropsetWeights.join(' → ') }}{{ workout.weight_unit }}
+                        <span v-if="current.set.target_reps != null"> × {{ current.set.target_reps }}</span>
+                    </template>
+                    <template v-else>
+                        <span v-if="stageWeightKg != null">{{ stageWeightKg }}{{ workout.weight_unit }}</span>
+                        <span v-if="current.set.target_reps != null"> × {{ current.set.target_reps }}</span>
+                    </template>
                 </p>
+
+                <PlateGuideCard
+                    v-if="stagePlateLoad && stageFormatPlateStack"
+                    class="w-full"
+                    :plate-load="stagePlateLoad"
+                    :format-plate-stack="stageFormatPlateStack"
+                    :weight-unit="workout.weight_unit"
+                    :plate-profile="plateProfile"
+                    @change-plate="changeStagePlate"
+                    @apply-nearest="applyStageNearestLoad"
+                />
+
+                <div class="space-y-2">
+                    <p v-if="current.set.is_dropset || current.block.is_superset" class="text-sm font-semibold tracking-wide text-foreground">
+                        <template v-if="current.set.is_dropset">Dropset</template>
+                        <template v-if="current.set.is_dropset && current.block.is_superset"> · </template>
+                        <template v-if="current.block.is_superset">Superset</template>
+                    </p>
+                    <p v-if="supersetNext" class="text-base text-muted-foreground">{{ supersetNext.label }}</p>
+                </div>
             </div>
 
-            <p class="font-mono text-3xl font-semibold tracking-tight text-foreground">
-                Target
-                <template v-if="current.set.is_dropset">
-                    {{ stageDropsetWeights.join(' → ') }}{{ workout.weight_unit }}
-                    <span v-if="current.set.target_reps != null"> × {{ current.set.target_reps }}</span>
-                </template>
-                <template v-else>
-                    <span v-if="stageWeightKg != null">{{ stageWeightKg }}{{ workout.weight_unit }}</span>
-                    <span v-if="current.set.target_reps != null"> × {{ current.set.target_reps }}</span>
-                </template>
-            </p>
-
-            <PlateGuideCard
-                v-if="stagePlateLoad && stageFormatPlateStack"
-                class="w-full"
-                :plate-load="stagePlateLoad"
-                :format-plate-stack="stageFormatPlateStack"
-                :weight-unit="workout.weight_unit"
-                :plate-profile="plateProfile"
-                @change-plate="changeStagePlate"
-                @apply-nearest="applyStageNearestLoad"
-            />
-
-            <div class="space-y-2">
-                <p v-if="current.set.is_dropset || current.block.is_superset" class="text-sm font-semibold tracking-wide text-foreground">
-                    <template v-if="current.set.is_dropset">Dropset</template>
-                    <template v-if="current.set.is_dropset && current.block.is_superset"> · </template>
-                    <template v-if="current.block.is_superset">Superset</template>
-                </p>
-                <p v-if="supersetNext" class="text-base text-muted-foreground">{{ supersetNext.label }}</p>
-            </div>
-        </div>
-
-        <div class="mt-6 flex w-full flex-col gap-3 pb-4">
-            <div class="flex w-full flex-col gap-3">
-                <div
-                    v-if="canPromoteToDropset || canDemoteFromDropset || canAddWorkingSet || canRemoveWorkingSet"
-                    class="flex flex-wrap items-center justify-center gap-3"
+            <div class="mt-6 flex w-full shrink-0 flex-col gap-3 pb-4">
+                <div class="flex w-full flex-col gap-3">
+                    <div
+                        v-if="canPromoteToDropset || canDemoteFromDropset || canAddWorkingSet || canRemoveWorkingSet"
+                        class="flex flex-wrap items-center justify-center gap-3"
+                    >
+                        <button
+                            v-if="canAddWorkingSet"
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="addWorkingSet"
+                        >
+                            <span class="text-xl leading-none font-semibold">+</span>
+                            Set
+                        </button>
+                        <button
+                            v-if="canPromoteToDropset"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="promoteToDropset"
+                        >
+                            Promote to dropset
+                        </button>
+                        <button
+                            v-if="canDemoteFromDropset"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="demoteFromDropset"
+                        >
+                            Demote to single
+                        </button>
+                        <button
+                            v-if="canRemoveWorkingSet"
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="removeWorkingSet"
+                        >
+                            <span class="text-xl leading-none font-semibold">−</span>
+                            Set
+                        </button>
+                    </div>
+                    <div v-if="canSkipRestOfBlock || canRemoveAdHocBlock" class="flex flex-wrap items-center justify-center gap-3">
+                        <button
+                            v-if="canSkipRestOfBlock"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="skipRestOfBlock"
+                        >
+                            Skip rest of group
+                        </button>
+                        <button
+                            v-if="canRemoveAdHocBlock"
+                            type="button"
+                            class="rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="removeAdHocBlock"
+                        >
+                            Remove exercise
+                        </button>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    class="rounded-full bg-primary px-6 py-4 text-base font-semibold text-primary-foreground disabled:opacity-50"
+                    :disabled="workout.status !== 'in_progress'"
+                    @click="openLogSheet"
                 >
-                    <button
-                        v-if="canAddWorkingSet"
-                        type="button"
-                        class="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
-                        :disabled="mutating || setForm.processing"
-                        @click="addWorkingSet"
-                    >
-                        <span class="text-xl leading-none font-semibold">+</span>
-                        Set
-                    </button>
-                    <button
-                        v-if="canPromoteToDropset"
-                        type="button"
-                        class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                        :disabled="mutating || setForm.processing"
-                        @click="promoteToDropset"
-                    >
-                        Promote to dropset
-                    </button>
-                    <button
-                        v-if="canDemoteFromDropset"
-                        type="button"
-                        class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                        :disabled="mutating || setForm.processing"
-                        @click="demoteFromDropset"
-                    >
-                        Demote to single
-                    </button>
-                    <button
-                        v-if="canRemoveWorkingSet"
-                        type="button"
-                        class="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                        :disabled="mutating || setForm.processing"
-                        @click="removeWorkingSet"
-                    >
-                        <span class="text-xl leading-none font-semibold">−</span>
-                        Set
-                    </button>
-                </div>
-                <div v-if="canSkipRestOfBlock || canRemoveAdHocBlock" class="flex flex-wrap items-center justify-center gap-3">
-                    <button
-                        v-if="canSkipRestOfBlock"
-                        type="button"
-                        class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
-                        :disabled="mutating || setForm.processing"
-                        @click="skipRestOfBlock"
-                    >
-                        Skip rest of group
-                    </button>
-                    <button
-                        v-if="canRemoveAdHocBlock"
-                        type="button"
-                        class="rounded-full border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
-                        :disabled="mutating || setForm.processing"
-                        @click="removeAdHocBlock"
-                    >
-                        Remove exercise
-                    </button>
-                </div>
+                    Done
+                </button>
             </div>
-            <button
-                type="button"
-                class="rounded-full bg-primary px-6 py-4 text-base font-semibold text-primary-foreground disabled:opacity-50"
-                :disabled="workout.status !== 'in_progress'"
-                @click="openLogSheet"
-            >
-                Done
-            </button>
         </div>
 
         <LogSetSheet v-model:open="logSheetOpen">
