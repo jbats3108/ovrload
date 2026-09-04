@@ -30,6 +30,23 @@ function warmUpHasSetupAfter(block: PlayerBlock, stepIndex: number): boolean {
     return set?.has_setup_after ?? false;
 }
 
+/** True when later completed work proves this mid-warm-up setup was already acknowledged. */
+function setupAfterWarmUpStepPassed(block: PlayerBlock, stepIndex: number): boolean {
+    return block.sets.some(
+        (set) => (set.group_type === 'warm_up' && set.set_index > stepIndex && set.completed) || (set.group_type === 'working' && set.completed),
+    );
+}
+
+/** True when any working set in the block is logged — warm-up→work setup already passed. */
+function setupAfterWarmUpPassed(block: PlayerBlock): boolean {
+    return block.sets.some((set) => set.group_type === 'working' && set.completed);
+}
+
+/** True when a later block has logged work — between-block setup already passed. */
+function setupAfterBlockPassed(blocks: PlayerBlock[], blockIndex: number): boolean {
+    return blocks.slice(blockIndex + 1).some((block) => block.sets.some((set) => set.completed));
+}
+
 export function findFirstIncompleteFocus(blocks: PlayerBlock[], setupDone: Record<string, boolean>): Focus {
     for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
         const block = blocks[blockIndex];
@@ -46,12 +63,23 @@ export function findFirstIncompleteFocus(blocks: PlayerBlock[], setupDone: Recor
             }
 
             const isLastStep = i === stepIndexes.length - 1;
-            if (!isLastStep && warmUpHasSetupAfter(block, stepIndex) && !setupDone[setupKey(block.id, 'after_warm_up_step', stepIndex)]) {
+            if (
+                !isLastStep &&
+                warmUpHasSetupAfter(block, stepIndex) &&
+                !setupDone[setupKey(block.id, 'after_warm_up_step', stepIndex)] &&
+                !setupAfterWarmUpStepPassed(block, stepIndex)
+            ) {
                 return { kind: 'setup', blockIndex, phase: 'after_warm_up_step', warmUpStepIndex: stepIndex };
             }
         }
 
-        if (block.has_setup_after_warm_up && stepIndexes.length > 0 && hasIncompleteWorking && !setupDone[setupKey(block.id, 'after_warm_up')]) {
+        if (
+            block.has_setup_after_warm_up &&
+            stepIndexes.length > 0 &&
+            hasIncompleteWorking &&
+            !setupDone[setupKey(block.id, 'after_warm_up')] &&
+            !setupAfterWarmUpPassed(block)
+        ) {
             return { kind: 'setup', blockIndex, phase: 'after_warm_up' };
         }
 
@@ -60,7 +88,12 @@ export function findFirstIncompleteFocus(blocks: PlayerBlock[], setupDone: Recor
             return { kind: 'set', blockIndex, setId: incompleteWorking.id };
         }
 
-        if (block.has_setup_after && blockIndex < blocks.length - 1 && !setupDone[setupKey(block.id, 'after_block')]) {
+        if (
+            block.has_setup_after &&
+            blockIndex < blocks.length - 1 &&
+            !setupDone[setupKey(block.id, 'after_block')] &&
+            !setupAfterBlockPassed(blocks, blockIndex)
+        ) {
             return { kind: 'setup', blockIndex, phase: 'after_block' };
         }
     }

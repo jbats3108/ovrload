@@ -119,6 +119,7 @@ describe('Play', () => {
         expect(header.text()).toContain('Leave');
         expect(stage.exists()).toBe(true);
         expect(stage.text()).not.toContain('Add exercise to session');
-        expect(wrapper.element.className).toContain('overflow-x-hidden');
+        expect(wrapper.element.className).toContain('overflow-hidden');
+        expect(wrapper.element.className).toContain('h-dvh');
     });
 });

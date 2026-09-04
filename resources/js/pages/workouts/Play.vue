@@ -33,7 +33,7 @@ const primeOnFirstInteraction = () => {
 
 <template>
     <div
-        class="safe-pt safe-pb safe-px mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-x-hidden overscroll-none bg-background text-foreground"
+        class="safe-pt safe-pb safe-px mx-auto flex h-dvh max-h-dvh w-full max-w-lg flex-col overflow-hidden overscroll-none bg-background text-foreground"
         @pointerdown="primeOnFirstInteraction"
     >
         <Head :title="`Play · ${workout.routine_name}`" />

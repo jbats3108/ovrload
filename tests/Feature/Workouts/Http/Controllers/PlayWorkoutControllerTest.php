@@ -200,6 +200,67 @@ class PlayWorkoutControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_persists_a_logged_plate_stack_on_warm_up_sets(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->barbell()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 100000,
+            'prescribed_reps' => 5,
+        ]);
+        $warmUpGroup = RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => 1,
+            'rest_seconds' => 45,
+        ]);
+        RoutineWarmUpStep::create([
+            'routine_set_group_id' => $warmUpGroup->id,
+            'position' => 1,
+            'percent_of_working' => 60,
+            'reps' => 5,
+            'weight_mode' => WarmUpWeightMode::Percent,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 1,
+            'rest_seconds' => 90,
+        ]);
+
+        $workout = app(WorkoutService::class)->createWorkout($routine);
+        $warmUp = WorkoutSet::query()
+            ->whereHas('setGroup', fn ($q) => $q->where('type', SetGroupType::WarmUp)->whereHas('block', fn ($b) => $b->where('workout_id', $workout->id)))
+            ->firstOrFail();
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.sets.complete', ['workout' => $workout, 'set' => $warmUp]), [
+                'reps' => 5,
+                'weight_kg' => 60,
+                'plate_stack' => [
+                    'bar_g' => 20000,
+                    'per_side' => [
+                        ['denomination_g' => 20000, 'count' => 1],
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame([
+            'bar_g' => 20000,
+            'per_side' => [
+                ['denomination_g' => 20000, 'count' => 1],
+            ],
+        ], $warmUp->fresh()->plate_stack);
+    }
+
+    #[Test]
     public function it_rejects_recompleting_an_already_logged_set(): void
     {
         $workout = $this->createPlayableWorkout();
