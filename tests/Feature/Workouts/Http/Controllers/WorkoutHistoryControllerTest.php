@@ -146,7 +146,8 @@ class WorkoutHistoryControllerTest extends TestCase
 
         $this->actingAs($this->user)
             ->put(route('history.update', $workout), $this->historySetPayload($set, reps: 4, weightKg: 80))
-            ->assertRedirect(route('workouts.progression', $workout));
+            ->assertRedirect(route('workouts.progression', $workout))
+            ->assertSessionHas('success', 'Workout saved.');
 
         $this->assertNotEmpty(session("workout_progression_undos.{$workout->id}"));
     }
@@ -191,7 +192,8 @@ class WorkoutHistoryControllerTest extends TestCase
 
         $this->actingAs($this->user)
             ->put(route('history.update', $workout), $this->historySetPayload($set, reps: 5, weightKg: 28.75))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Workout saved.');
 
         $this->assertSame(28750, $set->fresh()->weight_g);
     }

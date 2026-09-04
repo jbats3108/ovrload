@@ -24,9 +24,11 @@ class UpdateWorkoutHistoryController extends Controller
         }
 
         if ($session !== null) {
-            return redirect()->route('workouts.progression', $workout);
+            return redirect()
+                ->route('workouts.progression', $workout)
+                ->with('success', 'Workout saved.');
         }
 
-        return back();
+        return back()->with('success', 'Workout saved.');
     }
 }
