@@ -26,7 +26,9 @@ async function startBarbellStrength(page: Page): Promise<void> {
 }
 
 async function completeCurrentSet(page: Page): Promise<void> {
-    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    const done = page.getByRole('button', { name: 'Done', exact: true });
+    await done.scrollIntoViewIfNeeded();
+    await done.click();
     await expect(page.getByRole('button', { name: 'Log set' })).toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: 'Log set' }).click();
     await expect(page.locator('header .font-mono')).toHaveText(/\d+\/\d+/, { timeout: 30_000 });
@@ -56,6 +58,7 @@ test.describe('workout player', () => {
     test('completes a warm-up set', async ({ page }) => {
         await startBarbellStrength(page);
         await expect(page.getByText(/warm-up/i)).toBeVisible();
+        await expect(page.getByText('Plates', { exact: true })).toBeVisible();
         await completeCurrentSet(page);
         await expect(page.locator('header .font-mono')).toHaveText(/1\/\d+/);
     });
@@ -69,7 +72,7 @@ test.describe('workout player', () => {
         await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeVisible();
     });
 
-    test('prompts setup after warm-up block', async ({ page }) => {
+    test('prompts setup after warm-up block with plate guide', async ({ page }) => {
         await startBarbellStrength(page);
         // Strength profile warm-ups: bar×10, 50%×5, 75%×3, 90%×1
         for (let i = 0; i < 3; i++) {
@@ -79,8 +82,12 @@ test.describe('workout player', () => {
         await completeCurrentSet(page);
         await expect(page.getByRole('button', { name: 'Setup done' })).toBeVisible();
         await expect(page.getByText(/before working sets/i)).toBeVisible();
+        await expect(page.getByText('Plates', { exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Edit plates' })).toBeVisible();
+        await page.getByRole('button', { name: 'Setup done' }).scrollIntoViewIfNeeded();
         await page.getByRole('button', { name: 'Setup done' }).click();
         await skipRest(page);
         await expect(page.getByText(/working/i)).toBeVisible();
+        await expect(page.getByText('Plates', { exact: true })).toBeVisible();
     });
 });
