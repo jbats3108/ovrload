@@ -42,6 +42,11 @@ function setupAfterWarmUpPassed(block: PlayerBlock): boolean {
     return block.sets.some((set) => set.group_type === 'working' && set.completed);
 }
 
+/** True when a later non-parked block still has incomplete sets (actual next Play work). */
+function hasLaterPlayableIncomplete(blocks: PlayerBlock[], blockIndex: number): boolean {
+    return blocks.slice(blockIndex + 1).some((block) => !block.is_parked && block.sets.some((set) => !set.completed));
+}
+
 /** True when a later block has logged work — between-block setup already passed. */
 function setupAfterBlockPassed(blocks: PlayerBlock[], blockIndex: number): boolean {
     return blocks.slice(blockIndex + 1).some((block) => block.sets.some((set) => set.completed));
@@ -94,7 +99,7 @@ export function findFirstIncompleteFocus(blocks: PlayerBlock[], setupDone: Recor
 
         if (
             block.has_setup_after &&
-            blockIndex < blocks.length - 1 &&
+            hasLaterPlayableIncomplete(blocks, blockIndex) &&
             !setupDone[setupKey(block.id, 'after_block')] &&
             !setupAfterBlockPassed(blocks, blockIndex)
         ) {

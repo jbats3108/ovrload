@@ -855,7 +855,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     };
 
     const upcoming = computed(() => {
-        const entry = flatSets.value.find(({ set }) => !set.completed) ?? null;
+        const entry = flatSets.value.find(({ block, set }) => !block.is_parked && !set.completed) ?? null;
         if (!entry) {
             return null;
         }
@@ -869,7 +869,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             return null;
         }
 
-        const entry = flatSets.value.find(({ set }) => !set.completed) ?? null;
+        const entry = flatSets.value.find(({ block, set }) => !block.is_parked && !set.completed) ?? null;
         if (!entry?.block.is_superset) {
             return null;
         }
@@ -901,7 +901,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             return [];
         }
 
-        const entry = flatSets.value.find(({ set }) => !set.completed) ?? null;
+        const entry = flatSets.value.find(({ block, set }) => !block.is_parked && !set.completed) ?? null;
         if (!entry) {
             return [];
         }
