@@ -486,6 +486,24 @@ class WorkoutServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_parks_the_second_block_when_a_third_remains(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $this->seedExtraPlayableRoutineBlock($routine, position: 2, setCount: 1);
+        $this->seedExtraPlayableRoutineBlock($routine, position: 3, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $blocks = $workout->blocks->sortBy('position')->values();
+        $this->workoutService->parkBlockForLater($blocks[0]->fresh(['setGroups.sets', 'workout.blocks.setGroups.sets']));
+
+        $this->workoutService->parkBlockForLater($blocks[1]->fresh(['setGroups.sets', 'workout.blocks.setGroups.sets']));
+
+        $this->assertTrue($blocks[0]->fresh()->is_parked);
+        $this->assertTrue($blocks[1]->fresh()->is_parked);
+        $this->assertFalse($blocks[2]->fresh()->is_parked);
+    }
+
+    #[Test]
     public function it_clears_parked_marks_on_all_blocks(): void
     {
         $routine = Routine::factory()->create();

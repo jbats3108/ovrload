@@ -409,15 +409,22 @@ final readonly class WorkoutSessionService
             throw new WorkoutServiceException(WorkoutService::BLOCK_ALREADY_STARTED_ERROR);
         }
 
-        $hasLaterNonParkedIncomplete = $block->workout->blocks
-            ->filter(fn (WorkoutBlock $other): bool => $other->position > $block->position && ! $other->is_parked)
-            ->contains(function (WorkoutBlock $other): bool {
-                $other->loadMissing('setGroups.sets');
+        $orderedBlocks = $block->workout->blocks->values();
+        $blockIndex = $orderedBlocks->search(
+            fn (WorkoutBlock $candidate): bool => $candidate->id === $block->id,
+        );
 
-                return $other->setGroups
-                    ->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
-                    ->contains(fn (WorkoutSet $set): bool => $set->completed_at === null);
-            });
+        $hasLaterNonParkedIncomplete = $blockIndex !== false
+            && $orderedBlocks
+                ->slice($blockIndex + 1)
+                ->filter(fn (WorkoutBlock $other): bool => ! $other->is_parked)
+                ->contains(function (WorkoutBlock $other): bool {
+                    $other->loadMissing('setGroups.sets');
+
+                    return $other->setGroups
+                        ->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
+                        ->contains(fn (WorkoutSet $set): bool => $set->completed_at === null);
+                });
 
         if (! $hasLaterNonParkedIncomplete) {
             throw new WorkoutServiceException(WorkoutService::NO_LATER_GROUP_TO_DO_ERROR);

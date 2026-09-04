@@ -204,9 +204,10 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                 return;
             }
             // Keep focus when add/remove only changes set count — don't jump to another set.
+            // Do not keep focus on a parked group (Later just deferred it).
             if (focus.value.kind === 'set') {
                 const focused = flatSets.value.find(({ set }) => set.id === (focus.value as { setId: number }).setId);
-                if (focused && !focused.set.completed) {
+                if (focused && !focused.set.completed && !focused.block.is_parked) {
                     return;
                 }
             }
@@ -1112,11 +1113,18 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const canSkipRestOfBlock = computed(() => skipRestOfBlockTarget.value !== null);
 
     const parkForLaterTarget = computed(() => {
-        const block = skipRestOfBlockTarget.value;
-        if (!block || props.workout.status !== 'in_progress') {
+        if (props.workout.status !== 'in_progress') {
             return null;
         }
-        if (!canParkBlockForLater(block, props.workout.blocks)) {
+
+        // Prefer the focused set's block so Later stays available on groups 2..n after parking earlier ones.
+        if (current.value?.block.sets.some((set) => !set.completed)) {
+            const focused = props.workout.blocks.find((candidate) => candidate.id === current.value!.block.id) ?? current.value.block;
+            return canParkBlockForLater(focused, props.workout.blocks) ? focused : null;
+        }
+
+        const block = skipRestOfBlockTarget.value;
+        if (!block || !canParkBlockForLater(block, props.workout.blocks)) {
             return null;
         }
 
