@@ -6,6 +6,7 @@ import { findFirstIncompleteFocus, flattenPlayerSets, setupKey, type FlatSetEntr
 import { formatRestSeconds, groupLabel, setupHintText, workoutProgressLabel } from '@/workouts/lib/labels';
 import { bumpedWeightKg, qualifiesForMidBlockBump, workingSetPrefillKg, type MidBlockBumpOffer } from '@/workouts/lib/midBlockBump';
 import { changePlateCount, formatPlateStackLabel, resolvePlateLoad, resolvePlateStack, serializePlateStack } from '@/workouts/lib/plates';
+import { clearPlayerClientState, loadPlayerClientState, savePlayerClientState } from '@/workouts/lib/playerClientState';
 import { preparePlayerInteraction } from '@/workouts/lib/playerInteraction';
 import {
     addAdHocExercise as addAdHocExerciseMutation,
@@ -54,7 +55,8 @@ export type WorkoutPlayer = ReturnType<typeof createWorkoutPlayer>;
 export const workoutPlayerKey: InjectionKey<WorkoutPlayer> = Symbol('workoutPlayer');
 
 export function createWorkoutPlayer(props: PlayWorkoutProps) {
-    const setupDone = ref<Record<string, boolean>>({});
+    const storedClientState = loadPlayerClientState(props.workout.id);
+    const setupDone = ref<Record<string, boolean>>({ ...storedClientState.setupDone });
     const pendingRestSeconds = ref(0);
     const lastWorkingWeightKg = ref<Record<number, number>>({});
     /** Next-set bump prefill (Progressive Overload); cleared when that set is logged. */
@@ -74,12 +76,19 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const equipmentOptions = computed(() => props.equipment_options ?? []);
 
     let restTimer: ReturnType<typeof setInterval> | null = null;
-    let restEndsAt = 0;
+    let restEndsAt = storedClientState.restEndsAt != null && storedClientState.restEndsAt > Date.now() ? storedClientState.restEndsAt : 0;
     /** Last whole second that already got a countdown beep (avoids double-fire on visibility sync). */
     let lastCountdownBeepSecond: number | null = null;
     let removeBeforeListener: (() => void) | undefined;
     let removeVisibilityListener: (() => void) | undefined;
     let removeRestVisibilityListener: (() => void) | undefined;
+
+    const persistClientState = (): void => {
+        savePlayerClientState(props.workout.id, {
+            setupDone: setupDone.value,
+            restEndsAt: restEndsAt > Date.now() ? restEndsAt : null,
+        });
+    };
 
     const flatSets = computed(() => flattenPlayerSets(props.workout.blocks));
 
@@ -93,16 +102,31 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         segments: [] as Array<{ weight_kg: number }>,
     });
 
-    const clearRest = () => {
+    const stopRestTimer = (): void => {
         if (restTimer) {
             clearInterval(restTimer);
             restTimer = null;
         }
-        restEndsAt = 0;
-        restSecondsLeft.value = 0;
         lastCountdownBeepSecond = null;
         removeRestVisibilityListener?.();
         removeRestVisibilityListener = undefined;
+    };
+
+    const clearRest = (): void => {
+        stopRestTimer();
+        restEndsAt = 0;
+        restSecondsLeft.value = 0;
+        persistClientState();
+    };
+
+    const attachRestVisibility = (): void => {
+        const onRestVisibility = () => {
+            if (restEndsAt > 0) {
+                syncRestFromClock();
+            }
+        };
+        document.addEventListener('visibilitychange', onRestVisibility);
+        removeRestVisibilityListener = () => document.removeEventListener('visibilitychange', onRestVisibility);
     };
 
     const finishRest = () => {
@@ -149,16 +173,25 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
         restEndsAt = Date.now() + seconds * 1000;
         restSecondsLeft.value = seconds;
+        persistClientState();
         syncRestFromClock();
         restTimer = setInterval(syncRestFromClock, 1000);
+        attachRestVisibility();
+    };
 
-        const onRestVisibility = () => {
-            if (restEndsAt > 0) {
-                syncRestFromClock();
-            }
-        };
-        document.addEventListener('visibilitychange', onRestVisibility);
-        removeRestVisibilityListener = () => document.removeEventListener('visibilitychange', onRestVisibility);
+    const resumeRestFromClock = (): void => {
+        if (restEndsAt <= 0) {
+            return;
+        }
+
+        stopRestTimer();
+        syncRestFromClock();
+        if (restEndsAt <= 0) {
+            return;
+        }
+
+        restTimer = setInterval(syncRestFromClock, 1000);
+        attachRestVisibility();
     };
 
     watch(
@@ -175,6 +208,14 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                 }
             }
             focus.value = firstIncomplete();
+        },
+        { deep: true },
+    );
+
+    watch(
+        setupDone,
+        () => {
+            persistClientState();
         },
         { deep: true },
     );
@@ -258,7 +299,12 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             }
         }
 
-        return resolvePlateLoad(weightKg, entry.set.equipment, props.plate_profile, previousPlateLoad(entry));
+        const previous = previousPlateLoad(entry);
+        if (previous && weightKg != null && previous.total_g === Math.round(weightKg * 1000)) {
+            return previous;
+        }
+
+        return resolvePlateLoad(weightKg, entry.set.equipment, props.plate_profile, previous);
     };
 
     const normalizePlateLoadForOwnWeight = (entry: FlatSetEntry, load: PlateLoadResult): PlateLoadResult => {
@@ -374,8 +420,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         draftSegments.value = [];
         if (stageWeightOverrideKg.value != null) {
             const load = plateLoadForEntry(entry, stageWeightOverrideKg.value);
-            setForm.weight_kg = load ? gramsToKg(load.total_g) : stageWeightOverrideKg.value;
-            logPlateLoadDraft.value = load;
+            const normalized = load ? normalizePlateLoadForOwnWeight(entry, load) : null;
+            setForm.weight_kg = normalized ? gramsToKg(normalized.total_g) : stageWeightOverrideKg.value;
+            logPlateLoadDraft.value = normalized;
             return;
         }
         if (entry.set.group_type === 'warm_up') {
@@ -384,8 +431,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         }
         const weightKg = workingWeightForEntry(entry);
         const load = plateLoadForEntry(entry, weightKg);
-        setForm.weight_kg = load ? gramsToKg(load.total_g) : weightKg;
-        logPlateLoadDraft.value = load;
+        const normalized = load ? normalizePlateLoadForOwnWeight(entry, load) : null;
+        setForm.weight_kg = normalized ? gramsToKg(normalized.total_g) : weightKg;
+        logPlateLoadDraft.value = normalized;
     };
 
     watch(
@@ -423,7 +471,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     };
 
     onBeforeUnmount(() => {
-        clearRest();
+        // Keep setup/rest client state for Dashboard → Resume; only tear down timers.
+        stopRestTimer();
+        persistClientState();
         removeBeforeListener?.();
         removeVisibilityListener?.();
         window.removeEventListener('beforeunload', onBeforeUnload);
@@ -432,6 +482,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
     onMounted(() => {
         focus.value = firstIncomplete();
+        resumeRestFromClock();
         window.addEventListener('beforeunload', onBeforeUnload);
         void requestWakeLock();
         const onVisibility = () => {
@@ -556,10 +607,11 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             restAfter = 0;
         }
 
+        const draftLoad = logPlateLoadDraft.value;
         const finalPlateLoad =
-            !set.is_dropset && set.group_type === 'working' && logPlateLoadDraft.value?.exact && setForm.weight_kg != null
-                ? gramsToKg(logPlateLoadDraft.value.total_g) === setForm.weight_kg
-                    ? logPlateLoadDraft.value
+            !set.is_dropset && set.group_type === 'working' && draftLoad != null && setForm.weight_kg != null
+                ? gramsToKg(draftLoad.total_g) === setForm.weight_kg
+                    ? normalizePlateLoadForOwnWeight(current.value, draftLoad)
                     : null
                 : null;
         const payload = buildCompleteSetPayload(set, setForm.reps, setForm.weight_kg, draftSegments.value, finalPlateLoad);
@@ -667,7 +719,11 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         preparePlayerInteraction();
         const phase = focus.value.phase;
         const block = props.workout.blocks[focus.value.blockIndex];
-        setupDone.value[setupKey(block.id, phase, focus.value.warmUpStepIndex)] = true;
+        setupDone.value = {
+            ...setupDone.value,
+            [setupKey(block.id, phase, focus.value.warmUpStepIndex)]: true,
+        };
+        persistClientState();
 
         if (phase === 'after_warm_up') {
             const rest = workingRestSeconds(block);
@@ -801,13 +857,18 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             confirm: async () => {
                 const incomplete = flatSets.value.some(({ set }) => !set.completed);
                 if (!incomplete) {
+                    clearPlayerClientState(props.workout.id);
                     return true;
                 }
-                return confirmDialog({
+                const ok = await confirmDialog({
                     title: 'Finish now?',
                     description: 'Incomplete sets stay incomplete.',
                     confirmLabel: 'Finish',
                 });
+                if (ok) {
+                    clearPlayerClientState(props.workout.id);
+                }
+                return ok;
             },
         });
     };
@@ -819,13 +880,18 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         await abandonWorkoutMutation(props.workout.id, {
             mutating,
             leaveConfirmed,
-            confirm: async () =>
-                confirmDialog({
+            confirm: async () => {
+                const ok = await confirmDialog({
                     title: 'Abandon this workout?',
                     description: 'It will not count as finished.',
                     confirmLabel: 'Abandon',
                     variant: 'destructive',
-                }),
+                });
+                if (ok) {
+                    clearPlayerClientState(props.workout.id);
+                }
+                return ok;
+            },
         });
     };
 

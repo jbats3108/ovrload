@@ -45,6 +45,7 @@ describe('createWorkoutPlayer', () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        sessionStorage.clear();
     });
 
     it('focuses first incomplete set', () => {
@@ -295,6 +296,47 @@ describe('createWorkoutPlayer', () => {
         expect(player.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 1 });
     });
 
+    it('restores acknowledged setup after remount (resume)', () => {
+        const blocks = [
+            playerBlock({
+                has_setup_after_warm_up: true,
+                sets: [
+                    playerSet({ id: 1, group_type: 'warm_up', completed: true }),
+                    playerSet({ id: 2, group_type: 'working', completed: false, rest_seconds: 0 }),
+                ],
+            }),
+        ];
+        const first = mountPlayer({ blocks });
+        expect(first.focus.value.kind).toBe('setup');
+        first.acknowledgeSetup();
+        expect(first.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 2 });
+
+        const resumed = mountPlayer({ blocks });
+        expect(resumed.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 2 });
+    });
+
+    it('restores an in-progress rest timer after remount (resume)', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-09-04T12:00:00.000Z'));
+        inertiaMocks().inertiaFormPost.mockImplementation((_url, options) => {
+            options?.onSuccess?.();
+        });
+        const blocks = [
+            playerBlock({
+                sets: [playerSet({ id: 1, completed: false, rest_seconds: 90 }), playerSet({ id: 2, set_index: 1, completed: false })],
+            }),
+        ];
+        const first = mountPlayer({ blocks });
+        first.logSheetOpen.value = true;
+        first.completeSet();
+        await flushPromises();
+        expect(first.restSecondsLeft.value).toBe(90);
+
+        vi.setSystemTime(new Date('2026-09-04T12:00:30.000Z'));
+        const resumed = mountPlayer({ blocks });
+        expect(resumed.restSecondsLeft.value).toBe(60);
+    });
+
     it('alerts when rest timer completes', async () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date('2026-01-01T12:00:00Z'));
@@ -446,6 +488,38 @@ describe('createWorkoutPlayer', () => {
 
         expect(player.setForm.weight_kg).toBe(95);
         expect(player.plateLoad.value?.total_g).toBe(95_000);
+        expect(player.plateLoad.value?.exact).toBe(true);
+    });
+
+    it('persists the snapped nearest stack so the next set can reuse it', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    sets: [
+                        playerSet({ id: 1, equipment: 'barbell', target_weight_kg: 97.5 }),
+                        playerSet({ id: 2, set_index: 1, equipment: 'barbell', target_weight_kg: 97.5 }),
+                    ],
+                }),
+            ],
+        });
+
+        player.openLogSheet();
+        player.completeSet();
+
+        expect(inertiaMocks().lastTransformed).toEqual(
+            expect.objectContaining({
+                weight_kg: 95,
+                plate_stack: {
+                    bar_g: 20_000,
+                    per_side: [
+                        { denomination_g: 20_000, count: 1 },
+                        { denomination_g: 10_000, count: 1 },
+                        { denomination_g: 5_000, count: 1 },
+                        { denomination_g: 2_500, count: 1 },
+                    ],
+                },
+            }),
+        );
     });
 
     it('edits the stage stack and carries its calculated weight into logging', () => {

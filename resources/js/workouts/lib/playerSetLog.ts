@@ -29,7 +29,7 @@ export function buildCompleteSetPayload(
     }
 
     const finalPlateLoad =
-        set.group_type === 'working' && plateLoad?.exact && weightKg != null && gramsToKg(plateLoad.total_g) === weightKg ? plateLoad : null;
+        set.group_type === 'working' && plateLoad != null && weightKg != null && gramsToKg(plateLoad.total_g) === weightKg ? plateLoad : null;
 
     return {
         reps,
