@@ -6,6 +6,7 @@ import { findFirstIncompleteFocus, flattenPlayerSets, setupKey, type FlatSetEntr
 import { formatRestSeconds, groupLabel, setupHintText, workoutProgressLabel } from '@/workouts/lib/labels';
 import { bumpedWeightKg, qualifiesForMidBlockBump, workingSetPrefillKg, type MidBlockBumpOffer } from '@/workouts/lib/midBlockBump';
 import { changePlateCount, formatPlateStackLabel, resolvePlateLoad, resolvePlateStack, serializePlateStack } from '@/workouts/lib/plates';
+import { clearPlayerClientState, loadPlayerClientState, savePlayerClientState } from '@/workouts/lib/playerClientState';
 import { preparePlayerInteraction } from '@/workouts/lib/playerInteraction';
 import {
     addAdHocExercise as addAdHocExerciseMutation,
@@ -54,7 +55,8 @@ export type WorkoutPlayer = ReturnType<typeof createWorkoutPlayer>;
 export const workoutPlayerKey: InjectionKey<WorkoutPlayer> = Symbol('workoutPlayer');
 
 export function createWorkoutPlayer(props: PlayWorkoutProps) {
-    const setupDone = ref<Record<string, boolean>>({});
+    const storedClientState = loadPlayerClientState(props.workout.id);
+    const setupDone = ref<Record<string, boolean>>({ ...storedClientState.setupDone });
     const pendingRestSeconds = ref(0);
     const lastWorkingWeightKg = ref<Record<number, number>>({});
     /** Next-set bump prefill (Progressive Overload); cleared when that set is logged. */
@@ -74,12 +76,19 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const equipmentOptions = computed(() => props.equipment_options ?? []);
 
     let restTimer: ReturnType<typeof setInterval> | null = null;
-    let restEndsAt = 0;
+    let restEndsAt = storedClientState.restEndsAt != null && storedClientState.restEndsAt > Date.now() ? storedClientState.restEndsAt : 0;
     /** Last whole second that already got a countdown beep (avoids double-fire on visibility sync). */
     let lastCountdownBeepSecond: number | null = null;
     let removeBeforeListener: (() => void) | undefined;
     let removeVisibilityListener: (() => void) | undefined;
     let removeRestVisibilityListener: (() => void) | undefined;
+
+    const persistClientState = (): void => {
+        savePlayerClientState(props.workout.id, {
+            setupDone: setupDone.value,
+            restEndsAt: restEndsAt > Date.now() ? restEndsAt : null,
+        });
+    };
 
     const flatSets = computed(() => flattenPlayerSets(props.workout.blocks));
 
@@ -93,16 +102,31 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         segments: [] as Array<{ weight_kg: number }>,
     });
 
-    const clearRest = () => {
+    const stopRestTimer = (): void => {
         if (restTimer) {
             clearInterval(restTimer);
             restTimer = null;
         }
-        restEndsAt = 0;
-        restSecondsLeft.value = 0;
         lastCountdownBeepSecond = null;
         removeRestVisibilityListener?.();
         removeRestVisibilityListener = undefined;
+    };
+
+    const clearRest = (): void => {
+        stopRestTimer();
+        restEndsAt = 0;
+        restSecondsLeft.value = 0;
+        persistClientState();
+    };
+
+    const attachRestVisibility = (): void => {
+        const onRestVisibility = () => {
+            if (restEndsAt > 0) {
+                syncRestFromClock();
+            }
+        };
+        document.addEventListener('visibilitychange', onRestVisibility);
+        removeRestVisibilityListener = () => document.removeEventListener('visibilitychange', onRestVisibility);
     };
 
     const finishRest = () => {
@@ -149,16 +173,25 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
         restEndsAt = Date.now() + seconds * 1000;
         restSecondsLeft.value = seconds;
+        persistClientState();
         syncRestFromClock();
         restTimer = setInterval(syncRestFromClock, 1000);
+        attachRestVisibility();
+    };
 
-        const onRestVisibility = () => {
-            if (restEndsAt > 0) {
-                syncRestFromClock();
-            }
-        };
-        document.addEventListener('visibilitychange', onRestVisibility);
-        removeRestVisibilityListener = () => document.removeEventListener('visibilitychange', onRestVisibility);
+    const resumeRestFromClock = (): void => {
+        if (restEndsAt <= 0) {
+            return;
+        }
+
+        stopRestTimer();
+        syncRestFromClock();
+        if (restEndsAt <= 0) {
+            return;
+        }
+
+        restTimer = setInterval(syncRestFromClock, 1000);
+        attachRestVisibility();
     };
 
     watch(
@@ -175,6 +208,14 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                 }
             }
             focus.value = firstIncomplete();
+        },
+        { deep: true },
+    );
+
+    watch(
+        setupDone,
+        () => {
+            persistClientState();
         },
         { deep: true },
     );
@@ -227,7 +268,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             .filter(
                 (set) =>
                     set.workout_block_exercise_id === entry.set.workout_block_exercise_id &&
-                    set.group_type === 'working' &&
+                    set.group_type === entry.set.group_type &&
                     set.set_index < entry.set.set_index &&
                     set.completed &&
                     set.logged_weight_kg != null &&
@@ -236,6 +277,27 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             .sort((a, b) => b.set_index - a.set_index)[0];
 
         if (!prior || prior.logged_weight_kg == null || prior.plate_stack == null) {
+            // First working set: still prefer the last warm-up stack for the same lift.
+            if (entry.set.group_type === 'working') {
+                const priorWarmUp = entry.block.sets
+                    .filter(
+                        (set) =>
+                            set.workout_block_exercise_id === entry.set.workout_block_exercise_id &&
+                            set.group_type === 'warm_up' &&
+                            set.completed &&
+                            set.logged_weight_kg != null &&
+                            set.plate_stack != null,
+                    )
+                    .sort((a, b) => b.set_index - a.set_index)[0];
+
+                if (priorWarmUp?.logged_weight_kg != null && priorWarmUp.plate_stack != null) {
+                    return (
+                        stagePlateLoadOverrides.value[priorWarmUp.id] ??
+                        resolvePlateStack(priorWarmUp.logged_weight_kg, priorWarmUp.equipment, props.plate_profile, priorWarmUp.plate_stack)
+                    );
+                }
+            }
+
             return null;
         }
 
@@ -258,7 +320,12 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             }
         }
 
-        return resolvePlateLoad(weightKg, entry.set.equipment, props.plate_profile, previousPlateLoad(entry));
+        const previous = previousPlateLoad(entry);
+        if (previous && weightKg != null && previous.total_g === Math.round(weightKg * 1000)) {
+            return previous;
+        }
+
+        return resolvePlateLoad(weightKg, entry.set.equipment, props.plate_profile, previous);
     };
 
     const normalizePlateLoadForOwnWeight = (entry: FlatSetEntry, load: PlateLoadResult): PlateLoadResult => {
@@ -374,18 +441,28 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         draftSegments.value = [];
         if (stageWeightOverrideKg.value != null) {
             const load = plateLoadForEntry(entry, stageWeightOverrideKg.value);
-            setForm.weight_kg = load ? gramsToKg(load.total_g) : stageWeightOverrideKg.value;
-            logPlateLoadDraft.value = load;
+            const normalized = load ? normalizePlateLoadForOwnWeight(entry, load) : null;
+            setForm.weight_kg = normalized ? gramsToKg(normalized.total_g) : stageWeightOverrideKg.value;
+            logPlateLoadDraft.value = normalized;
             return;
         }
-        if (entry.set.group_type === 'warm_up') {
-            setForm.weight_kg = entry.set.logged_weight_kg ?? entry.set.target_weight_kg ?? 0;
-            return;
-        }
-        const weightKg = workingWeightForEntry(entry);
+        draftSegments.value = [];
+        const weightKg =
+            entry.set.group_type === 'warm_up' ? (entry.set.logged_weight_kg ?? entry.set.target_weight_kg ?? 0) : workingWeightForEntry(entry);
         const load = plateLoadForEntry(entry, weightKg);
-        setForm.weight_kg = load ? gramsToKg(load.total_g) : weightKg;
-        logPlateLoadDraft.value = load;
+        const normalized = load ? normalizePlateLoadForOwnWeight(entry, load) : null;
+        setForm.weight_kg = normalized ? gramsToKg(normalized.total_g) : weightKg;
+        logPlateLoadDraft.value = normalized;
+    };
+
+    const syncStageWeightOverrideForSet = (setId: number | null): void => {
+        if (setId == null) {
+            stageWeightOverrideKg.value = null;
+            return;
+        }
+
+        const plateOverride = stagePlateLoadOverrides.value[setId];
+        stageWeightOverrideKg.value = plateOverride ? gramsToKg(plateOverride.total_g) : null;
     };
 
     watch(
@@ -393,7 +470,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         (entry, previous) => {
             logSheetOpen.value = false;
             if (entry?.set.id !== previous?.set.id) {
-                stageWeightOverrideKg.value = null;
+                syncStageWeightOverrideForSet(entry?.set.id ?? null);
             }
             if (!entry) {
                 return;
@@ -423,7 +500,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     };
 
     onBeforeUnmount(() => {
-        clearRest();
+        // Keep setup/rest client state for Dashboard → Resume; only tear down timers.
+        stopRestTimer();
+        persistClientState();
         removeBeforeListener?.();
         removeVisibilityListener?.();
         window.removeEventListener('beforeunload', onBeforeUnload);
@@ -432,6 +511,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
     onMounted(() => {
         focus.value = firstIncomplete();
+        resumeRestFromClock();
         window.addEventListener('beforeunload', onBeforeUnload);
         void requestWakeLock();
         const onVisibility = () => {
@@ -556,10 +636,11 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             restAfter = 0;
         }
 
+        const draftLoad = logPlateLoadDraft.value;
         const finalPlateLoad =
-            !set.is_dropset && set.group_type === 'working' && logPlateLoadDraft.value?.exact && setForm.weight_kg != null
-                ? gramsToKg(logPlateLoadDraft.value.total_g) === setForm.weight_kg
-                    ? logPlateLoadDraft.value
+            !set.is_dropset && draftLoad != null && setForm.weight_kg != null
+                ? gramsToKg(draftLoad.total_g) === setForm.weight_kg
+                    ? normalizePlateLoadForOwnWeight(current.value, draftLoad)
                     : null
                 : null;
         const payload = buildCompleteSetPayload(set, setForm.reps, setForm.weight_kg, draftSegments.value, finalPlateLoad);
@@ -667,7 +748,11 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         preparePlayerInteraction();
         const phase = focus.value.phase;
         const block = props.workout.blocks[focus.value.blockIndex];
-        setupDone.value[setupKey(block.id, phase, focus.value.warmUpStepIndex)] = true;
+        setupDone.value = {
+            ...setupDone.value,
+            [setupKey(block.id, phase, focus.value.warmUpStepIndex)]: true,
+        };
+        persistClientState();
 
         if (phase === 'after_warm_up') {
             const rest = workingRestSeconds(block);
@@ -736,11 +821,13 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                     : defaultPromoteSegments(workingWeightForSet(entry)).map((s) => s.weight_kg);
             weightLabel = segments.join(' → ');
             weightKg = segments[0] ?? null;
-        } else if (entry.set.group_type === 'warm_up') {
-            weightKg = entry.set.target_weight_kg;
-            weightLabel = weightKg != null ? String(weightKg) : null;
         } else {
-            weightKg = workingWeightForEntry(entry);
+            if (entry.set.group_type === 'warm_up') {
+                weightKg = entry.set.target_weight_kg;
+            } else {
+                weightKg = workingWeightForEntry(entry);
+            }
+
             const load = plateLoadForEntry(entry, weightKg);
             if (load) {
                 weightKg = gramsToKg(load.total_g);
@@ -791,6 +878,110 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         return round.map((set, index) => previewForEntry({ blockIndex: entry.blockIndex, block: entry.block, set }, String.fromCharCode(65 + index)));
     });
 
+    type SetupStepView = {
+        setId: number;
+        letter: string | null;
+        exerciseName: string;
+        weightLabel: string | null;
+        reps: number | null;
+        groupLabel: string;
+        setNumber: number;
+        setCount: number;
+        isDropset: boolean;
+        plateLoad: PlateLoadResult | null;
+        formatPlateStack: string | null;
+    };
+
+    const setupStepEntries = (): FlatSetEntry[] => {
+        if (focus.value.kind !== 'setup') {
+            return [];
+        }
+
+        const entry = flatSets.value.find(({ set }) => !set.completed) ?? null;
+        if (!entry) {
+            return [];
+        }
+
+        if (entry.block.is_superset) {
+            const round = supersetRoundSets(entry.block, entry.set);
+            if (round.length >= 2) {
+                return round.map((set) => ({ blockIndex: entry.blockIndex, block: entry.block, set }));
+            }
+        }
+
+        return [entry];
+    };
+
+    const setupSteps = computed((): SetupStepView[] => {
+        const entries = setupStepEntries();
+        const isPair = entries.length > 1;
+
+        return entries.map((stepEntry, index) => {
+            const letter = isPair ? String.fromCharCode(65 + index) : null;
+            const preview = previewForEntry(stepEntry, letter);
+            let weightKg: number | null = null;
+            if (stepEntry.set.is_dropset) {
+                weightKg = null;
+            } else if (stepEntry.set.group_type === 'warm_up') {
+                weightKg = stepEntry.set.target_weight_kg;
+            } else {
+                weightKg = workingWeightForEntry(stepEntry);
+            }
+
+            const plateLoad = stepEntry.set.is_dropset ? null : plateLoadForEntry(stepEntry, weightKg);
+
+            return {
+                setId: stepEntry.set.id,
+                letter,
+                exerciseName: preview.exerciseName,
+                weightLabel: preview.weightLabel,
+                reps: preview.reps,
+                groupLabel: preview.groupLabel,
+                setNumber: preview.setNumber,
+                setCount: preview.setCount,
+                isDropset: preview.isDropset,
+                plateLoad,
+                formatPlateStack: plateLoad ? formatPlateStackLabel(plateLoad, props.workout.weight_unit) : null,
+            };
+        });
+    });
+
+    const changeSetupPlate = (setId: number, denominationG: number, change: 1 | -1): void => {
+        const entry = flatSets.value.find(({ set }) => set.id === setId);
+        if (!entry || entry.set.is_dropset) {
+            return;
+        }
+
+        const baseWeightKg = entry.set.group_type === 'warm_up' ? (entry.set.target_weight_kg ?? null) : workingWeightForEntry(entry);
+        const load = plateLoadForEntry(entry, baseWeightKg);
+        if (!load) {
+            return;
+        }
+
+        const weightKg = gramsToKg(load.total_g);
+        const next = changePlateCount(weightKg, load, denominationG, change, props.plate_profile);
+        if (!next) {
+            return;
+        }
+
+        stagePlateLoadOverrides.value[entry.set.id] = normalizePlateLoadForOwnWeight(entry, next);
+    };
+
+    const applySetupNearestLoad = (setId: number): void => {
+        const entry = flatSets.value.find(({ set }) => set.id === setId);
+        if (!entry || entry.set.is_dropset) {
+            return;
+        }
+
+        const baseWeightKg = entry.set.group_type === 'warm_up' ? (entry.set.target_weight_kg ?? null) : workingWeightForEntry(entry);
+        const load = plateLoadForEntry(entry, baseWeightKg);
+        if (!load) {
+            return;
+        }
+
+        stagePlateLoadOverrides.value[entry.set.id] = normalizePlateLoadForOwnWeight(entry, load);
+    };
+
     const finishWorkout = async () => {
         if (props.workout.status !== 'in_progress') {
             return;
@@ -801,13 +992,18 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             confirm: async () => {
                 const incomplete = flatSets.value.some(({ set }) => !set.completed);
                 if (!incomplete) {
+                    clearPlayerClientState(props.workout.id);
                     return true;
                 }
-                return confirmDialog({
+                const ok = await confirmDialog({
                     title: 'Finish now?',
                     description: 'Incomplete sets stay incomplete.',
                     confirmLabel: 'Finish',
                 });
+                if (ok) {
+                    clearPlayerClientState(props.workout.id);
+                }
+                return ok;
             },
         });
     };
@@ -819,13 +1015,18 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         await abandonWorkoutMutation(props.workout.id, {
             mutating,
             leaveConfirmed,
-            confirm: async () =>
-                confirmDialog({
+            confirm: async () => {
+                const ok = await confirmDialog({
                     title: 'Abandon this workout?',
                     description: 'It will not count as finished.',
                     confirmLabel: 'Abandon',
                     variant: 'destructive',
-                }),
+                });
+                if (ok) {
+                    clearPlayerClientState(props.workout.id);
+                }
+                return ok;
+            },
         });
     };
 
@@ -973,6 +1174,10 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (entry.set.is_dropset) {
             return null;
         }
+        const plateOverride = stagePlateLoadOverrides.value[entry.set.id];
+        if (plateOverride) {
+            return gramsToKg(plateOverride.total_g);
+        }
         if (stageWeightOverrideKg.value != null) {
             return stageWeightOverrideKg.value;
         }
@@ -1079,6 +1284,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         upcoming,
         setupHint,
         setupSupersetPair,
+        setupSteps,
+        changeSetupPlate,
+        applySetupNearestLoad,
         supersetNext,
         canPromoteToDropset,
         canDemoteFromDropset,

@@ -47,6 +47,41 @@ describe('buildCompleteSetPayload', () => {
 
     it('omits plate stack when load does not match entered weight', () => {
         const payload = buildCompleteSetPayload(workingSet(), 6, 62.5, [], {
+            exact: false,
+            total_g: 60000,
+            per_side: [{ denomination_g: 20000, count: 1, colour: null }],
+            bar_g: 20000,
+            delta_g: -2500,
+        });
+
+        expect(payload).toEqual({
+            reps: 6,
+            weight_kg: 62.5,
+            plate_stack: null,
+        });
+    });
+
+    it('persists a matching stack even when the load was marked inexact for a prior target', () => {
+        const payload = buildCompleteSetPayload(workingSet(), 6, 60, [], {
+            exact: false,
+            total_g: 60000,
+            per_side: [{ denomination_g: 20000, count: 1, colour: null }],
+            bar_g: 20000,
+            delta_g: -2500,
+        });
+
+        expect(payload).toEqual({
+            reps: 6,
+            weight_kg: 60,
+            plate_stack: {
+                bar_g: 20000,
+                per_side: [{ denomination_g: 20000, count: 1 }],
+            },
+        });
+    });
+
+    it('persists plate stacks for warm-up sets', () => {
+        const payload = buildCompleteSetPayload(workingSet({ group_type: 'warm_up' }), 5, 60, [], {
             exact: true,
             total_g: 60000,
             per_side: [{ denomination_g: 20000, count: 1, colour: null }],
@@ -55,9 +90,12 @@ describe('buildCompleteSetPayload', () => {
         });
 
         expect(payload).toEqual({
-            reps: 6,
-            weight_kg: 62.5,
-            plate_stack: null,
+            reps: 5,
+            weight_kg: 60,
+            plate_stack: {
+                bar_g: 20000,
+                per_side: [{ denomination_g: 20000, count: 1 }],
+            },
         });
     });
 

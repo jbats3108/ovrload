@@ -43,6 +43,7 @@ describe('PlayerHeader', () => {
         expect(buttons.indexOf('Finish')).toBeLessThan(buttons.indexOf('Abandon'));
         expect(buttons.indexOf('Abandon')).toBeLessThan(buttons.indexOf('Leave'));
         expect(wrapper.get('header').classes()).toContain('min-w-0');
+        expect(wrapper.get('header').classes()).toContain('shrink-0');
         expect(wrapper.get('header').html()).toContain('flex-nowrap');
     });
 });

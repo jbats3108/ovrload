@@ -61,6 +61,35 @@ describe('findFirstIncompleteFocus', () => {
         });
     });
 
+    it('skips warm-up setup when a working set is already logged (resume)', () => {
+        const blocks = [
+            playerBlock({
+                has_setup_after_warm_up: true,
+                sets: [
+                    playerSet({ id: 1, group_type: 'warm_up', completed: true }),
+                    playerSet({ id: 2, group_type: 'working', completed: true }),
+                    playerSet({ id: 3, group_type: 'working', set_index: 1, completed: false }),
+                ],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'set', blockIndex: 0, setId: 3 });
+    });
+
+    it('skips between-block setup when a later block already has logged work', () => {
+        const blocks = [
+            playerBlock({
+                id: 10,
+                has_setup_after: true,
+                sets: [playerSet({ id: 1, completed: true })],
+            }),
+            playerBlock({
+                id: 11,
+                sets: [playerSet({ id: 2, completed: true }), playerSet({ id: 3, set_index: 1, completed: false })],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'set', blockIndex: 1, setId: 3 });
+    });
+
     it('returns done when everything complete', () => {
         const blocks = [
             playerBlock({

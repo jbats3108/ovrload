@@ -198,8 +198,9 @@ const toc = [
                 <h2 class="text-2xl font-bold tracking-tight">Play a workout</h2>
                 <p class="text-muted-foreground">
                     From a routine card, start a normal session or a Deload. Play walks you through setup, warm-ups, working sets, and rest. The
-                    header shows which set you are on. Done opens the log sheet; Log set writes the weight and reps; Cancel backs out without saving
-                    that set.
+                    header shows which set you are on. On <strong class="text-foreground">Setup</strong>, you see each upcoming lift (A and B for a
+                    superset) with the full plate guide so you can load before tapping Setup done. Done opens the log sheet; Log set writes the weight
+                    and reps; Cancel backs out without saving that set.
                 </p>
                 <p class="text-muted-foreground">
                     Rest counts down with ticks near the end. Skip rest if you need to. You can add or remove incomplete working sets mid-session —
@@ -306,11 +307,17 @@ const toc = [
                 <ul class="space-y-4 text-muted-foreground">
                     <li>
                         <p class="font-medium text-foreground">Plate guide</p>
-                        <p class="mt-1">For barbell and EZ-bar lifts, Play shows the nearest loadable stack from your Preferences plate profile.</p>
+                        <p class="mt-1">
+                            For barbell and EZ-bar lifts, Play shows the nearest loadable stack from your Preferences plate profile — on Setup and on
+                            each set, so you can load before the clock starts.
+                        </p>
                     </li>
                     <li>
                         <p class="font-medium text-foreground">Supersets</p>
-                        <p class="mt-1">Two exercises share a block. You complete a round of A then B, with the rest you set on that block.</p>
+                        <p class="mt-1">
+                            Two exercises share a block. Setup lists A and B as separate steps with targets and plates; then you complete a round of A
+                            then B, with the rest you set on that block.
+                        </p>
                     </li>
                     <li>
                         <p class="font-medium text-foreground">Dropsets</p>

@@ -9,13 +9,13 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, reactive } from 'vue';
 
-function mountPlayer(overrides: Parameters<typeof workoutPayload>[0] = {}) {
+function mountPlayer(overrides: Parameters<typeof workoutPayload>[0] = {}, plateProfileOverrides: Parameters<typeof plateProfile>[0] = {}) {
     let player!: ReturnType<typeof createWorkoutPlayer>;
     const Wrapper = defineComponent({
         setup() {
             player = createWorkoutPlayer({
                 workout: workoutPayload(overrides),
-                plate_profile: plateProfile(),
+                plate_profile: plateProfile(plateProfileOverrides),
             });
             return () => h('div');
         },
@@ -45,6 +45,7 @@ describe('createWorkoutPlayer', () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        sessionStorage.clear();
     });
 
     it('focuses first incomplete set', () => {
@@ -173,9 +174,14 @@ describe('createWorkoutPlayer', () => {
         expect(player.setupSupersetPair.value?.map((item) => item.letter)).toEqual(['A', 'B']);
         expect(player.setupSupersetPair.value?.[0].weightLabel).toBe('50');
         expect(player.setupSupersetPair.value?.[1].weightLabel).toBe('60');
+        expect(player.setupSteps.value.map((step) => step.exerciseName)).toEqual(['Press', 'Row']);
+        expect(player.setupSteps.value.map((step) => step.letter)).toEqual(['A', 'B']);
+        expect(player.setupSteps.value[0]?.plateLoad).not.toBeNull();
+        expect(player.setupSteps.value[1]?.plateLoad).not.toBeNull();
+        expect(player.setupSteps.value[0]?.formatPlateStack).toBeTruthy();
     });
 
-    it('omits setup superset pair outside setup focus', () => {
+    it('omits setup steps outside setup focus', () => {
         const player = mountPlayer({
             blocks: [
                 playerBlock({
@@ -209,6 +215,41 @@ describe('createWorkoutPlayer', () => {
         });
         expect(player.focus.value.kind).toBe('set');
         expect(player.setupSupersetPair.value).toBeNull();
+        expect(player.setupSteps.value).toEqual([]);
+    });
+
+    it('carries setup plate edits into the following set stage', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    has_setup_after_warm_up: true,
+                    sets: [
+                        playerSet({ id: 1, group_type: 'warm_up', completed: true, rest_seconds: 0 }),
+                        playerSet({
+                            id: 2,
+                            group_type: 'working',
+                            set_index: 0,
+                            target_weight_kg: 80,
+                            rest_seconds: 0,
+                            completed: false,
+                        }),
+                    ],
+                }),
+            ],
+        });
+        expect(player.focus.value.kind).toBe('setup');
+        expect(player.setupSteps.value).toHaveLength(1);
+        expect(player.setupSteps.value[0]?.plateLoad).not.toBeNull();
+
+        player.changeSetupPlate(2, 10_000, -1);
+        expect(player.setupSteps.value[0]?.plateLoad?.per_side).toEqual([{ denomination_g: 20_000, count: 1, colour: null }]);
+        expect(player.setupSteps.value[0]?.plateLoad?.total_g).toBe(60_000);
+
+        player.acknowledgeSetup();
+        expect(player.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 2 });
+        expect(player.stagePlateLoad.value?.total_g).toBe(60_000);
+        expect(player.stageWeightKg.value).toBe(60);
+        expect(player.stagePlateLoad.value?.per_side).toEqual([{ denomination_g: 20_000, count: 1, colour: null }]);
     });
 
     it('syncs draft weight from previous logged set', async () => {
@@ -293,6 +334,47 @@ describe('createWorkoutPlayer', () => {
         player.skipRest();
         expect(player.restSecondsLeft.value).toBe(0);
         expect(player.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 1 });
+    });
+
+    it('restores acknowledged setup after remount (resume)', () => {
+        const blocks = [
+            playerBlock({
+                has_setup_after_warm_up: true,
+                sets: [
+                    playerSet({ id: 1, group_type: 'warm_up', completed: true }),
+                    playerSet({ id: 2, group_type: 'working', completed: false, rest_seconds: 0 }),
+                ],
+            }),
+        ];
+        const first = mountPlayer({ blocks });
+        expect(first.focus.value.kind).toBe('setup');
+        first.acknowledgeSetup();
+        expect(first.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 2 });
+
+        const resumed = mountPlayer({ blocks });
+        expect(resumed.focus.value).toEqual({ kind: 'set', blockIndex: 0, setId: 2 });
+    });
+
+    it('restores an in-progress rest timer after remount (resume)', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-09-04T12:00:00.000Z'));
+        inertiaMocks().inertiaFormPost.mockImplementation((_url, options) => {
+            options?.onSuccess?.();
+        });
+        const blocks = [
+            playerBlock({
+                sets: [playerSet({ id: 1, completed: false, rest_seconds: 90 }), playerSet({ id: 2, set_index: 1, completed: false })],
+            }),
+        ];
+        const first = mountPlayer({ blocks });
+        first.logSheetOpen.value = true;
+        first.completeSet();
+        await flushPromises();
+        expect(first.restSecondsLeft.value).toBe(90);
+
+        vi.setSystemTime(new Date('2026-09-04T12:00:30.000Z'));
+        const resumed = mountPlayer({ blocks });
+        expect(resumed.restSecondsLeft.value).toBe(60);
     });
 
     it('alerts when rest timer completes', async () => {
@@ -446,6 +528,38 @@ describe('createWorkoutPlayer', () => {
 
         expect(player.setForm.weight_kg).toBe(95);
         expect(player.plateLoad.value?.total_g).toBe(95_000);
+        expect(player.plateLoad.value?.exact).toBe(true);
+    });
+
+    it('persists the snapped nearest stack so the next set can reuse it', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    sets: [
+                        playerSet({ id: 1, equipment: 'barbell', target_weight_kg: 97.5 }),
+                        playerSet({ id: 2, set_index: 1, equipment: 'barbell', target_weight_kg: 97.5 }),
+                    ],
+                }),
+            ],
+        });
+
+        player.openLogSheet();
+        player.completeSet();
+
+        expect(inertiaMocks().lastTransformed).toEqual(
+            expect.objectContaining({
+                weight_kg: 95,
+                plate_stack: {
+                    bar_g: 20_000,
+                    per_side: [
+                        { denomination_g: 20_000, count: 1 },
+                        { denomination_g: 10_000, count: 1 },
+                        { denomination_g: 5_000, count: 1 },
+                        { denomination_g: 2_500, count: 1 },
+                    ],
+                },
+            }),
+        );
     });
 
     it('edits the stage stack and carries its calculated weight into logging', () => {
@@ -494,6 +608,55 @@ describe('createWorkoutPlayer', () => {
             { denomination_g: 20_000, count: 1, colour: null },
             { denomination_g: 10_000, count: 1, colour: null },
         ]);
+    });
+
+    it('builds the next warm-up stack from the previous warm-up plates', () => {
+        const richPlates = {
+            plates: [
+                { denomination_g: 25_000, count: 2, colour: null },
+                { denomination_g: 20_000, count: 2, colour: null },
+                { denomination_g: 10_000, count: 4, colour: null },
+                { denomination_g: 5_000, count: 4, colour: null },
+                { denomination_g: 2_500, count: 4, colour: null },
+                { denomination_g: 1_250, count: 4, colour: null },
+            ],
+        };
+        const player = mountPlayer(
+            {
+                blocks: [
+                    playerBlock({
+                        sets: [
+                            playerSet({
+                                id: 1,
+                                group_type: 'warm_up',
+                                set_index: 2,
+                                completed: true,
+                                logged_weight_kg: 60,
+                                target_weight_kg: 60,
+                                plate_stack: {
+                                    bar_g: 20_000,
+                                    per_side: [{ denomination_g: 20_000, count: 1 }],
+                                },
+                            }),
+                            playerSet({
+                                id: 2,
+                                group_type: 'warm_up',
+                                set_index: 3,
+                                target_weight_kg: 72.5,
+                            }),
+                        ],
+                    }),
+                ],
+            },
+            richPlates,
+        );
+
+        expect(player.stagePlateLoad.value?.per_side).toEqual([
+            { denomination_g: 20_000, count: 1, colour: null },
+            { denomination_g: 5_000, count: 1, colour: null },
+            { denomination_g: 1_250, count: 1, colour: null },
+        ]);
+        expect(player.stagePlateLoad.value?.total_g).toBe(72_500);
     });
 
     it('submits the final edited stack with the logged weight', () => {
