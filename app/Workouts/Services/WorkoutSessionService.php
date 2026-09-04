@@ -64,7 +64,7 @@ final readonly class WorkoutSessionService
             $set,
             $reps,
             weightGrams: $weightGrams,
-            plateStack: $set->setGroup->type === SetGroupType::Working ? $plateStack : null,
+            plateStack: $plateStack,
             completedAt: now(),
         );
         $set->save();

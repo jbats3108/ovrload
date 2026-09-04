@@ -80,6 +80,25 @@ describe('buildCompleteSetPayload', () => {
         });
     });
 
+    it('persists plate stacks for warm-up sets', () => {
+        const payload = buildCompleteSetPayload(workingSet({ group_type: 'warm_up' }), 5, 60, [], {
+            exact: true,
+            total_g: 60000,
+            per_side: [{ denomination_g: 20000, count: 1, colour: null }],
+            bar_g: 20000,
+            delta_g: 0,
+        });
+
+        expect(payload).toEqual({
+            reps: 5,
+            weight_kg: 60,
+            plate_stack: {
+                bar_g: 20000,
+                per_side: [{ denomination_g: 20000, count: 1 }],
+            },
+        });
+    });
+
     it('builds a dropset payload from draft segments', () => {
         const payload = buildCompleteSetPayload(workingSet({ is_dropset: true }), 8, 0, [{ weight_kg: 60 }, { weight_kg: 45 }], null);
 

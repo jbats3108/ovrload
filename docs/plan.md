@@ -133,7 +133,7 @@ Public order matches `/beta-tester-faqs`.
 ### Bugfixes
 
 - ~~**Plate editor not scrolling**~~ — Play plate editor/guide overflows / can't scroll — done (single stage scroll)
-- ~~**Previous plates not carrying over**~~ — next set doesn't reuse the prior plate stack — done (persist snapped nearest stack)
+- ~~**Previous plates not carrying over**~~ — next set doesn't reuse the prior plate stack — done (persist snapped nearest stack; warm-up→warm-up / warm-up→work carry)
 - ~~**Resume is all messed up**~~ — Dashboard Resume of an in-progress workout is broken — done (setup/rest client state + progress inference)
 
 ### Code quality & security

@@ -9,13 +9,13 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, reactive } from 'vue';
 
-function mountPlayer(overrides: Parameters<typeof workoutPayload>[0] = {}) {
+function mountPlayer(overrides: Parameters<typeof workoutPayload>[0] = {}, plateProfileOverrides: Parameters<typeof plateProfile>[0] = {}) {
     let player!: ReturnType<typeof createWorkoutPlayer>;
     const Wrapper = defineComponent({
         setup() {
             player = createWorkoutPlayer({
                 workout: workoutPayload(overrides),
-                plate_profile: plateProfile(),
+                plate_profile: plateProfile(plateProfileOverrides),
             });
             return () => h('div');
         },
@@ -568,6 +568,55 @@ describe('createWorkoutPlayer', () => {
             { denomination_g: 20_000, count: 1, colour: null },
             { denomination_g: 10_000, count: 1, colour: null },
         ]);
+    });
+
+    it('builds the next warm-up stack from the previous warm-up plates', () => {
+        const richPlates = {
+            plates: [
+                { denomination_g: 25_000, count: 2, colour: null },
+                { denomination_g: 20_000, count: 2, colour: null },
+                { denomination_g: 10_000, count: 4, colour: null },
+                { denomination_g: 5_000, count: 4, colour: null },
+                { denomination_g: 2_500, count: 4, colour: null },
+                { denomination_g: 1_250, count: 4, colour: null },
+            ],
+        };
+        const player = mountPlayer(
+            {
+                blocks: [
+                    playerBlock({
+                        sets: [
+                            playerSet({
+                                id: 1,
+                                group_type: 'warm_up',
+                                set_index: 2,
+                                completed: true,
+                                logged_weight_kg: 60,
+                                target_weight_kg: 60,
+                                plate_stack: {
+                                    bar_g: 20_000,
+                                    per_side: [{ denomination_g: 20_000, count: 1 }],
+                                },
+                            }),
+                            playerSet({
+                                id: 2,
+                                group_type: 'warm_up',
+                                set_index: 3,
+                                target_weight_kg: 72.5,
+                            }),
+                        ],
+                    }),
+                ],
+            },
+            richPlates,
+        );
+
+        expect(player.stagePlateLoad.value?.per_side).toEqual([
+            { denomination_g: 20_000, count: 1, colour: null },
+            { denomination_g: 5_000, count: 1, colour: null },
+            { denomination_g: 1_250, count: 1, colour: null },
+        ]);
+        expect(player.stagePlateLoad.value?.total_g).toBe(72_500);
     });
 
     it('submits the final edited stack with the logged weight', () => {

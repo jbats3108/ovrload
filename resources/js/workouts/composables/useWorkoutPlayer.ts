@@ -268,7 +268,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             .filter(
                 (set) =>
                     set.workout_block_exercise_id === entry.set.workout_block_exercise_id &&
-                    set.group_type === 'working' &&
+                    set.group_type === entry.set.group_type &&
                     set.set_index < entry.set.set_index &&
                     set.completed &&
                     set.logged_weight_kg != null &&
@@ -277,6 +277,27 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             .sort((a, b) => b.set_index - a.set_index)[0];
 
         if (!prior || prior.logged_weight_kg == null || prior.plate_stack == null) {
+            // First working set: still prefer the last warm-up stack for the same lift.
+            if (entry.set.group_type === 'working') {
+                const priorWarmUp = entry.block.sets
+                    .filter(
+                        (set) =>
+                            set.workout_block_exercise_id === entry.set.workout_block_exercise_id &&
+                            set.group_type === 'warm_up' &&
+                            set.completed &&
+                            set.logged_weight_kg != null &&
+                            set.plate_stack != null,
+                    )
+                    .sort((a, b) => b.set_index - a.set_index)[0];
+
+                if (priorWarmUp?.logged_weight_kg != null && priorWarmUp.plate_stack != null) {
+                    return (
+                        stagePlateLoadOverrides.value[priorWarmUp.id] ??
+                        resolvePlateStack(priorWarmUp.logged_weight_kg, priorWarmUp.equipment, props.plate_profile, priorWarmUp.plate_stack)
+                    );
+                }
+            }
+
             return null;
         }
 
@@ -425,11 +446,9 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             logPlateLoadDraft.value = normalized;
             return;
         }
-        if (entry.set.group_type === 'warm_up') {
-            setForm.weight_kg = entry.set.logged_weight_kg ?? entry.set.target_weight_kg ?? 0;
-            return;
-        }
-        const weightKg = workingWeightForEntry(entry);
+        draftSegments.value = [];
+        const weightKg =
+            entry.set.group_type === 'warm_up' ? (entry.set.logged_weight_kg ?? entry.set.target_weight_kg ?? 0) : workingWeightForEntry(entry);
         const load = plateLoadForEntry(entry, weightKg);
         const normalized = load ? normalizePlateLoadForOwnWeight(entry, load) : null;
         setForm.weight_kg = normalized ? gramsToKg(normalized.total_g) : weightKg;
@@ -609,7 +628,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
         const draftLoad = logPlateLoadDraft.value;
         const finalPlateLoad =
-            !set.is_dropset && set.group_type === 'working' && draftLoad != null && setForm.weight_kg != null
+            !set.is_dropset && draftLoad != null && setForm.weight_kg != null
                 ? gramsToKg(draftLoad.total_g) === setForm.weight_kg
                     ? normalizePlateLoadForOwnWeight(current.value, draftLoad)
                     : null
