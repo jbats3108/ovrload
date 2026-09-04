@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Workouts\Http\Controllers;
 
+use App\Routines\Models\Routine;
+use App\Shared\Enums\SetGroupType;
+use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Services\WorkoutProgressionService;
 use App\Workouts\Services\WorkoutService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,10 +95,7 @@ class WorkoutHistoryControllerTest extends TestCase
         $set = $this->firstWorkingSet($workout->id);
 
         $this->actingAs($this->user)
-            ->put(route('history.sets.update', [$workout, $set]), [
-                'reps' => 6,
-                'weight_kg' => 82.5,
-            ])
+            ->put(route('history.update', $workout), $this->historySetPayload($set, reps: 6, weightKg: 82.5))
             ->assertRedirect()
             ->assertSessionMissing("workout_progression.{$workout->id}");
 
@@ -115,10 +115,7 @@ class WorkoutHistoryControllerTest extends TestCase
         $set = $this->firstWorkingSet($workout->id);
 
         $response = $this->actingAs($this->user)
-            ->put(route('history.sets.update', [$workout, $set]), [
-                'reps' => 6,
-                'weight_kg' => 82.5,
-            ]);
+            ->put(route('history.update', $workout), $this->historySetPayload($set, reps: 6, weightKg: 82.5));
 
         $response->assertRedirect();
         $this->assertStringNotContainsString(
@@ -148,10 +145,7 @@ class WorkoutHistoryControllerTest extends TestCase
         $set = $this->firstWorkingSet($workout->id);
 
         $this->actingAs($this->user)
-            ->put(route('history.sets.update', [$workout, $set]), [
-                'reps' => 4,
-                'weight_kg' => 80,
-            ])
+            ->put(route('history.update', $workout), $this->historySetPayload($set, reps: 4, weightKg: 80))
             ->assertRedirect(route('workouts.progression', $workout));
 
         $this->assertNotEmpty(session("workout_progression_undos.{$workout->id}"));
@@ -171,10 +165,7 @@ class WorkoutHistoryControllerTest extends TestCase
         $olderSet = $this->firstWorkingSet($older->id);
 
         $this->actingAs($this->user)
-            ->put(route('history.sets.update', [$older, $olderSet]), [
-                'reps' => 3,
-                'weight_kg' => 80,
-            ])
+            ->put(route('history.update', $older), $this->historySetPayload($olderSet, reps: 3, weightKg: 80))
             ->assertRedirect();
 
         $this->assertNull(session("workout_progression.{$older->id}"));
@@ -188,10 +179,7 @@ class WorkoutHistoryControllerTest extends TestCase
         $set = $this->firstWorkingSet($workout->id);
 
         $this->actingAs($this->secondUser)
-            ->put(route('history.sets.update', [$workout, $set]), [
-                'reps' => 5,
-                'weight_kg' => 80,
-            ])
+            ->put(route('history.update', $workout), $this->historySetPayload($set, reps: 5, weightKg: 80))
             ->assertNotFound();
     }
 
@@ -202,13 +190,62 @@ class WorkoutHistoryControllerTest extends TestCase
         $set = $this->firstWorkingSet($workout->id);
 
         $this->actingAs($this->user)
-            ->put(route('history.sets.update', [$workout, $set]), [
-                'reps' => 5,
-                'weight_kg' => 28.75,
-            ])
+            ->put(route('history.update', $workout), $this->historySetPayload($set, reps: 5, weightKg: 28.75))
             ->assertRedirect();
 
         $this->assertSame(28750, $set->fresh()->weight_g);
+    }
+
+    #[Test]
+    public function history_save_updates_multiple_working_sets_in_one_request(): void
+    {
+        $this->user->update([
+            'progression_target_default' => 6,
+            'achievement_floor_default' => 4,
+        ]);
+
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $this->seedPlayableRoutineBlock(
+            $routine,
+            setCount: 2,
+            restSeconds: 90,
+            workingWeightG: 60000,
+            prescribedReps: 5,
+            progressionTarget: 6,
+            achievementFloor: 4,
+        );
+
+        $workoutService = app(WorkoutService::class);
+        $workout = $workoutService->createWorkout($routine);
+        $sets = WorkoutSet::query()
+            ->whereHas('setGroup', fn ($q) => $q->where('type', SetGroupType::Working))
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(2, $sets);
+
+        foreach ($sets as $set) {
+            $workoutService->completeSet($set, reps: 5, weightGrams: 60000);
+        }
+        $workoutService->finishWorkout($workout);
+
+        $first = $sets[0];
+        $second = $sets[1];
+
+        $this->actingAs($this->user)
+            ->put(route('history.update', $workout), [
+                'sets' => [
+                    ['id' => $first->id, 'reps' => 4, 'weight_kg' => 62.5],
+                    ['id' => $second->id, 'reps' => 3, 'weight_kg' => 65],
+                ],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(4, $first->fresh()->reps);
+        $this->assertSame(62500, $first->fresh()->weight_g);
+        $this->assertSame(3, $second->fresh()->reps);
+        $this->assertSame(65000, $second->fresh()->weight_g);
     }
 
     #[Test]
@@ -312,14 +349,27 @@ class WorkoutHistoryControllerTest extends TestCase
 
         $olderSet = $this->firstWorkingSet($older->id);
         $this->actingAs($this->user)
-            ->put(route('history.sets.update', [$older, $olderSet]), [
-                'reps' => 3,
-                'weight_kg' => 80,
-            ])
+            ->put(route('history.update', $older), $this->historySetPayload($olderSet, reps: 3, weightKg: 80))
             ->assertRedirect();
 
         $this->assertNull(session("workout_progression_undos.{$older->id}"));
         $this->assertSame(90000, $routineExercise->fresh()->working_weight_g);
         $this->assertNull($older->fresh()->bumpRecords->first()->undone_at);
+    }
+
+    /**
+     * @return array{sets: list<array{id: int, reps: int, weight_kg: float}>}
+     */
+    private function historySetPayload(WorkoutSet $set, int $reps, float $weightKg): array
+    {
+        return [
+            'sets' => [
+                [
+                    'id' => $set->id,
+                    'reps' => $reps,
+                    'weight_kg' => $weightKg,
+                ],
+            ],
+        ];
     }
 }

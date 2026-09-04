@@ -57,7 +57,7 @@ use App\Workouts\Http\Controllers\SkipProgressionController;
 use App\Workouts\Http\Controllers\SkipRestOfBlockController;
 use App\Workouts\Http\Controllers\StoreHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\StoreWorkoutController;
-use App\Workouts\Http\Controllers\UpdateWorkoutHistorySetController;
+use App\Workouts\Http\Controllers\UpdateWorkoutHistoryController;
 use App\Workouts\Models\Workout;
 use Illuminate\Support\Facades\Route;
 
@@ -154,9 +154,9 @@ Route::middleware('auth')->group(function (): void {
             ->can('view', 'workout')
             ->name('history.show');
 
-        Route::put('/{workout}/sets/{set}', UpdateWorkoutHistorySetController::class)
+        Route::put('/{workout}', UpdateWorkoutHistoryController::class)
             ->can('editHistory', 'workout')
-            ->name('history.sets.update');
+            ->name('history.update');
 
         Route::delete('/{workout}', DeleteWorkoutHistoryController::class)
             ->can('deleteHistory', 'workout')

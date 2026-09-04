@@ -126,6 +126,7 @@ Public order matches `/beta-tester-faqs`.
 ### Polish & mobile integration
 
 - **Editor vs Preferences density** — mobile: first Routine sheet (name/profile/Deload); Target/Floor/Rest/WU/deload-alt collapsed until Custom. Desktop: Routine settings disclosure (profile + Deload); separate Rest vs Warm-up columns; Dropsets row under each block. Remaining: swap superset A↔B
+- ~~**History edit save isn't obvious**~~ — one Save for the whole workout (not per set) — done
 
 ### Bugfixes
 

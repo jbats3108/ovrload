@@ -4,25 +4,23 @@ namespace App\Workouts\Http\Controllers;
 
 use App\Shared\Http\Controllers\Controller;
 use App\Shared\Http\DomainFail;
-use App\Workouts\Data\CompleteWorkoutSetData;
+use App\Workouts\Data\History\UpdateWorkoutHistoryData;
 use App\Workouts\Exceptions\WorkoutServiceException;
 use App\Workouts\Models\Workout;
-use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Services\WorkoutHistoryService;
 use Illuminate\Http\RedirectResponse;
 
-class UpdateWorkoutHistorySetController extends Controller
+class UpdateWorkoutHistoryController extends Controller
 {
     public function __invoke(
-        CompleteWorkoutSetData $data,
+        UpdateWorkoutHistoryData $data,
         Workout $workout,
-        WorkoutSet $set,
         WorkoutHistoryService $historyService,
     ): RedirectResponse {
         try {
-            $session = $historyService->updateWorkingSet($workout, $set, $data);
+            $session = $historyService->updateWorkingSets($workout, $data);
         } catch (WorkoutServiceException $exception) {
-            return DomainFail::back($exception, 'set');
+            return DomainFail::back($exception, 'sets');
         }
 
         if ($session !== null) {
