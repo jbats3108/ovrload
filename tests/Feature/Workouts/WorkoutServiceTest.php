@@ -437,6 +437,101 @@ class WorkoutServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_parks_an_untouched_block_when_a_later_group_exists(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 2);
+        $this->seedExtraPlayableRoutineBlock($routine, position: 2, setCount: 2);
+        $workout = $this->workoutService->createWorkout($routine);
+        $first = $workout->blocks->sortBy('position')->first();
+
+        $this->workoutService->parkBlockForLater($first->fresh(['setGroups.sets', 'workout.blocks.setGroups.sets']));
+
+        $this->assertTrue($first->fresh()->is_parked);
+        $this->assertFalse($workout->blocks->sortBy('position')->values()->get(1)->fresh()->is_parked);
+    }
+
+    #[Test]
+    public function it_rejects_parking_when_any_set_is_logged(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 2);
+        $this->seedExtraPlayableRoutineBlock($routine, position: 2, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $first = $workout->blocks->sortBy('position')->first();
+        $set = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('id', $first->id))
+            ->where('set_index', 0)
+            ->firstOrFail();
+        $this->workoutService->completeSet($set, reps: 5, weightGrams: 80000);
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::BLOCK_ALREADY_STARTED_ERROR);
+
+        $this->workoutService->parkBlockForLater($first->fresh(['setGroups.sets', 'workout.blocks.setGroups.sets']));
+    }
+
+    #[Test]
+    public function it_rejects_parking_the_last_incomplete_group(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $block = $workout->blocks->first();
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::NO_LATER_GROUP_TO_DO_ERROR);
+
+        $this->workoutService->parkBlockForLater($block->fresh(['setGroups.sets', 'workout.blocks.setGroups.sets']));
+    }
+
+    #[Test]
+    public function it_clears_parked_marks_on_all_blocks(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $this->seedExtraPlayableRoutineBlock($routine, position: 2, setCount: 1);
+        $this->seedExtraPlayableRoutineBlock($routine, position: 3, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $blocks = $workout->blocks->sortBy('position')->values();
+        $this->workoutService->parkBlockForLater($blocks[0]->fresh(['setGroups.sets', 'workout.blocks.setGroups.sets']));
+        $this->workoutService->parkBlockForLater(
+            $blocks[1]->fresh(['setGroups.sets', 'workout.blocks.setGroups.sets']),
+        );
+
+        $this->workoutService->clearParkedBlocks($workout->fresh());
+
+        $this->assertFalse($blocks[0]->fresh()->is_parked);
+        $this->assertFalse($blocks[1]->fresh()->is_parked);
+    }
+
+    /**
+     * @return array{0: RoutineSetGroup, 1: RoutineBlockExercise}
+     */
+    private function seedExtraPlayableRoutineBlock(Routine $routine, int $position, int $setCount = 1): array
+    {
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => $position,
+        ]);
+        $exercise = RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 80000,
+            'prescribed_reps' => 6,
+        ]);
+        $working = RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => $setCount,
+            'rest_seconds' => 90,
+        ]);
+
+        return [$working, $exercise];
+    }
+
+    #[Test]
     public function it_discards_an_in_progress_workout(): void
     {
         $routine = Routine::factory()->create();

@@ -24,6 +24,7 @@ class WorkoutPlayerBlockData extends Data
         public readonly int $position,
         public readonly bool $isSuperset,
         public readonly bool $isAdHoc,
+        public readonly bool $isParked,
         public readonly bool $hasSetupAfter,
         public readonly bool $hasSetupAfterWarmUp,
         #[DataCollectionOf(WorkoutPlayerExerciseData::class)]
@@ -81,6 +82,7 @@ class WorkoutPlayerBlockData extends Data
             position: $block->position,
             isSuperset: $block->is_superset,
             isAdHoc: $block->is_ad_hoc,
+            isParked: $block->is_parked,
             hasSetupAfter: $block->has_setup_after,
             hasSetupAfterWarmUp: $block->has_setup_after_warm_up,
             exercises: WorkoutPlayerExerciseData::collect(
