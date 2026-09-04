@@ -53,7 +53,12 @@ const maxPerSideFor = (count: number): number => Math.floor(count / 2);
             </button>
         </div>
         <div v-if="editing" data-testid="plate-editor" class="mt-4 space-y-2 text-left">
-            <p class="text-xs tracking-wide text-muted-foreground uppercase">Adjust per side</p>
+            <div class="flex items-baseline justify-between gap-3">
+                <p class="text-xs tracking-wide text-muted-foreground uppercase">Adjust per side</p>
+                <p class="font-mono text-sm font-semibold text-foreground" data-testid="plate-editor-total">
+                    {{ gramsToKg(plateLoad.total_g) }}{{ weightUnit }} total
+                </p>
+            </div>
             <div
                 v-for="plate in plateProfile.plates"
                 :key="plate.denomination_g"
