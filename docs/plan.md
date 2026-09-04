@@ -8,7 +8,7 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
--
+- **Do groups later** (Play) — grill locked: [Do groups later](#grill-do-groups-later)
 
 ## Shipped (recent)
 
@@ -112,7 +112,7 @@ Public order matches `/beta-tester-faqs`.
 - **Resend → Gmail forward webhook** — optional; forms/mailboxes work without it
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
-- **Skip block / come back later in Play** — leave a block and return after doing a later one (machine busy)
+- ~~**Skip block / come back later in Play**~~ — grilled as **Do groups later** → [Now](#now)
 - **Ad-hoc / off-routine historical log (C2)** — log a lift not on a routine session; own grill (maybe after Play ad-hoc)
 - **Dropsets on supersets**
 - **Flaky-network drafts** — best-effort offline/queue for player logging
@@ -203,6 +203,34 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 - Attach to shared catalog exercise vs custom exercise vs routine block
 - Privacy, retention, delete on client unlink
 - MVP: embed external URL (YouTube/Vimeo) vs hosted upload
+
+## Grill: Do groups later
+
+**Motivation:** Machine busy — defer an untouched group, do later work in the same Play session, get offered the deferred groups at the end (Garmin-style).
+
+**Status:** Grill locked 2026-09-04. Ready to implement from [Now](#now).
+
+### Decided (V1)
+
+- **Model:** Park untouched block → keep linear Play (focus skips parked) → intercept before leaving parked work behind (natural end **or** header/Dashboard **Finish**).
+- **Later** (park): only when **no sets logged** on the block (warm-up or working). Busy machine ≠ mid-set park.
+- **Park unit:** whole **block** (superset A+B = one group). Persisted across Leave/Resume.
+- **Labels:** **Later** (park); untouched discard = **Skip group**; mid-sets discard = **Skip rest of group** (unchanged, hard-deletes incompletes).
+- **Later UX:** set stage; no confirm; optional toast. Hidden when there is no later incomplete block to advance to.
+- **Prompt:** “You left N groups for later — do them now?”
+  - **Yes** — unpark **all**; play remaining in **routine order** via normal focus.
+  - **No thanks** — clear parked marks; incompletes stay ordinary → Complete/Finish as today.
+- **Encore:** if anything is parked again after a Yes pass → prompt again.
+- **Progression / History:** unchanged (incompletes can remain; Skip* deletes rows). No new History “parked/skipped” status.
+- **Naming:** plan/FAQ **Do groups later**; Play **Later**.
+
+### Out of V1 (deferred)
+
+- Mid-session parked list / jump back before the end prompt
+- Later after any set is logged
+- New History status for parked/declined groups
+- Replacing or removing **Skip rest of group**
+- Circuits / timed sets (separate grill)
 
 ## Grill: Circuit workouts
 
