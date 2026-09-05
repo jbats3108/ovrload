@@ -14,6 +14,10 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 **Do groups later (Play)** — park untouched groups with **Later**; focus skips parked; end/Finish offer to do them now; **Skip group** (untouched) / **Skip rest of group** (mid) discard. Grill section removed on ship.
 
+**Swap superset A↔B (2026-09-04)** — editor Swap A↔B under Superset; tutorial + guide screenshots; e2e on Superset Pump.
+
+**Editor density** — mobile Routine sheet; Target/Floor/Rest/WU collapsed until Customise; desktop Routine settings disclosure; separate Rest vs Warm-up; Dropsets under each block.
+
 **Backend tidy (refactor/backend-tidy, 2026-09-01)** — slices A–F: profile reference tracking + route auth; DRY assignment/picker/structure helpers; WorkoutSetLogger; WorkoutSession/Snapshot + ExerciseProfilePreset/Assignment service splits; RoutineBlockStructureData; scoped workout bind, sync filter, seed backfill removal.
 
 Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first within each batch where noted.
@@ -92,7 +96,7 @@ Gym-test 2026-07-28 + 2026-07-26 + remaining product history. Newest first withi
 
 ## Backlog
 
-Single triage list — reprioritize across buckets as needed. **Features (FAQ)** are listed on the public help/FAQ page for beta testers. **Polish & mobile integration** is shipped-flow UX, not net-new capability. Notion [inbox](https://app.notion.com/p/3aae5dd99f0c80ad928ade1a5c6b0749) → pull new bullets into the right bucket below.
+Single triage list — reprioritize across buckets as needed. **Features (FAQ)** are listed on the public help/FAQ page for beta testers. Notion [inbox](https://app.notion.com/p/3aae5dd99f0c80ad928ade1a5c6b0749) → pull new bullets into the right bucket below.
 
 -
 
@@ -100,61 +104,36 @@ Single triage list — reprioritize across buckets as needed. **Features (FAQ)**
 
 Public order matches `/beta-tester-faqs`.
 
-1. ~~**Add Historical Workouts**~~ — recently added (History → Add historical)
-2. ~~**Custom user exercises**~~ — recently added (private customs from routine ExercisePicker; shared catalog stays admin/import-only)
-3. ~~**Add exercise in Play**~~ — recently added (append a lean ad-hoc block mid-session from catalog/custom; snapshot-only; current focus stays in place)
-4. **Better History Edits** — warm-up edits; discarded in History (low prio); post-hoc structure edits deferred (prefer Play add first; re-grill later)
-5. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
-6. ~~**Choose an alternate exercise for Deload sessions**~~ — recently added (optional Deload Alternate + own weight per block exercise; Deload snapshot only; Singles when alternate set)
-7. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
-8. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
+1. **Better History Edits** — warm-up edits; discarded in History (low prio); post-hoc structure edits deferred (prefer Play add first; re-grill later)
+2. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
+3. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
+4. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
+5. **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
+6. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
 
 ### Parked (internal — not on public FAQ)
 
 - **Resend → Gmail forward webhook** — optional; forms/mailboxes work without it
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
-- ~~**Skip block / come back later in Play**~~ — shipped as **Do groups later**
 - **Ad-hoc / off-routine historical log (C2)** — log a lift not on a routine session; own grill (maybe after Play ad-hoc)
-- **Dropsets on supersets**
 - **Flaky-network drafts** — best-effort offline/queue for player logging
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
 - **In-app product tour** — after the public `/tutorial` page; own grill
-- ~~**Account switcher**~~ — folded into **PT mode** grill (client switching)
-- **PT mode** — new user type; client roster; personal + client routines; PT→client share — grill: [PT mode](#grill-pt-mode)
-- **Exercise videos (PT)** — user-uploadable video per exercise/routine; PT-mode scope first — grill: [Exercise videos](#grill-exercise-videos-pt)
-- **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
+- **PT mode** — new user type; client roster; personal + client routines; PT→client share (includes client switching / former account switcher) — grill: [PT mode](#grill-pt-mode) (parked until after solo-lifter queue)
+- **Exercise videos (PT)** — park until PT mode exists — grill: [Exercise videos](#grill-exercise-videos-pt)
 
-### Polish & mobile integration
-
-- **Editor vs Preferences density** — mobile: first Routine sheet (name/profile/Deload); Target/Floor/Rest/WU/deload-alt collapsed until Custom. Desktop: Routine settings disclosure (profile + Deload); separate Rest vs Warm-up columns; Dropsets row under each block. Remaining: swap superset A↔B
-- ~~**Plate guide on setup**~~ — Setup shows the full loading guide (not only a one-line stack) — done
-- ~~**Show both steps of a superset in setup**~~ — A and B as distinct setup steps with plates — done
-- ~~**History edit save isn't obvious**~~ — one Save for the whole workout (not per set) — done
-
-### Bugfixes
-
-- ~~**Superset warm-up title clipped by header**~~ — tall set stage hid the exercise name under Finish/Abandon/Leave — done (single stage scroll; Done is in the same flow so you scroll to it)
-- ~~**Plate editor not scrolling**~~ — Play plate editor/guide overflows / can't scroll — done (single stage scroll)
-- ~~**Previous plates not carrying over**~~ — next set doesn't reuse the prior plate stack — done (persist snapped nearest stack; warm-up→warm-up / warm-up→work carry)
-- ~~**Resume is all messed up**~~ — Dashboard Resume of an in-progress workout is broken — done (setup/rest client state + progress inference)
+**Solo-lifter queue (decided 2026-09-04):** 1) ~~Swap A↔B~~ → 2) ~~Skip block / come back later~~ (shipped as Do groups later) → 3) FAQ: Better History Edits, then lbs, then rack inventory. Circuits / dropsets-on-supersets after that. PT / videos later.
 
 ### Code quality & security
 
-- **PHPStan warmup-step / profile typing** — ~~advisory CI annotations (`quality` job `continue-on-error`): `normalizeList()` wants `list` not `array` (`User`, `ExerciseProfile`, …); `toStorage()` / profile Data constructors still typed without `mode`; `WeightKgSegmentData::gramsList()` missing `DataCollection` `TKey,TValue`~~ done (#99)
-- **Node 20 on git-auto-commit-action** — ~~`stefanzweifel/git-auto-commit-action@v6` still targets Node 20; GitHub runners force Node 24~~ done (`@v7`, Node 24)
-- **Frontend decomposition & abstraction review** — review large Vue modules for sensible seams, reduce repeated code where locality improves, and split only when the abstraction earns its interface. **Done (refactor/backend-tidy):** `exerciseProfileAssignment.ts` + `exerciseProfileApply.ts`; `playerSetLog.ts` + `buildCompleteSetPayload()`; `playerSessionMutations.ts` (session route visits mirroring `WorkoutSessionService`); `useWorkoutPlayer` keeps orchestration. ~~**PHP tidy leftover:** inline `assignedRoutinesForReferencedIds` callable in `ExerciseProfileAssignmentService` (Slice A dual-path artifact; one strategy remains).~~ done
-- **Find N+1 queries (Sentry)** — ~~triage / fix N+1s flagged in Sentry~~ done (OVRLOAD-3: bulk-delete workout set segments on historical create)
-- **PHP 8.5 typed class constants** — ~~`rector.php` `withPhpSets()` includes PHP 8.3 `AddTypeToConstRector`, but ~31 untyped public consts remain on non-final classes (`WorkoutService`, `WorkoutHistoryService`, …); Rector skips them (subclass override risk). Mark services `final` / consts `final const`, or hand-type `string`/`int`/`array`~~ done
-- **PHP 8.5 pipe operator (`|>`)** — ~~Rector has `NestedFuncCallsToPipeOperatorRector` + `SequentialAssignmentsToPipeOperatorRector` but they are **not** in the default `php85` set (style, not migration). Opt in via `rector.php`, dry-run, then apply where readability wins~~ done
-- **Remove dead / one-time code** — ~~retire `exercises:import` + `exercises:audit`; drop legacy `ExerciseProfileBackfillService`; keep JSON + seeders~~ done
-- **Exercise preset defs in code** — ~~moved OVRLOAD presets to `database/data/exercise-profile-presets.json`; seeder + migrate path read JSON~~ done
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)
 
 - **Soft host cap ~100 accounts** — prod: Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 - **Maintenance handoff plan** — reduce ongoing Cursor dependence so a human can keep the app running without constant AI spend
+- **Storybook for components?** — component catalog to support human handover (from Notion inbox)
 
 ## Backlog: 121 Feedback (gym owner)
 

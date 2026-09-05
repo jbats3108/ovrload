@@ -158,8 +158,30 @@ describe('DesktopBlockList', () => {
         expect(document.body.textContent).toContain('Setup before next exercise');
         expect(document.body.textContent).not.toContain('Setup→next');
         expect(document.body.querySelector('[data-dropset-editor]')).toBeNull();
+        expect(document.body.querySelector('[data-swap-superset]')?.textContent).toContain('Swap A↔B');
 
         wrapper.unmount();
+    });
+
+    it('swaps A and B when Swap A↔B is clicked', async () => {
+        const { wrapper, editor } = mountList({
+            achievement_floor_default: 1,
+            exercise_profiles: [strength, hypertrophy],
+            routine: profiledSupersetRoutine(),
+        });
+
+        try {
+            const before = editor.form.blocks[0].exercises.map((exercise) => exercise.exercise_id);
+            expect(before).toHaveLength(2);
+            expect(before[0]).not.toBe(before[1]);
+
+            document.body.querySelector<HTMLButtonElement>('[data-swap-superset]')!.click();
+            await nextTick();
+
+            expect(editor.form.blocks[0].exercises.map((exercise) => exercise.exercise_id)).toEqual([before[1], before[0]]);
+        } finally {
+            wrapper.unmount();
+        }
     });
 
     it('shows Deload alternate while a profile is assigned', () => {

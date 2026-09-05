@@ -119,3 +119,20 @@ export function toggleSuperset(block: Block, firstCatalogId: number | null = nul
         block.working.dropsets = [];
     }
 }
+
+/** Swap A↔B in a superset. No-op when not a two-exercise superset. Returns whether a swap happened. */
+export function swapSupersetExercises(block: Block): boolean {
+    if (!block.is_superset || block.exercises.length < 2) {
+        return false;
+    }
+
+    const [first, second] = block.exercises;
+    if (first === undefined || second === undefined) {
+        return false;
+    }
+
+    block.exercises[0] = second;
+    block.exercises[1] = first;
+
+    return true;
+}

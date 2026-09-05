@@ -134,6 +134,22 @@ describe('createRoutineEditor', () => {
         expect(editor.exerciseProfileIsOutdated(editor.form.blocks[0], 1)).toBe(false);
     });
 
+    it('swaps superset exercises and flips the active exercise selection', () => {
+        const editor = mountEditor({
+            routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),
+            exercise_profiles: [strengthProfile],
+        });
+        editor.addBlock(true);
+        editor.form.blocks[0].exercises[0].exercise_id = 10;
+        editor.form.blocks[0].exercises[1].exercise_id = 20;
+        editor.selectBlockExercise(0, 1);
+
+        editor.swapSupersetExercises(editor.form.blocks[0]);
+
+        expect(editor.form.blocks[0].exercises.map((exercise) => exercise.exercise_id)).toEqual([20, 10]);
+        expect(editor.activeExerciseIndex.value).toBe(0);
+    });
+
     it('restores the recipe fingerprint when splitting a matching-profile superset', () => {
         const editor = mountEditor({
             routine: routinePayload({ blocks: [], default_exercise_profile_id: 1 }),

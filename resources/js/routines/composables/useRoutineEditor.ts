@@ -1,4 +1,4 @@
-import { emptyBlock, normalizeBlock, syncSetupAfterBlockFlags, toggleSuperset } from '@/routines/lib/blocks';
+import { emptyBlock, normalizeBlock, swapSupersetExercises, syncSetupAfterBlockFlags, toggleSuperset } from '@/routines/lib/blocks';
 import {
     addDropsetSegment,
     applyRunTheRack,
@@ -218,6 +218,16 @@ export function createRoutineEditor(props: EditRoutineProps) {
             if (exercise !== undefined && profile !== null) {
                 exercise.exercise_profile_fingerprint = exerciseAssignmentFingerprint(profile, false, block.shared_profile_id === profile.id);
             }
+        }
+    };
+
+    const onSwapSupersetExercises = (block: Block) => {
+        if (!swapSupersetExercises(block)) {
+            return;
+        }
+
+        if (activeBlock.value === block && activeExerciseIndex.value <= 1) {
+            activeExerciseIndex.value = activeExerciseIndex.value === 0 ? 1 : 0;
         }
     };
 
@@ -595,6 +605,7 @@ export function createRoutineEditor(props: EditRoutineProps) {
         addBlock,
         removeBlock,
         toggleSuperset: onToggleSuperset,
+        swapSupersetExercises: onSwapSupersetExercises,
         warmUpText,
         setWarmUpText,
         addWarmUpStep,

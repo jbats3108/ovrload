@@ -8,7 +8,7 @@ const { blockIndex, variant = 'desktop' } = defineProps<{
     variant?: 'desktop' | 'mobile';
 }>();
 
-const { form, toggleSuperset } = useRoutineEditor();
+const { form, toggleSuperset, swapSupersetExercises } = useRoutineEditor();
 
 const block = computed(() => form.blocks[blockIndex]);
 const canSetupAfter = computed(() => canSetupAfterBlock(blockIndex, form.blocks.length));
@@ -21,6 +21,16 @@ const setupAfterLabel = computed(() => (variant === 'desktop' ? 'Setup before ne
             <input type="checkbox" class="mt-0.5 shrink-0" :checked="block.is_superset" @change="toggleSuperset(block)" />
             <span class="min-w-0 leading-snug">Superset</span>
         </label>
+        <button
+            v-if="block.is_superset"
+            type="button"
+            class="text-left text-primary underline-offset-2 hover:underline"
+            :class="variant === 'desktop' ? 'pl-[1.375rem] leading-snug' : ''"
+            data-swap-superset
+            @click="swapSupersetExercises(block)"
+        >
+            Swap A↔B
+        </button>
         <label
             :class="[
                 variant === 'desktop' ? 'flex items-start gap-1.5' : 'flex items-center gap-1.5',
