@@ -57,6 +57,7 @@ export function playerBlock(overrides: Partial<PlayerBlock> = {}): PlayerBlock {
         position: 1,
         is_superset: false,
         is_ad_hoc: false,
+        is_parked: false,
         has_setup_after: false,
         has_setup_after_warm_up: false,
         exercises: [

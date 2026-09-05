@@ -32,7 +32,7 @@ final class DashboardData extends Data
         $user->loadMissing(['routines.blocks.blockExercises']);
 
         $inProgress = $user->workouts()
-            ->with('routine')
+            ->with(['routine', 'blocks.setGroups.sets'])
             ->inProgress()
             ->latest('started_at')
             ->first();
@@ -46,6 +46,16 @@ final class DashboardData extends Data
             ->map(fn (Workout $workout): HistoryWorkoutItemData => HistoryWorkoutItemData::fromWorkout($workout));
 
         $standardsSinceDeload = $standardsSinceDeloadCounter->summarizeByRoutineId($user, $user->routines->pluck('id'));
+
+        $parkedIncompleteCount = 0;
+        if ($inProgress !== null) {
+            $parkedIncompleteCount = $inProgress->blocks
+                ->filter(fn ($block): bool => $block->is_parked)
+                ->filter(fn ($block): bool => $block->setGroups
+                    ->flatMap(fn ($group) => $group->sets)
+                    ->contains(fn ($set): bool => $set->completed_at === null))
+                ->count();
+        }
 
         return new self(
             routines: $user->routines->map(function (Routine $routine) use ($standardsSinceDeload): RoutineData {
@@ -61,6 +71,7 @@ final class DashboardData extends Data
                 id: $inProgress->ulid,
                 routineName: $inProgress->routine->getName(),
                 mode: $inProgress->mode->value,
+                parkedIncompleteCount: $parkedIncompleteCount,
             ),
             recentFinishedWorkouts: $recentFinished,
         );

@@ -30,6 +30,12 @@ const backlogItems = [
         recentlyAdded: true,
     },
     {
+        title: 'Do groups later',
+        description:
+            'Park an untouched group with Later when a machine is busy, keep going through the rest of the workout, then choose at the end (or on Finish) whether to do those groups now. Skip group / Skip rest of group still discard remaining sets from History.',
+        recentlyAdded: true,
+    },
+    {
         title: 'Better History Edits',
         description:
             'Allow editing more details of past workouts, such as warmup weights, and see discarded workouts in history. Bigger structure rewrites on old sessions may come later.',

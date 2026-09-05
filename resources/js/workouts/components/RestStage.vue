@@ -9,7 +9,10 @@ const {
     workout,
     skipRest,
     canSkipRestOfBlock,
+    canParkForLater,
+    skipRestOfBlockLabel,
     skipRestOfBlock,
+    parkForLater,
     mutating,
     pendingMidBlockBump,
     acceptMidBlockBump,
@@ -72,13 +75,22 @@ function confirmSkip() {
             <div v-else class="flex flex-wrap items-center justify-center gap-3">
                 <button type="button" class="rounded-full border border-border px-5 py-2 text-sm" @click="requestSkip">Skip</button>
                 <button
+                    v-if="canParkForLater"
+                    type="button"
+                    class="rounded-full border border-border px-5 py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    :disabled="mutating"
+                    @click="parkForLater"
+                >
+                    Later
+                </button>
+                <button
                     v-if="canSkipRestOfBlock"
                     type="button"
                     class="rounded-full border border-border px-5 py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
                     :disabled="mutating"
                     @click="skipRestOfBlock"
                 >
-                    Skip rest of group
+                    {{ skipRestOfBlockLabel }}
                 </button>
             </div>
         </div>

@@ -108,4 +108,78 @@ describe('findFirstIncompleteFocus', () => {
         ];
         expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'done' });
     });
+
+    it('skips parked blocks and focuses the next incomplete group', () => {
+        const blocks = [
+            playerBlock({
+                id: 1,
+                position: 1,
+                is_parked: true,
+                sets: [playerSet({ id: 1, completed: false })],
+            }),
+            playerBlock({
+                id: 2,
+                position: 2,
+                sets: [playerSet({ id: 2, completed: false })],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'set', blockIndex: 1, setId: 2 });
+    });
+
+    it('returns done when only parked incompletes remain', () => {
+        const blocks = [
+            playerBlock({
+                id: 1,
+                position: 1,
+                is_parked: true,
+                sets: [playerSet({ id: 1, completed: false })],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'done' });
+    });
+
+    it('skips after-block setup when the only remaining groups are parked', () => {
+        const blocks = [
+            playerBlock({
+                id: 1,
+                position: 1,
+                has_setup_after: true,
+                sets: [playerSet({ id: 1, completed: true })],
+            }),
+            playerBlock({
+                id: 2,
+                position: 2,
+                is_parked: true,
+                sets: [playerSet({ id: 2, completed: false })],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({ kind: 'done' });
+    });
+
+    it('keeps after-block setup when a later non-parked group remains', () => {
+        const blocks = [
+            playerBlock({
+                id: 1,
+                position: 1,
+                has_setup_after: true,
+                sets: [playerSet({ id: 1, completed: true })],
+            }),
+            playerBlock({
+                id: 2,
+                position: 2,
+                is_parked: true,
+                sets: [playerSet({ id: 2, completed: false })],
+            }),
+            playerBlock({
+                id: 3,
+                position: 3,
+                sets: [playerSet({ id: 3, completed: false })],
+            }),
+        ];
+        expect(findFirstIncompleteFocus(blocks, {})).toEqual({
+            kind: 'setup',
+            blockIndex: 0,
+            phase: 'after_block',
+        });
+    });
 });

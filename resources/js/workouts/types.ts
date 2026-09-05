@@ -42,6 +42,7 @@ export type PlayerBlock = {
     position: number;
     is_superset: boolean;
     is_ad_hoc: boolean;
+    is_parked: boolean;
     has_setup_after: boolean;
     has_setup_after_warm_up: boolean;
     exercises: PlayerBlockExercise[];
@@ -145,4 +146,5 @@ export type InProgressWorkout = {
     id: string;
     routine_name: string;
     mode: string;
+    parked_incomplete_count: number;
 };

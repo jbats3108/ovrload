@@ -210,6 +210,13 @@ const toc = [
                     you log it. Keep the tab open if you can; wake lock tries to stop the phone sleeping.
                 </p>
                 <p class="text-muted-foreground">
+                    Machine busy before you have logged anything on a group?
+                    <strong class="text-foreground">Later</strong> parks that untouched group and moves you to the next one. At the end of the session
+                    (or if you Finish while groups are still parked), you are asked whether to do those groups now. Mid-group,
+                    <strong class="text-foreground">Skip rest of group</strong> still discards remaining sets so they will not appear in History;
+                    before you start a group the same control is labeled <strong class="text-foreground">Skip group</strong>.
+                </p>
+                <p class="text-muted-foreground">
                     Need an extra lift? Tap <strong class="text-foreground">Add exercise to session</strong> in the header, under Finish / Abandon /
                     Leave. Choose a catalog or private custom exercise and it is appended as a single, three-set block on this workout only. It does
                     not change the routine or offer progression; its Target and working Rest come from your user default exercise profile. You can
@@ -223,7 +230,7 @@ const toc = [
                 <TutorialShot
                     name="play"
                     alt="Play screen with Add exercise to session in the header under Finish, Abandon, and Leave"
-                    caption="Play: Add exercise to session spans the header under Finish / Abandon / Leave; set actions (+/− Set, Promote/Demote dropset) and Skip rest of group stay on the stage; Done opens the log sheet."
+                    caption="Play: Add exercise to session spans the header under Finish / Abandon / Leave; set actions (+/− Set, Promote/Demote dropset), Later, and Skip group / Skip rest of group stay on the stage; Done opens the log sheet."
                 />
             </section>
 

@@ -1020,6 +1020,193 @@ describe('createWorkoutPlayer', () => {
         expect(player.canSkipRestOfBlock.value).toBe(false);
     });
 
+    it('parks an untouched group for later', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    position: 1,
+                    sets: [playerSet({ id: 1, set_index: 0, completed: false })],
+                }),
+                playerBlock({
+                    id: 6,
+                    position: 2,
+                    sets: [playerSet({ id: 2, set_index: 0, completed: false })],
+                }),
+            ],
+        });
+        expect(player.canParkForLater.value).toBe(true);
+        player.parkForLater();
+        expect(inertiaMocks().routerMocks.post).toHaveBeenCalledWith(
+            '/workouts.blocks.later',
+            {},
+            expect.objectContaining({ onSuccess: expect.any(Function) }),
+        );
+    });
+
+    it('offers Later on the second group when a third remains', async () => {
+        const props = reactive({
+            workout: workoutPayload({
+                blocks: [
+                    playerBlock({
+                        id: 5,
+                        position: 1,
+                        sets: [playerSet({ id: 1, set_index: 0, completed: false })],
+                    }),
+                    playerBlock({
+                        id: 6,
+                        position: 2,
+                        sets: [playerSet({ id: 2, set_index: 0, completed: false })],
+                    }),
+                    playerBlock({
+                        id: 7,
+                        position: 3,
+                        sets: [playerSet({ id: 3, set_index: 0, completed: false })],
+                    }),
+                ],
+            }),
+            plate_profile: plateProfile(),
+        });
+        let player!: ReturnType<typeof createWorkoutPlayer>;
+        mount(
+            defineComponent({
+                setup() {
+                    player = createWorkoutPlayer(props);
+                    return () => h('div');
+                },
+            }),
+        );
+
+        inertiaMocks().routerMocks.post.mockImplementation(
+            (_url: string, _data: unknown, options?: { onSuccess?: () => void; onFinish?: () => void }) => {
+                props.workout = workoutPayload({
+                    blocks: [
+                        playerBlock({
+                            id: 5,
+                            position: 1,
+                            is_parked: true,
+                            sets: [playerSet({ id: 1, set_index: 0, completed: false })],
+                        }),
+                        playerBlock({
+                            id: 6,
+                            position: 2,
+                            sets: [playerSet({ id: 2, set_index: 0, completed: false })],
+                        }),
+                        playerBlock({
+                            id: 7,
+                            position: 3,
+                            sets: [playerSet({ id: 3, set_index: 0, completed: false })],
+                        }),
+                    ],
+                });
+                options?.onSuccess?.();
+                options?.onFinish?.();
+            },
+        );
+
+        expect(player.canParkForLater.value).toBe(true);
+        player.parkForLater();
+        await flushPromises();
+        await nextTick();
+
+        expect(player.focus.value).toEqual({ kind: 'set', blockIndex: 1, setId: 2 });
+        expect(player.canParkForLater.value).toBe(true);
+    });
+
+    it('hides Later when the focused group already has a logged set', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    position: 1,
+                    sets: [
+                        playerSet({ id: 1, set_index: 0, completed: true, logged_weight_kg: 100 }),
+                        playerSet({ id: 2, set_index: 1, completed: false }),
+                    ],
+                }),
+                playerBlock({
+                    id: 6,
+                    position: 2,
+                    sets: [playerSet({ id: 3, set_index: 0, completed: false })],
+                }),
+            ],
+        });
+        expect(player.canParkForLater.value).toBe(false);
+        expect(player.canSkipRestOfBlock.value).toBe(true);
+    });
+
+    it('confirms Skip group when the target block is untouched', async () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 5,
+                    position: 1,
+                    sets: [playerSet({ id: 1, set_index: 0, completed: false })],
+                }),
+                playerBlock({
+                    id: 6,
+                    position: 2,
+                    sets: [playerSet({ id: 2, set_index: 0, completed: false })],
+                }),
+            ],
+        });
+        await player.skipRestOfBlock();
+        expect(confirmDialog.confirmDialog).toHaveBeenCalledWith({
+            title: 'Skip this group?',
+            description: 'Remaining sets won’t appear in History.',
+            confirmLabel: 'Skip',
+        });
+    });
+
+    it('offers parked groups when only parked work remains', async () => {
+        inertiaMocks().routerMocks.post.mockImplementation(
+            (_url: string, _data: unknown, options?: { onSuccess?: () => void; onFinish?: () => void }) => {
+                options?.onSuccess?.();
+                options?.onFinish?.();
+            },
+        );
+        const props = reactive({
+            workout: workoutPayload({
+                blocks: [
+                    playerBlock({
+                        id: 5,
+                        position: 1,
+                        is_parked: true,
+                        sets: [playerSet({ id: 1, set_index: 0, completed: false })],
+                    }),
+                    playerBlock({
+                        id: 6,
+                        position: 2,
+                        sets: [playerSet({ id: 2, set_index: 0, completed: true, logged_weight_kg: 100 })],
+                    }),
+                ],
+            }),
+            plate_profile: plateProfile(),
+        });
+        let player!: ReturnType<typeof createWorkoutPlayer>;
+        mount(
+            defineComponent({
+                setup() {
+                    player = createWorkoutPlayer(props);
+                    return () => h('div');
+                },
+            }),
+        );
+        expect(player.focus.value).toEqual({ kind: 'done' });
+        expect(player.awaitingParkedOffer.value).toBe(true);
+        await flushPromises();
+        expect(confirmDialog.confirmDialog).toHaveBeenCalledWith({
+            title: 'You left 1 group for later — do them now?',
+            confirmLabel: 'Yes',
+            cancelLabel: 'No thanks',
+        });
+        expect(inertiaMocks().routerMocks.post).toHaveBeenCalledWith(
+            '/workouts.clear-parked',
+            {},
+            expect.objectContaining({ onSuccess: expect.any(Function) }),
+        );
+    });
+
     it('keeps focus on the current set when an extra set is added to the workout payload', async () => {
         const props = reactive({
             workout: workoutPayload({

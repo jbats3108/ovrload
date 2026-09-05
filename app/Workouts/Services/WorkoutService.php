@@ -36,6 +36,12 @@ final readonly class WorkoutService
 
     public const string NOTHING_TO_SKIP_IN_BLOCK_ERROR = 'Nothing left to skip in this group';
 
+    public const string BLOCK_ALREADY_STARTED_ERROR = 'Only untouched groups can be saved for later';
+
+    public const string NO_LATER_GROUP_TO_DO_ERROR = 'There is no later group to do instead';
+
+    public const string BLOCK_ALREADY_PARKED_ERROR = 'This group is already saved for later';
+
     public const string WORKING_SET_GROUP_MISSING_ERROR = 'This group has no working sets';
 
     public const string DROPSET_REQUIRES_SEGMENTS_ERROR = 'A dropset requires at least two segments';
@@ -304,6 +310,22 @@ final readonly class WorkoutService
     }
 
     /**
+     * @throws WorkoutServiceException
+     */
+    public function parkBlockForLater(WorkoutBlock $block): void
+    {
+        $this->sessions->parkBlockForLater($block);
+    }
+
+    /**
+     * @throws WorkoutServiceException
+     */
+    public function clearParkedBlocks(Workout $workout): void
+    {
+        $this->sessions->clearParkedBlocks($workout);
+    }
+
+    /**
      * @return DataCollection<int, BumpProposalData>
      *
      * @throws WorkoutServiceException
@@ -312,6 +334,8 @@ final readonly class WorkoutService
     {
         return DB::transaction(function () use ($workout): DataCollection {
             $locked = $this->sessions->lockInProgressWorkout($workout);
+
+            $this->sessions->clearParkedBlocks($locked);
 
             $locked->status = WorkoutStatus::Finished;
             $locked->finished_at = now();

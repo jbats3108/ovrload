@@ -129,6 +129,10 @@ _Avoid_: Gap, changeover
 Press-when-done pause for equipment changes. Planned on a block after individual warm-up steps (before the next warm-up rest), after all warm-ups (before working) and/or after the block. Not rest and not working time. Mid warm-up setup runs before that step’s warm-up group rest. Setup-before-working runs before the working Set Group’s rest.
 _Avoid_: Transition (for between-block), intermission
 
+**Later** (Do groups later):
+Park an untouched Play block (no sets logged yet) so focus advances to a later incomplete block. Parked blocks are skipped until the end/Finish offer: do them now (unpark all) or decline (clear parked marks; incompletes stay). Distinct from **Skip rest of group** / **Skip group**, which delete incompletes.
+_Avoid_: Defer, come back later (as a noun), skip for now
+
 ## Loading
 
 **Plate Profile**:

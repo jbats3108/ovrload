@@ -7,6 +7,7 @@ import type { Routine } from '@/routines/types';
 import { confirmDialog } from '@/shared/lib/confirmDialog';
 import { formatDate } from '@/shared/lib/formatDate';
 import { type BreadcrumbItem } from '@/types';
+import { clearParkedBlocks } from '@/workouts/lib/playerSessionMutations';
 import { abandonWorkout, finishWorkout } from '@/workouts/lib/workoutMutations';
 import type { HistoryWorkout, InProgressWorkout } from '@/workouts/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -66,6 +67,31 @@ const finishInProgress = async () => {
     if (!workout) {
         return;
     }
+
+    const parkedCount = workout.parked_incomplete_count ?? 0;
+    if (parkedCount > 0) {
+        const doParked = await confirmDialog({
+            title: parkedCount === 1 ? 'You left 1 group for later — do them now?' : `You left ${parkedCount} groups for later — do them now?`,
+            confirmLabel: 'Yes',
+            cancelLabel: 'No thanks',
+        });
+        if (doParked) {
+            try {
+                await clearParkedBlocks(workout.id, { mutating: workoutMutating });
+            } catch {
+                return;
+            }
+            router.visit(route('workouts.play', workout.id));
+            return;
+        }
+
+        try {
+            await clearParkedBlocks(workout.id, { mutating: workoutMutating });
+        } catch {
+            return;
+        }
+    }
+
     await finishWorkout(workout.id, {
         mutating: workoutMutating,
         confirm: async () =>

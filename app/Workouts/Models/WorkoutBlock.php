@@ -16,6 +16,7 @@ class WorkoutBlock extends Model
         'position',
         'is_superset',
         'is_ad_hoc',
+        'is_parked',
         'has_setup_after',
         'has_setup_after_warm_up',
     ];
@@ -28,6 +29,7 @@ class WorkoutBlock extends Model
             'position' => 'integer',
             'is_superset' => 'boolean',
             'is_ad_hoc' => 'boolean',
+            'is_parked' => 'boolean',
             'has_setup_after' => 'boolean',
             'has_setup_after_warm_up' => 'boolean',
         ];

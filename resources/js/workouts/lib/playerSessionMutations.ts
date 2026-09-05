@@ -172,3 +172,55 @@ export function skipRestOfBlock(workoutId: string, blockId: number, options: Ses
         },
     );
 }
+
+/** Mirrors backend `WorkoutSessionService::parkBlockForLater`. */
+export function parkBlockForLater(workoutId: string, blockId: number, options: SessionMutationOptions = {}): void {
+    if (!beginMutation(options)) {
+        return;
+    }
+
+    router.post(
+        route('workouts.blocks.later', [workoutId, blockId]),
+        {},
+        {
+            ...visitOptions,
+            onSuccess: options.onSuccess,
+            onFinish: () => finishMutation(options),
+        },
+    );
+}
+
+/** Mirrors backend `WorkoutSessionService::clearParkedBlocks`. */
+export function clearParkedBlocks(workoutId: string, options: SessionMutationOptions = {}): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (!beginMutation(options)) {
+            reject(new Error('Mutation already in progress'));
+            return;
+        }
+
+        let failed = false;
+
+        router.post(
+            route('workouts.clear-parked', workoutId),
+            {},
+            {
+                ...visitOptions,
+                onSuccess: () => {
+                    options.onSuccess?.();
+                },
+                onError: () => {
+                    failed = true;
+                    options.onError?.();
+                },
+                onFinish: () => {
+                    finishMutation(options);
+                    if (failed) {
+                        reject(new Error('Failed to clear parked groups'));
+                        return;
+                    }
+                    resolve();
+                },
+            },
+        );
+    });
+}

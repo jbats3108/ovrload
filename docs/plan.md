@@ -12,6 +12,8 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Shipped (recent)
 
+**Do groups later (Play)** — park untouched groups with **Later**; focus skips parked; end/Finish offer to do them now; **Skip group** (untouched) / **Skip rest of group** (mid) discard. Grill section removed on ship.
+
 **Swap superset A↔B (2026-09-04)** — editor Swap A↔B under Superset; tutorial + guide screenshots; e2e on Superset Pump.
 
 **Editor density** — mobile Routine sheet; Target/Floor/Rest/WU collapsed until Customise; desktop Routine settings disclosure; separate Rest vs Warm-up; Dropsets under each block.
@@ -107,8 +109,7 @@ Public order matches `/beta-tester-faqs`.
 3. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
 4. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
 5. **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
-6. **Skip block / come back later in Play** — leave a block and return after doing a later one (machine busy). **Next grill** — grill: [Skip block](#grill-skip-block--come-back-later)
-7. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
+6. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
 
 ### Parked (internal — not on public FAQ)
 
@@ -122,7 +123,7 @@ Public order matches `/beta-tester-faqs`.
 - **PT mode** — new user type; client roster; personal + client routines; PT→client share (includes client switching / former account switcher) — grill: [PT mode](#grill-pt-mode) (parked until after solo-lifter queue)
 - **Exercise videos (PT)** — park until PT mode exists — grill: [Exercise videos](#grill-exercise-videos-pt)
 
-**Solo-lifter queue (decided 2026-09-04):** 1) ~~Swap A↔B~~ → 2) Skip block / come back later (next grill) → 3) FAQ: Better History Edits, then lbs, then rack inventory. Circuits / dropsets-on-supersets after that. PT / videos later.
+**Solo-lifter queue (decided 2026-09-04):** 1) ~~Swap A↔B~~ → 2) ~~Skip block / come back later~~ (shipped as Do groups later) → 3) FAQ: Better History Edits, then lbs, then rack inventory. Circuits / dropsets-on-supersets after that. PT / videos later.
 
 ### Code quality & security
 
@@ -203,23 +204,3 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 - Progression rules (if any) for timed vs rep-based circuit sets
 - Player UX: how “stage” rest differs visually from end-of-circuit rest
 - Relationship to existing Superset machinery — extend or parallel type
-
-## Grill: Skip block / come back later
-
-**Next grill** after Swap A↔B (shipped). Solo-lifter queue: Skip block → FAQ (History edits → lbs → rack).
-
-**Motivation:** Machine busy — leave a block mid-session and do a later one, then return.
-
-**Scope sketch (initial):**
-
-- Park incomplete work in a block and jump forward in the routine.
-- Return to parked block(s) later in the same Play session.
-- Distinct from **Skip rest of group** (which deletes remaining incompletes).
-
-**Open (grill later):**
-
-- Leave whole remaining block vs mid-block from current set (finished sets stay)
-- Focus jump: next incomplete block vs picker
-- Return: auto when later work done, manual resume, or both
-- Interaction with warm-ups, supersets, rest/setup client state, Resume from Dashboard
-- History / shame rows / progression implications

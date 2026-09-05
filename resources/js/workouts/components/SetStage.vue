@@ -2,7 +2,9 @@
 import LogSetSheet from '@/workouts/components/LogSetSheet.vue';
 import PlateGuideCard from '@/workouts/components/PlateGuideCard.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
+import { skipGroupLabel } from '@/workouts/lib/park';
 import { plannedSetCount } from '@/workouts/lib/sets';
+import { computed } from 'vue';
 
 const {
     stageWeightKg,
@@ -13,6 +15,7 @@ const {
     canRemoveWorkingSet,
     canRemoveAdHocBlock,
     canSkipRestOfBlock,
+    canParkForLater,
     openLogSheet,
     cancelLogSheet,
     completeSet,
@@ -24,6 +27,7 @@ const {
     removeWorkingSet,
     removeAdHocBlock,
     skipRestOfBlock,
+    parkForLater,
     applyNearestLoad,
     applyStageNearestLoad,
     changeLogPlate,
@@ -44,6 +48,8 @@ const {
     logProgressionHints,
     supersetNext,
 } = useWorkoutPlayer();
+
+const skipLabel = computed(() => (current.value ? skipGroupLabel(current.value.block) : 'Skip group'));
 
 const unlockInput = (event: PointerEvent) => {
     const input = event.currentTarget;
@@ -146,7 +152,16 @@ const unlockInput = (event: PointerEvent) => {
                             Set
                         </button>
                     </div>
-                    <div v-if="canSkipRestOfBlock || canRemoveAdHocBlock" class="flex flex-wrap items-center justify-center gap-3">
+                    <div v-if="canParkForLater || canSkipRestOfBlock || canRemoveAdHocBlock" class="flex flex-wrap items-center justify-center gap-3">
+                        <button
+                            v-if="canParkForLater"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="parkForLater"
+                        >
+                            Later
+                        </button>
                         <button
                             v-if="canSkipRestOfBlock"
                             type="button"
@@ -154,7 +169,7 @@ const unlockInput = (event: PointerEvent) => {
                             :disabled="mutating || setForm.processing"
                             @click="skipRestOfBlock"
                         >
-                            Skip rest of group
+                            {{ skipLabel }}
                         </button>
                         <button
                             v-if="canRemoveAdHocBlock"

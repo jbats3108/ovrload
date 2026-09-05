@@ -387,6 +387,69 @@ final readonly class WorkoutSessionService
     }
 
     /**
+     * Park an untouched block so Play can advance to a later group (Do groups later).
+     *
+     * @throws WorkoutServiceException
+     */
+    public function parkBlockForLater(WorkoutBlock $block): void
+    {
+        $block->loadMissing(['workout.blocks.setGroups.sets', 'setGroups.sets']);
+
+        $this->assertInProgress($block->workout);
+
+        if ($block->is_parked) {
+            throw new WorkoutServiceException(WorkoutService::BLOCK_ALREADY_PARKED_ERROR);
+        }
+
+        $hasLoggedSet = $block->setGroups
+            ->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
+            ->contains(fn (WorkoutSet $set): bool => $set->completed_at !== null);
+
+        if ($hasLoggedSet) {
+            throw new WorkoutServiceException(WorkoutService::BLOCK_ALREADY_STARTED_ERROR);
+        }
+
+        $orderedBlocks = $block->workout->blocks->values();
+        $blockIndex = $orderedBlocks->search(
+            fn (WorkoutBlock $candidate): bool => $candidate->id === $block->id,
+        );
+
+        $hasLaterNonParkedIncomplete = $blockIndex !== false
+            && $orderedBlocks
+                ->slice($blockIndex + 1)
+                ->filter(fn (WorkoutBlock $other): bool => ! $other->is_parked)
+                ->contains(function (WorkoutBlock $other): bool {
+                    $other->loadMissing('setGroups.sets');
+
+                    return $other->setGroups
+                        ->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
+                        ->contains(fn (WorkoutSet $set): bool => $set->completed_at === null);
+                });
+
+        if (! $hasLaterNonParkedIncomplete) {
+            throw new WorkoutServiceException(WorkoutService::NO_LATER_GROUP_TO_DO_ERROR);
+        }
+
+        $block->is_parked = true;
+        $block->save();
+    }
+
+    /**
+     * Clear parked marks on every block (Yes encore or No thanks).
+     *
+     * @throws WorkoutServiceException
+     */
+    public function clearParkedBlocks(Workout $workout): void
+    {
+        $this->assertInProgress($workout);
+
+        WorkoutBlock::query()
+            ->where('workout_id', $workout->id)
+            ->where('is_parked', true)
+            ->update(['is_parked' => false]);
+    }
+
+    /**
      * @throws WorkoutServiceException
      */
     public function lockInProgressWorkout(Workout $workout): Workout
