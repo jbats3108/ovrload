@@ -8,6 +8,8 @@ use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\WarmUpWeightMode;
 use Database\Seeders\ExerciseProfileSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -651,5 +653,68 @@ class UpdateRoutineControllerTest extends TestCase
                 ->where('exercise_profiles', fn (Collection $profiles) => $profiles->contains(
                     fn ($profile): bool => $profile['id'] === $archived->id && $profile['status'] === ExerciseProfileStatus::Archived->value,
                 )));
+    }
+
+    #[Test]
+    public function update_persists_circuit_block_with_mixed_prescriptions_and_custom_rest(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $exA = Exercise::factory()->create();
+        $exB = Exercise::factory()->create();
+        $exC = Exercise::factory()->create();
+
+        $this->actingAs($this->user)->put(route('routines.update', $routine), [
+            'name' => 'Circuit Test Routine',
+            'deload_weight_factor' => 0.7,
+            'deload_reps_factor' => 1.5,
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exA->id, 'working_weight_kg' => 20, 'prescription_mode' => 'reps', 'prescribed_reps' => 12],
+                    ['exercise_id' => $exB->id, 'working_weight_kg' => 0, 'prescription_mode' => 'duration', 'prescribed_duration_seconds' => 45],
+                    ['exercise_id' => $exC->id, 'working_weight_kg' => 15, 'prescription_mode' => 'reps', 'prescribed_reps' => 8],
+                ], [
+                    'stage_rest_seconds' => 25,
+                    'working' => ['set_count' => 4, 'rest_seconds' => 90],
+                ]),
+            ],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $routine->refresh();
+        $this->assertCount(1, $routine->blocks);
+
+        $block = $routine->blocks->first();
+        $this->assertSame(BlockType::Circuit, $block->type);
+        $this->assertTrue($block->isCircuit());
+        $this->assertSame(25, $block->stage_rest_seconds);
+
+        $exercises = $block->blockExercises;
+        $this->assertCount(3, $exercises);
+
+        $this->assertSame(PrescriptionMode::Reps, $exercises[0]->prescription_mode);
+        $this->assertSame(12, $exercises[0]->prescribed_reps);
+        $this->assertSame(20000, $exercises[0]->working_weight_g);
+
+        $this->assertSame(PrescriptionMode::Duration, $exercises[1]->prescription_mode);
+        $this->assertSame(45, $exercises[1]->prescribed_duration_seconds);
+        $this->assertNull($exercises[1]->prescribed_reps);
+
+        $this->assertSame(PrescriptionMode::Reps, $exercises[2]->prescription_mode);
+        $this->assertSame(8, $exercises[2]->prescribed_reps);
+
+        // Verify edit page receives correct DTO shape
+        $this->actingAs($this->user)
+            ->get(route('routines.edit', $routine))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('routines/Edit')
+                ->where('routine.blocks.0.type', 'circuit')
+                ->where('routine.blocks.0.stage_rest_seconds', 25)
+                ->where('routine.blocks.0.working.set_count', 4)
+                ->where('routine.blocks.0.working.rest_seconds', 90)
+                ->where('routine.blocks.0.exercises.0.prescription_mode', 'reps')
+                ->where('routine.blocks.0.exercises.0.prescribed_reps', 12)
+                ->where('routine.blocks.0.exercises.1.prescription_mode', 'duration')
+                ->where('routine.blocks.0.exercises.1.prescribed_duration_seconds', 45)
+            );
     }
 }

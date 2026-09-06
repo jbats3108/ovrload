@@ -11,6 +11,8 @@ use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineDropsetSegment;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Users\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -66,7 +68,9 @@ class RoutineDuplicator
             'shared_exercise_profile_id' => $block->shared_exercise_profile_id,
             'shared_profile_fingerprint' => $block->shared_profile_fingerprint,
             'position' => $block->position,
+            'type' => $block->type ?? ($block->is_superset ? BlockType::Superset : BlockType::Single),
             'is_superset' => $block->is_superset,
+            'stage_rest_seconds' => $block->stage_rest_seconds,
             'has_setup_after' => $block->has_setup_after,
             'has_setup_after_warm_up' => $block->has_setup_after_warm_up,
         ]);
@@ -84,6 +88,8 @@ class RoutineDuplicator
                 'exercise_profile_fingerprint' => $blockExercise->exercise_profile_fingerprint,
                 'exercise_id' => $blockExercise->exercise_id,
                 'position' => $blockExercise->position,
+                'prescription_mode' => $blockExercise->prescription_mode ?? PrescriptionMode::Reps,
+                'prescribed_duration_seconds' => $blockExercise->prescribed_duration_seconds,
                 'working_weight_g' => $blockExercise->working_weight_g,
                 'deload_exercise_id' => $blockExercise->deload_exercise_id,
                 'deload_working_weight_g' => $blockExercise->deload_working_weight_g,

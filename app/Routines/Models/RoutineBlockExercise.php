@@ -4,6 +4,7 @@ namespace App\Routines\Models;
 
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
+use App\Shared\Enums\PrescriptionMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Override;
@@ -17,6 +18,8 @@ class RoutineBlockExercise extends Model
         'exercise_profile_fingerprint',
         'exercise_id',
         'position',
+        'prescription_mode',
+        'prescribed_duration_seconds',
         'working_weight_g',
         'deload_exercise_id',
         'deload_working_weight_g',
@@ -33,6 +36,8 @@ class RoutineBlockExercise extends Model
         return [
             'position' => 'integer',
             'exercise_profile_id' => 'integer',
+            'prescription_mode' => PrescriptionMode::class,
+            'prescribed_duration_seconds' => 'integer',
             'working_weight_g' => 'integer',
             'deload_working_weight_g' => 'integer',
             'prescribed_reps' => 'integer',
@@ -40,6 +45,16 @@ class RoutineBlockExercise extends Model
             'floor_is_derived' => 'boolean',
             'progression_target_override' => 'integer',
         ];
+    }
+
+    public function isTimed(): bool
+    {
+        return $this->prescription_mode === PrescriptionMode::Duration;
+    }
+
+    public function isRepBased(): bool
+    {
+        return $this->prescription_mode === PrescriptionMode::Reps;
     }
 
     /** @return BelongsTo<ExerciseProfile, $this> */

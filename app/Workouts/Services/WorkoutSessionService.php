@@ -3,6 +3,8 @@
 namespace App\Workouts\Services;
 
 use App\Exercises\Models\Exercise;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Workouts\Enums\WorkoutStatus;
 use App\Workouts\Exceptions\WorkoutServiceException;
@@ -201,6 +203,7 @@ final readonly class WorkoutSessionService
             $adHocBlock = WorkoutBlock::create([
                 'workout_id' => $locked->id,
                 'position' => $position,
+                'type' => BlockType::Single,
                 'is_superset' => false,
                 'is_ad_hoc' => true,
                 'has_setup_after' => false,
@@ -213,6 +216,7 @@ final readonly class WorkoutSessionService
                 'position' => 1,
                 'exercise_name' => $exercise->getName(),
                 'equipment' => $exercise->equipment,
+                'prescription_mode' => PrescriptionMode::Reps,
                 'working_weight_g' => 0,
                 'prescribed_reps' => $targetReps,
                 'achievement_floor' => null,

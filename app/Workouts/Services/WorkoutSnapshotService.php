@@ -4,6 +4,8 @@ namespace App\Workouts\Services;
 
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Workouts\Data\History\StoreHistoricalBlockData;
 use App\Workouts\Data\History\StoreHistoricalSetData;
@@ -60,10 +62,14 @@ final readonly class WorkoutSnapshotService
         }
 
         foreach ($blocks as $routineBlock) {
+            $isCircuit = $routineBlock->isCircuit();
+
             $workoutBlock = WorkoutBlock::create([
                 'workout_id' => $workout->id,
                 'position' => $routineBlock->position,
+                'type' => $routineBlock->type ?? ($routineBlock->is_superset ? BlockType::Superset : BlockType::Single),
                 'is_superset' => $routineBlock->is_superset,
+                'stage_rest_seconds' => $routineBlock->stage_rest_seconds,
                 'has_setup_after' => $routineBlock->has_setup_after,
                 // Deload omits warm-ups; setup-after-warm-up would never fire.
                 'has_setup_after_warm_up' => $isDeload ? false : $routineBlock->has_setup_after_warm_up,
@@ -82,10 +88,22 @@ final readonly class WorkoutSnapshotService
                     ? (int) $routineBlockExercise->deload_working_weight_g
                     : (int) round($routineBlockExercise->working_weight_g * $weightFactor);
 
-                $achievementFloor = $routineBlockExercise->floor_is_derived === true
-                    ? max(1, $routineBlockExercise->prescribed_reps - 2)
-                    : ($routineBlockExercise->achievement_floor_override
-                        ?? $routine->user->achievement_floor_default);
+                $isTimed = $routineBlockExercise->prescription_mode === PrescriptionMode::Duration;
+
+                $achievementFloor = $isCircuit || $isTimed
+                    ? null
+                    : ($routineBlockExercise->floor_is_derived === true
+                        ? max(1, $routineBlockExercise->prescribed_reps - 2)
+                        : ($routineBlockExercise->achievement_floor_override
+                            ?? $routine->user->achievement_floor_default));
+
+                $progressionTarget = $isCircuit || $isTimed
+                    ? null
+                    : $routineBlockExercise->prescribed_reps;
+
+                $prescribedReps = $isTimed
+                    ? null
+                    : max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor));
 
                 $workoutBlockExercise = WorkoutBlockExercise::create([
                     'workout_block_id' => $workoutBlock->id,
@@ -93,10 +111,12 @@ final readonly class WorkoutSnapshotService
                     'position' => $routineBlockExercise->position,
                     'exercise_name' => $sourceExercise->getName(),
                     'equipment' => $sourceExercise->equipment,
+                    'prescription_mode' => $routineBlockExercise->prescription_mode ?? PrescriptionMode::Reps,
+                    'prescribed_duration_seconds' => $routineBlockExercise->prescribed_duration_seconds,
                     'working_weight_g' => $workingWeightG,
-                    'prescribed_reps' => max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor)),
+                    'prescribed_reps' => $prescribedReps,
                     'achievement_floor' => $achievementFloor,
-                    'progression_target' => $routineBlockExercise->prescribed_reps,
+                    'progression_target' => $progressionTarget,
                 ]);
 
                 if ($useAlternate) {

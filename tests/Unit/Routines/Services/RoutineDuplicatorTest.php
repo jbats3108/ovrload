@@ -7,6 +7,8 @@ use App\Routines\Data\Editor\SyncRoutineData;
 use App\Routines\Models\Routine;
 use App\Routines\Services\RoutineDuplicator;
 use App\Routines\Services\RoutineEditorService;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Models\User;
@@ -241,5 +243,66 @@ class RoutineDuplicatorTest extends TestCase
         $this->expectExceptionMessage("Exercise {$foreign->id} is not available for this routine.");
 
         $this->duplicator->duplicate($source, $owner);
+    }
+
+    #[Test]
+    public function duplicate_copies_circuit_block_type_dual_rest_and_prescriptions(): void
+    {
+        $owner = User::factory()->create();
+        $source = Routine::factory()->withUser($owner)->create(['name' => 'Circuit Source']);
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->editor->sync($source, SyncRoutineData::from([
+            'name' => 'Circuit Source',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'working_weight_kg' => 20, 'prescription_mode' => 'reps', 'prescribed_reps' => 12],
+                    ['exercise_id' => $exerciseB->id, 'working_weight_kg' => 0, 'prescription_mode' => 'duration', 'prescribed_duration_seconds' => 45],
+                    ['exercise_id' => $exerciseC->id, 'working_weight_kg' => 15, 'prescription_mode' => 'reps', 'prescribed_reps' => 8],
+                ], [
+                    'stage_rest_seconds' => 25,
+                    'working' => ['set_count' => 4, 'rest_seconds' => 90],
+                ]),
+            ],
+        ]));
+
+        $copy = $this->duplicator->duplicate($source, $owner);
+
+        $this->assertSame('Circuit Source (copy)', $copy->name);
+        $this->assertCount(1, $copy->blocks);
+
+        $block = $copy->blocks->first();
+        $this->assertSame(BlockType::Circuit, $block->type);
+        $this->assertTrue($block->isCircuit());
+        $this->assertFalse($block->is_superset);
+        $this->assertSame(25, $block->stage_rest_seconds);
+        $this->assertNull($block->warmUpSetGroup);
+
+        $working = $block->workingSetGroup;
+        $this->assertNotNull($working);
+        $this->assertSame(4, $working->set_count);
+        $this->assertSame(90, $working->rest_seconds);
+
+        $exercises = $block->blockExercises;
+        $this->assertCount(3, $exercises);
+
+        $this->assertSame($exerciseA->id, $exercises[0]->exercise_id);
+        $this->assertSame(PrescriptionMode::Reps, $exercises[0]->prescription_mode);
+        $this->assertSame(12, $exercises[0]->prescribed_reps);
+        $this->assertNull($exercises[0]->prescribed_duration_seconds);
+        $this->assertSame(20000, $exercises[0]->working_weight_g);
+
+        $this->assertSame($exerciseB->id, $exercises[1]->exercise_id);
+        $this->assertSame(PrescriptionMode::Duration, $exercises[1]->prescription_mode);
+        $this->assertSame(45, $exercises[1]->prescribed_duration_seconds);
+        $this->assertNull($exercises[1]->prescribed_reps);
+        $this->assertSame(0, $exercises[1]->working_weight_g);
+
+        $this->assertSame($exerciseC->id, $exercises[2]->exercise_id);
+        $this->assertSame(PrescriptionMode::Reps, $exercises[2]->prescription_mode);
+        $this->assertSame(8, $exercises[2]->prescribed_reps);
+        $this->assertSame(15000, $exercises[2]->working_weight_g);
     }
 }

@@ -12,6 +12,8 @@ use App\Routines\Data\Editor\SyncWarmUpStepData;
 use App\Routines\Exceptions\RoutineStaleException;
 use App\Routines\Models\Routine;
 use App\Routines\Services\RoutineEditorService;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\WarmUpWeightMode;
 use App\Users\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -753,5 +755,303 @@ class RoutineEditorServiceTest extends TestCase
         $savedExercise = $result->blocks->firstOrFail()->blockExercises->firstOrFail();
         $this->assertSame(6, $savedExercise->prescribed_reps);
         $this->assertSame($oldFingerprint, $savedExercise->exercise_profile_fingerprint);
+    }
+
+    #[Test]
+    public function sync_creates_valid_circuit_block_with_mixed_reps_and_duration(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit Routine',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'working_weight_kg' => 50, 'prescription_mode' => 'reps', 'prescribed_reps' => 12],
+                    ['exercise_id' => $exerciseB->id, 'working_weight_kg' => 10, 'prescription_mode' => 'duration', 'prescribed_duration_seconds' => 45],
+                    ['exercise_id' => $exerciseA->id, 'working_weight_kg' => 0, 'prescription_mode' => 'reps', 'prescribed_reps' => 15],
+                ], [
+                    'stage_rest_seconds' => 20,
+                    'working' => ['set_count' => 4, 'rest_seconds' => 75],
+                ]),
+            ],
+        ]));
+
+        $block = $result->blocks->firstOrFail();
+        $this->assertSame(BlockType::Circuit, $block->type);
+        $this->assertTrue($block->isCircuit());
+        $this->assertFalse($block->is_superset);
+        $this->assertSame(20, $block->stage_rest_seconds);
+        $this->assertNull($block->warmUpSetGroup);
+
+        $workingGroup = $block->workingSetGroup;
+        $this->assertNotNull($workingGroup);
+        $this->assertSame(4, $workingGroup->set_count);
+        $this->assertSame(75, $workingGroup->rest_seconds);
+
+        $exercises = $block->blockExercises;
+        $this->assertCount(3, $exercises);
+
+        $this->assertSame($exerciseA->id, $exercises[0]->exercise_id);
+        $this->assertSame(PrescriptionMode::Reps, $exercises[0]->prescription_mode);
+        $this->assertSame(12, $exercises[0]->prescribed_reps);
+        $this->assertNull($exercises[0]->prescribed_duration_seconds);
+        $this->assertSame(50000, $exercises[0]->working_weight_g);
+
+        $this->assertSame($exerciseB->id, $exercises[1]->exercise_id);
+        $this->assertSame(PrescriptionMode::Duration, $exercises[1]->prescription_mode);
+        $this->assertSame(45, $exercises[1]->prescribed_duration_seconds);
+        $this->assertNull($exercises[1]->prescribed_reps);
+        $this->assertSame(10000, $exercises[1]->working_weight_g);
+
+        // Third exercise is duplicate of exerciseA, confirming duplicate exercises work
+        $this->assertSame($exerciseA->id, $exercises[2]->exercise_id);
+        $this->assertSame(PrescriptionMode::Reps, $exercises[2]->prescription_mode);
+        $this->assertSame(15, $exercises[2]->prescribed_reps);
+    }
+
+    #[Test]
+    public function sync_rejects_circuit_with_fewer_than_three_exercises(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A circuit must have at least three exercises.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Too Short Circuit',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([$exerciseA->id, $exerciseB->id]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_dropsets_on_circuits(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Dropsets are not supported on circuits.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit With Dropset',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([$exerciseA->id, $exerciseB->id, $exerciseC->id], [
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => 60,
+                        'dropsets' => [
+                            [
+                                'set_index' => 0,
+                                'segments' => [
+                                    ['weight_kg' => 20],
+                                    ['weight_kg' => 15],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_warm_up_steps_on_circuits(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Warm-up steps are not supported on circuits.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit With Warmup',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([$exerciseA->id, $exerciseB->id, $exerciseC->id], [
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [['mode' => 'percent', 'percent' => 50, 'reps' => 5, 'has_setup_after' => false]],
+                    ],
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_shared_profile_on_circuits(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Shared exercise profiles are not supported on circuits.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit With Shared Profile',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([$exerciseA->id, $exerciseB->id, $exerciseC->id], [
+                    'shared_profile_id' => $profile->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_exercise_profile_on_circuit_exercise(): void
+    {
+        $user = User::factory()->create();
+        $routine = Routine::factory()->withUser($user)->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Exercise profiles are not supported on circuits.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit Exercise Profile',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'exercise_profile_id' => $profile->id],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_deload_alternate_on_circuit_exercise(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+        $alternate = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Deload alternate exercises are not supported on circuits.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit Deload Alternate',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    [
+                        'exercise_id' => $exerciseA->id,
+                        'deload_exercise_id' => $alternate->id,
+                        'deload_working_weight_kg' => 20,
+                    ],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_progression_target_on_circuit_exercise(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Automatic progression targets are not supported on circuits.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit Progression Target',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'progression_target' => 12],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_achievement_floor_on_circuit_exercise(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Achievement floor overrides are not supported on circuits.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit Achievement Floor',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'achievement_floor' => 8],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_timed_exercise_without_duration(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Timed exercises require a duration of at least 1 second.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit No Duration',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'prescription_mode' => 'duration', 'prescribed_duration_seconds' => null],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_rep_exercise_without_prescribed_reps(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Rep-based exercises require prescribed reps of at least 1.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit No Reps',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'prescription_mode' => 'reps', 'prescribed_reps' => null],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
     }
 }

@@ -4,6 +4,7 @@ namespace App\Workouts\Models;
 
 use App\Exercises\Enums\ExerciseEquipment;
 use App\Exercises\Models\Exercise;
+use App\Shared\Enums\PrescriptionMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,8 @@ class WorkoutBlockExercise extends Model
         'position',
         'exercise_name',
         'equipment',
+        'prescription_mode',
+        'prescribed_duration_seconds',
         'working_weight_g',
         'prescribed_reps',
         'achievement_floor',
@@ -31,11 +34,23 @@ class WorkoutBlockExercise extends Model
         return [
             'position' => 'integer',
             'equipment' => ExerciseEquipment::class,
+            'prescription_mode' => PrescriptionMode::class,
+            'prescribed_duration_seconds' => 'integer',
             'working_weight_g' => 'integer',
             'prescribed_reps' => 'integer',
             'achievement_floor' => 'integer',
             'progression_target' => 'integer',
         ];
+    }
+
+    public function isTimed(): bool
+    {
+        return $this->prescription_mode === PrescriptionMode::Duration;
+    }
+
+    public function isRepBased(): bool
+    {
+        return $this->prescription_mode === PrescriptionMode::Reps;
     }
 
     /** @return BelongsTo<WorkoutBlock, $this> */
