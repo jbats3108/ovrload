@@ -18,14 +18,21 @@ Single triage list — reprioritize across buckets as needed. **Features (FAQ)**
 
 ### Features (FAQ)
 
-Public order matches `/beta-tester-faqs`.
+Public order matches `/beta-tester-faqs`, including recently added items.
 
-1. **Better History Edits** — warm-up edits; discarded in History (low prio); post-hoc structure edits deferred (prefer Play add first; re-grill later)
-2. **Support for lbs** — end-to-end preferred unit (API still kg-centric today)
-3. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
-4. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
-5. **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
-6. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
+1. ~~**Exercise profiles**~~ — recently added
+2. ~~**Add Historical Workouts**~~ — recently added
+3. ~~**Custom user exercises**~~ — recently added
+4. ~~**Add exercise in Play**~~ — recently added
+5. ~~**Do groups later**~~ — recently added
+6. **Better History Edits** — warm-up edits; discarded in History (low prio); post-hoc structure edits deferred (prefer Play add first; re-grill later)
+7. **Support for lbs as your preferred unit of weight** — end-to-end preferred unit (API still kg-centric today)
+8. ~~**Choose an alternate exercise for Deload sessions**~~ — recently added
+9. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
+10. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
+11. **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
+12. **Skip a block and come back later in Play** — overlaps with **Do groups later**; retained to mirror the public FAQ
+13. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
 
 
 
