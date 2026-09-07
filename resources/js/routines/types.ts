@@ -24,7 +24,9 @@ export type BlockExercise = {
     exercise_profile_id?: number | null;
     exercise_profile_fingerprint?: string | null;
     working_weight_kg: number;
-    prescribed_reps: number;
+    prescribed_reps: number | null;
+    prescription_mode?: 'reps' | 'duration';
+    prescribed_duration_seconds?: number | null;
     achievement_floor: number | null;
     floor_is_derived?: boolean | null;
     progression_target: number | null;
@@ -42,6 +44,8 @@ export type DropsetRecipe = {
 };
 
 export type Block = {
+    type?: 'single' | 'superset' | 'circuit';
+    stage_rest_seconds?: number | null;
     is_superset: boolean;
     has_setup_after: boolean;
     has_setup_after_warm_up: boolean;

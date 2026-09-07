@@ -330,4 +330,48 @@ describe('DesktopBlockList', () => {
 
         wrapper.unmount();
     });
+
+    it('renders circuit blocks with CCT badge, stations, dual rest inputs, and time prescription', async () => {
+        const { wrapper, editor } = mountList({
+            routine: routinePayload({
+                blocks: [
+                    {
+                        ...routinePayload().blocks[0],
+                        type: 'circuit',
+                        stage_rest_seconds: 15,
+                        is_superset: false,
+                        working: { set_count: 3, rest_seconds: 60, dropsets: [] },
+                        warm_up: { set_count: 0, rest_seconds: 0, steps: [] },
+                        exercises: [
+                            { ...routinePayload().blocks[0].exercises[0], prescribed_reps: 10, prescription_mode: 'reps' },
+                            { ...routinePayload().blocks[0].exercises[0], prescribed_reps: 12, prescription_mode: 'reps' },
+                            {
+                                ...routinePayload().blocks[0].exercises[0],
+                                prescribed_reps: null,
+                                prescription_mode: 'duration',
+                                prescribed_duration_seconds: 30,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        });
+
+        expect(document.body.textContent).toContain('CCT');
+        expect(document.body.textContent).toContain('rounds');
+        expect(document.body.textContent).toContain('No warm-up');
+        expect(document.body.querySelector('[data-circuit-station-rest]')).toBeTruthy();
+        expect(document.body.querySelector('[data-circuit-round-rest]')).toBeTruthy();
+        expect(document.body.querySelector('[data-exercise-duration]')).toBeTruthy();
+
+        // Check station add button
+        const addStationBtn = document.body.querySelector<HTMLButtonElement>('[data-add-circuit-station]');
+        expect(addStationBtn).toBeTruthy();
+        addStationBtn!.click();
+        await nextTick();
+
+        expect(editor.form.blocks[0].exercises).toHaveLength(4);
+
+        wrapper.unmount();
+    });
 });

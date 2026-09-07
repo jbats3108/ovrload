@@ -1,10 +1,16 @@
 import {
+    addCircuitExercise,
     canSetupAfterBlock,
     emptyBlock,
     emptyExercise,
+    isCircuitBlock,
+    moveCircuitExercise,
     normalizeBlock,
+    removeCircuitExercise,
+    setExercisePrescriptionMode,
     swapSupersetExercises,
     syncSetupAfterBlockFlags,
+    togglePrescriptionMode,
     toggleSuperset,
 } from '@/routines/lib/blocks';
 import { block } from '@/test/factories';
@@ -146,5 +152,105 @@ describe('swapSupersetExercises', () => {
         const only = b.exercises[0];
         expect(swapSupersetExercises(b)).toBe(false);
         expect(b.exercises[0]).toBe(only);
+    });
+});
+
+describe('circuit blocks', () => {
+    it('creates an empty circuit block with 3 exercises and dual rest defaults', () => {
+        const b = emptyBlock({ type: 'circuit', firstCatalogId: 10, prescribedReps: 8 });
+        expect(isCircuitBlock(b)).toBe(true);
+        expect(b.type).toBe('circuit');
+        expect(b.stage_rest_seconds).toBe(15);
+        expect(b.working.rest_seconds).toBe(60);
+        expect(b.warm_up.steps).toHaveLength(0);
+        expect(b.exercises).toHaveLength(3);
+        expect(b.exercises[0].exercise_id).toBe(10);
+        expect(b.exercises[0].prescribed_reps).toBe(8);
+        expect(b.exercises[0].prescription_mode).toBe('reps');
+    });
+
+    it('adds and removes exercises respecting the 3 exercise minimum', () => {
+        const b = emptyBlock({ type: 'circuit', firstCatalogId: 1 });
+        expect(b.exercises).toHaveLength(3);
+
+        // Cannot remove when length <= 3
+        expect(removeCircuitExercise(b, 0)).toBe(false);
+        expect(b.exercises).toHaveLength(3);
+
+        // Add 4th exercise
+        addCircuitExercise(b, 2, 12);
+        expect(b.exercises).toHaveLength(4);
+        expect(b.exercises[3].exercise_id).toBe(2);
+        expect(b.exercises[3].prescribed_reps).toBe(12);
+
+        // Can now remove
+        expect(removeCircuitExercise(b, 1)).toBe(true);
+        expect(b.exercises).toHaveLength(3);
+        expect(removeCircuitExercise(b, 0)).toBe(false);
+    });
+
+    it('reorders circuit exercises safely', () => {
+        const b = emptyBlock({ type: 'circuit', firstCatalogId: 1 });
+        b.exercises[0].exercise_id = 101;
+        b.exercises[1].exercise_id = 102;
+        b.exercises[2].exercise_id = 103;
+
+        expect(moveCircuitExercise(b, 0, 2)).toBe(true);
+        expect(b.exercises.map((e) => e.exercise_id)).toEqual([102, 103, 101]);
+
+        expect(moveCircuitExercise(b, -1, 1)).toBe(false);
+        expect(moveCircuitExercise(b, 0, 99)).toBe(false);
+        expect(moveCircuitExercise(b, 1, 1)).toBe(false);
+    });
+
+    it('toggles and sets prescription mode between reps and duration', () => {
+        const ex = emptyExercise(1, 10);
+        ex.achievement_floor = 8;
+        ex.exercise_profile_id = 5;
+
+        setExercisePrescriptionMode(ex, 'duration');
+        expect(ex.prescription_mode).toBe('duration');
+        expect(ex.prescribed_duration_seconds).toBe(30);
+        expect(ex.prescribed_reps).toBeNull();
+        expect(ex.achievement_floor).toBeNull();
+        expect(ex.exercise_profile_id).toBeNull();
+
+        togglePrescriptionMode(ex);
+        expect(ex.prescription_mode).toBe('reps');
+        expect(ex.prescribed_reps).toBe(10);
+        expect(ex.prescribed_duration_seconds).toBeNull();
+    });
+
+    it('normalizes circuit blocks by stripping warm-ups, dropsets, and deload alternates', () => {
+        const raw = block({
+            type: 'circuit',
+            stage_rest_seconds: 20,
+            working: {
+                set_count: 4,
+                rest_seconds: 90,
+                dropsets: [{ set_index: 0, segments: [{ weight_kg: 50 }, { weight_kg: 40 }] }],
+            },
+            warm_up: {
+                set_count: 2,
+                rest_seconds: 60,
+                steps: [{ mode: 'percent', percent: 50, reps: 5, has_setup_after: false }],
+            },
+            exercises: [
+                { ...emptyExercise(1, 10), deload_exercise_id: 2, deload_working_weight_kg: 40 },
+                { ...emptyExercise(3, null, 'duration', 45) },
+                { ...emptyExercise(4, 12) },
+            ],
+        });
+
+        const normalized = normalizeBlock(raw);
+        expect(normalized.type).toBe('circuit');
+        expect(normalized.stage_rest_seconds).toBe(20);
+        expect(normalized.working.rest_seconds).toBe(90);
+        expect(normalized.working.dropsets).toEqual([]);
+        expect(normalized.warm_up.steps).toEqual([]);
+        expect(normalized.exercises[0].deload_working_weight_kg).toBeNull();
+        expect(normalized.exercises[1].prescription_mode).toBe('duration');
+        expect(normalized.exercises[1].prescribed_duration_seconds).toBe(45);
+        expect(normalized.exercises[1].prescribed_reps).toBeNull();
     });
 });
