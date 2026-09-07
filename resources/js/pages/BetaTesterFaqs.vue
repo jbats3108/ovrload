@@ -70,7 +70,8 @@ const backlogItems = [
     {
         title: 'Skip a block and come back later in Play',
         description:
-            'When a machine is busy, park the current block, do a later one, then return to finish what you left — without deleting the remaining sets.',
+            'When a machine is busy, park the current block, do a later one, then return to finish what you left — without deleting the remaining sets. Shipped as Do groups later.',
+        recentlyAdded: true,
     },
     {
         title: 'Dropsets on supersets',
