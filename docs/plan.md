@@ -8,7 +8,7 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
--
+- **Better History Edits** — warm-up edits; discarded in History (low prio); post-hoc structure edits deferred
 
 ## Backlog
 
@@ -31,13 +31,12 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 9. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
 10. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
 11. ~~**Circuit workouts**~~ — recently added
-12. **Skip a block and come back later in Play** — overlaps with **Do groups later**; retained to mirror the public FAQ
+12. ~~**Skip a block and come back later in Play**~~ — shipped as **Do groups later**; kept on public FAQ as recently added
 13. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
 
 ### Parked (internal — not on public FAQ)
 
 - **Automatic progression for circuits** — evaluate after user feedback on fixed-load circuit training
-- **Resend → Gmail forward webhook** — optional; forms/mailboxes work without it
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
 - **Ad-hoc / off-routine historical log (C2)** — log a lift not on a routine session; own grill (maybe after Play ad-hoc)
@@ -47,7 +46,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 - **PT mode** — new user type; client roster; personal + client routines; PT→client share (includes client switching / former account switcher) — grill: [PT mode](#grill-pt-mode) (parked until after solo-lifter queue)
 - **Exercise videos (PT)** — park until PT mode exists — grill: [Exercise videos](#grill-exercise-videos-pt)
 
-**Solo-lifter queue (decided 2026-09-04):** 1) ~~Swap A↔B~~ → 2) ~~Skip block / come back later~~ (shipped as Do groups later) → 3) FAQ: Better History Edits, then lbs, then rack inventory. Circuits / dropsets-on-supersets after that. PT / videos later.
+**Solo-lifter queue (updated 2026-09-07):** shipped Swap A↔B, Do groups later (covers skip-block-and-come-back), Circuits. Next: Better History Edits → lbs → rack inventory → dropsets on supersets. Then Viewable Progression Data. PT / videos stay parked.
 
 ### Code quality & security
 
