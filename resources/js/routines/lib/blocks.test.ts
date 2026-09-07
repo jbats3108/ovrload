@@ -1,5 +1,6 @@
 import {
     addCircuitExercise,
+    assignMissingExerciseIds,
     canSetupAfterBlock,
     emptyBlock,
     emptyExercise,
@@ -252,5 +253,19 @@ describe('circuit blocks', () => {
         expect(normalized.exercises[1].prescription_mode).toBe('duration');
         expect(normalized.exercises[1].prescribed_duration_seconds).toBe(45);
         expect(normalized.exercises[1].prescribed_reps).toBeNull();
+    });
+
+    it('assigns a catalog id only to exercises that are still empty', () => {
+        const filled = emptyBlock({ type: 'circuit', firstCatalogId: 10 });
+        filled.exercises[1].exercise_id = null;
+        assignMissingExerciseIds([filled], 4);
+
+        expect(filled.exercises.map((exercise) => exercise.exercise_id)).toEqual([10, 4, 10]);
+    });
+
+    it('is a no-op when the catalog has not loaded', () => {
+        const empty = emptyBlock({ type: 'circuit' });
+        assignMissingExerciseIds([empty], null);
+        expect(empty.exercises.every((exercise) => exercise.exercise_id === null)).toBe(true);
     });
 });

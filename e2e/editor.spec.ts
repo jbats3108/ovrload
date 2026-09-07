@@ -81,6 +81,7 @@ test.describe('routine editor', () => {
         await page.setViewportSize({ width: 1280, height: 900 });
         await openBarbellEditor(page);
 
+        await expect(page.locator('[data-catalog-ready]')).toBeVisible();
         const addCircuitBtn = page.locator('[data-add-circuit-btn]');
         await expect(addCircuitBtn).toBeVisible();
         await addCircuitBtn.click();

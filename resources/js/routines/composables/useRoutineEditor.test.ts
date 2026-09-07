@@ -5,7 +5,7 @@ import { exerciseOption, routinePayload } from '@/test/factories';
 import { inertiaMocks } from '@/test/inertiaMocks';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent, h, nextTick } from 'vue';
+import { defineComponent, h, nextTick, reactive } from 'vue';
 
 const strengthProfile: ExerciseProfileOption = {
     id: 1,
@@ -611,6 +611,32 @@ describe('createRoutineEditor', () => {
 
         inertiaMocks().routerMocks.delete.mock.calls[0][1].onFinish();
         expect(editor.mutating.value).toBe(false);
+    });
+
+    it('fills null exercise ids when the deferred catalog arrives', async () => {
+        const editorProps = reactive({
+            routine: routinePayload({ blocks: [] }),
+            exercises: [] as ReturnType<typeof exerciseOption>[],
+            weight_unit: 'kg',
+            warm_up_defaults: [] as [],
+            warm_up_defaults_scope: 'all_blocks' as const,
+        });
+        let editor!: ReturnType<typeof createRoutineEditor>;
+        const Wrapper = defineComponent({
+            setup() {
+                editor = createRoutineEditor(editorProps);
+                return () => h('div');
+            },
+        });
+        mount(Wrapper);
+
+        editor.addBlock('circuit');
+        expect(editor.form.blocks[0].exercises.map((exercise) => exercise.exercise_id)).toEqual([null, null, null]);
+
+        editorProps.exercises = [exerciseOption({ id: 7, name: 'Press' })];
+        await nextTick();
+
+        expect(editor.form.blocks[0].exercises.map((exercise) => exercise.exercise_id)).toEqual([7, 7, 7]);
     });
 
     it('adds circuit block and supports station reordering and resizing', () => {

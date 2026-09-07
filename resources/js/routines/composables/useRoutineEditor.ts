@@ -1,5 +1,6 @@
 import {
     addCircuitExercise as addCircuitExerciseLib,
+    assignMissingExerciseIds,
     emptyBlock,
     moveCircuitExercise as moveCircuitExerciseLib,
     normalizeBlock,
@@ -533,6 +534,10 @@ export function createRoutineEditor(props: EditRoutineProps) {
             form.blocks.forEach(trimDropsetsToSetCount);
         },
     );
+
+    watch(catalog, (list) => {
+        assignMissingExerciseIds(form.blocks, list[0]?.id ?? null);
+    });
 
     const revealSaveErrors = (): void => {
         requestAnimationFrame(() => {

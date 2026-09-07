@@ -1,12 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-
-async function loginAsUser(page: Page): Promise<void> {
-    await page.goto('/login');
-    await page.getByLabel(/email address/i).fill('user1@test.com');
-    await page.getByLabel(/^password$/i).fill('password');
-    await page.getByRole('button', { name: /log in/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/);
-}
+import { createAndSaveCircuitRoutine, loginAsUser } from './support';
 
 async function clearInProgressWorkout(page: Page): Promise<void> {
     const abandon = page.getByRole('button', { name: 'Abandon' });
@@ -92,26 +85,8 @@ test.describe('workout player', () => {
     });
 
     test('plays circuit workout with station controls and skipping', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 900 });
-
         const routineName = `E2E Circuit ${Date.now()}`;
-
-        // Create a routine
-        await page.goto('/routines/create');
-        await expect(page).toHaveURL(/\/routines\/create/);
-        await page.getByLabel('Name').fill(routineName);
-        await page.getByRole('button', { name: 'Continue' }).click();
-
-        await expect(page).toHaveURL(/\/routines\/[a-z0-9-]+\/edit/);
-
-        const addCircuitBtn = page.locator('[data-add-circuit-btn]');
-        await expect(addCircuitBtn).toBeVisible();
-        await addCircuitBtn.click();
-
-        await expect(page.getByText('CCT')).toBeVisible();
-
-        await page.getByRole('button', { name: /save/i }).click();
-        await expect(page.getByText('Routine saved.')).toBeVisible({ timeout: 10_000 });
+        await createAndSaveCircuitRoutine(page, routineName);
 
         // Go to dashboard to start workout
         await page.goto('/dashboard');

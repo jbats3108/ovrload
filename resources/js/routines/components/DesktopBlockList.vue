@@ -20,6 +20,7 @@ import { reactive, ref } from 'vue';
 
 const {
     form,
+    catalog,
     active,
     activeExerciseIndex,
     selectBlockExercise,
@@ -650,7 +651,7 @@ const toggleDropsets = (blockIndex: number): void => {
             </table>
             <p v-if="!form.blocks.length" class="px-4 py-8 text-center text-muted-foreground">No exercises yet. Add one below.</p>
 
-            <footer class="flex gap-2 border-t border-border px-4 py-3">
+            <footer class="flex gap-2 border-t border-border px-4 py-3" :data-catalog-ready="catalog.length > 0 ? true : undefined">
                 <button type="button" class="rounded border border-border px-3 py-2 text-sm hover:border-primary" @click="addBlock('single')">
                     + Exercise
                 </button>
