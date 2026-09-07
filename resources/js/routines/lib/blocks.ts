@@ -219,3 +219,17 @@ export function swapSupersetExercises(block: Block): boolean {
 
     return true;
 }
+
+export function assignMissingExerciseIds(blocks: Block[], catalogId: number | null): void {
+    if (catalogId === null) {
+        return;
+    }
+
+    blocks.forEach((block) => {
+        block.exercises.forEach((exercise) => {
+            if (exercise.exercise_id === null) {
+                exercise.exercise_id = catalogId;
+            }
+        });
+    });
+}
