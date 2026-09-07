@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import PlateGuideCard from '@/workouts/components/PlateGuideCard.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
+import { computed } from 'vue';
 
-const { setupHint, setupSteps, workout, plateProfile, acknowledgeSetup, changeSetupPlate, applySetupNearestLoad } = useWorkoutPlayer();
+const { focus, setupHint, setupSteps, workout, plateProfile, acknowledgeSetup, changeSetupPlate, applySetupNearestLoad } = useWorkoutPlayer();
+
+const isCircuitSetup = computed(() => focus.value.kind === 'setup' && focus.value.phase === 'before_circuit');
 </script>
 
 <template>
@@ -10,8 +13,12 @@ const { setupHint, setupSteps, workout, plateProfile, acknowledgeSetup, changeSe
         <div class="mx-auto flex min-h-full w-full max-w-md flex-col">
             <div class="flex flex-1 flex-col items-center justify-center gap-6">
                 <div class="space-y-2">
-                    <p class="text-sm tracking-widest text-muted-foreground uppercase">Setup</p>
-                    <p class="text-2xl font-semibold">Change equipment, then continue</p>
+                    <p class="text-sm tracking-widest text-muted-foreground uppercase">
+                        {{ isCircuitSetup ? 'Circuit' : 'Setup' }}
+                    </p>
+                    <p class="text-2xl font-semibold">
+                        {{ isCircuitSetup ? 'Circuit preview' : 'Change equipment, then continue' }}
+                    </p>
                     <p class="text-lg font-medium text-foreground">{{ setupHint }}</p>
                 </div>
 
@@ -24,14 +31,24 @@ const { setupHint, setupSteps, workout, plateProfile, acknowledgeSetup, changeSe
                         <p class="text-sm text-muted-foreground">
                             {{ step.groupLabel }} · Set {{ step.setNumber }}/{{ step.setCount }}
                             <span v-if="step.isDropset"> · Dropset</span>
-                            <span v-if="setupSteps.length > 1"> · Superset</span>
+                            <span v-if="setupSteps.length > 2"> · Circuit</span>
+                            <span v-else-if="setupSteps.length === 2"> · Superset</span>
                         </p>
                         <p
-                            v-if="step.weightLabel != null || step.reps != null"
+                            v-if="step.weightLabel != null || step.reps != null || step.targetDurationSeconds != null"
                             class="font-mono text-2xl font-semibold tracking-tight text-foreground"
                         >
-                            <span v-if="step.weightLabel != null">{{ step.weightLabel }}{{ workout.weight_unit }}</span>
-                            <span v-if="step.reps != null"> × {{ step.reps }}</span>
+                            <span v-if="step.weightLabel != null && Number(step.weightLabel) > 0"
+                                >{{ step.weightLabel }}{{ workout.weight_unit }}</span
+                            >
+                            <span v-if="step.prescriptionMode === 'duration' && step.targetDurationSeconds != null">
+                                <span v-if="step.weightLabel != null && Number(step.weightLabel) > 0"> × </span>
+                                {{ step.targetDurationSeconds }}s
+                            </span>
+                            <span v-else-if="step.reps != null">
+                                <span v-if="step.weightLabel != null && Number(step.weightLabel) > 0"> × </span>
+                                {{ step.reps }} reps
+                            </span>
                         </p>
                         <PlateGuideCard
                             v-if="step.plateLoad && step.formatPlateStack"
@@ -51,7 +68,7 @@ const { setupHint, setupSteps, workout, plateProfile, acknowledgeSetup, changeSe
                 class="mt-6 w-full shrink-0 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground"
                 @click="acknowledgeSetup"
             >
-                Setup done
+                {{ isCircuitSetup ? 'Start circuit' : 'Setup done' }}
             </button>
         </div>
     </div>

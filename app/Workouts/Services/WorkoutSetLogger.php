@@ -17,13 +17,29 @@ final readonly class WorkoutSetLogger
      */
     public function applyLoggedValues(
         WorkoutSet $set,
-        int $reps,
+        ?int $reps = null,
         ?int $weightGrams = null,
         ?array $segmentWeightGrams = null,
         ?array $plateStack = null,
         ?CarbonInterface $completedAt = null,
         bool $deleteExistingSegments = true,
+        ?int $durationSeconds = null,
+        bool $isSkipped = false,
     ): void {
+        if ($isSkipped) {
+            $set->replaceSegments([], $deleteExistingSegments);
+            $set->reps = null;
+            $set->duration_seconds = null;
+            $set->weight_g = null;
+            $set->plate_stack = null;
+            $set->is_skipped = true;
+            $set->completed_at = Carbon::instance($completedAt ?? now());
+
+            return;
+        }
+
+        $set->is_skipped = false;
+
         $hasSegments = $segmentWeightGrams !== null && count($segmentWeightGrams) >= 2;
 
         if ($hasSegments) {
@@ -33,21 +49,25 @@ final readonly class WorkoutSetLogger
 
             $set->replaceSegments($segmentWeightGrams, $deleteExistingSegments);
             $set->reps = $reps;
+            $set->duration_seconds = null;
             $set->weight_g = null;
             $set->plate_stack = null;
         } else {
-            if ($weightGrams === null) {
+            if ($weightGrams === null && $set->isDropset()) {
                 throw new WorkoutServiceException(WorkoutService::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
             }
 
             $set->replaceSegments([], $deleteExistingSegments);
-            $set->reps = $reps;
-            $set->weight_g = $weightGrams;
+            $set->reps = $durationSeconds !== null ? null : $reps;
+            $set->duration_seconds = $durationSeconds;
+            $set->weight_g = $weightGrams ?? 0;
             $set->plate_stack = $plateStack;
         }
 
         if ($completedAt !== null) {
             $set->completed_at = Carbon::instance($completedAt);
+        } else {
+            $set->completed_at = now();
         }
     }
 }

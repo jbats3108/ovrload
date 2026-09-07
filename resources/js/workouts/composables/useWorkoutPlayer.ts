@@ -20,14 +20,17 @@ import {
     removeAdHocBlock as removeAdHocBlockMutation,
     removeWorkingSet as removeWorkingSetMutation,
     skipRestOfBlock as skipRestOfBlockMutation,
+    skipRound as skipRoundMutation,
 } from '@/workouts/lib/playerSessionMutations';
-import { buildCompleteSetPayload } from '@/workouts/lib/playerSetLog';
+import { buildCompleteSetPayload, type CompleteSetOptions } from '@/workouts/lib/playerSetLog';
 import { notifyRestCountdown, notifyRestEnded, shouldBeepRestCountdown } from '@/workouts/lib/restAlert';
 import { releaseScreenWake, requestScreenWake } from '@/workouts/lib/screenWake';
 import {
+    circuitRoundSets,
     defaultPromoteSegments,
     finishesWarmUpGroup,
     finishesWarmUpStep,
+    nextCircuitSet,
     nextDropSegmentWeight,
     nextSupersetSet,
     plannedSetCount,
@@ -101,9 +104,25 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
     const setForm = useForm({
         reps: 0,
+        duration_seconds: 0,
         weight_kg: 0,
         segments: [] as Array<{ weight_kg: number }>,
+        is_skipped: false,
     });
+
+    const timedSecondsLeft = ref(0);
+    const timedIsRunning = ref(false);
+    let timedTimer: ReturnType<typeof setInterval> | null = null;
+    let timedEndsAt = 0;
+
+    const stopTimedTimer = (): void => {
+        if (timedTimer) {
+            clearInterval(timedTimer);
+            timedTimer = null;
+        }
+        timedIsRunning.value = false;
+        timedEndsAt = 0;
+    };
 
     const stopRestTimer = (): void => {
         if (restTimer) {
@@ -260,7 +279,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (exercise.achievement_floor != null) {
             parts.push(`Floor ${exercise.achievement_floor}.`);
         }
-        if (props.workout.mode !== 'deload') {
+        if (props.workout.mode !== 'deload' && exercise.prescribed_reps != null) {
             parts.push(`Bump @ ${exercise.prescribed_reps}`);
         }
 
@@ -433,6 +452,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
 
     const syncDraftFromSet = (entry: FlatSetEntry) => {
         setForm.reps = entry.set.logged_reps ?? entry.set.target_reps ?? 0;
+        setForm.duration_seconds = entry.set.logged_duration_seconds ?? entry.set.target_duration_seconds ?? 0;
+        setForm.is_skipped = false;
         logPlateLoadDraft.value = null;
         if (entry.set.is_dropset) {
             draftSegments.value =
@@ -473,11 +494,15 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         current,
         (entry, previous) => {
             logSheetOpen.value = false;
+            stopTimedTimer();
             if (entry?.set.id !== previous?.set.id) {
                 syncStageWeightOverrideForSet(entry?.set.id ?? null);
             }
             if (!entry) {
                 return;
+            }
+            if (entry.set.prescription_mode === 'duration') {
+                timedSecondsLeft.value = entry.set.target_duration_seconds ?? 30;
             }
             syncDraftFromSet(entry);
         },
@@ -506,6 +531,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     onBeforeUnmount(() => {
         // Keep setup/rest client state for Dashboard → Resume; only tear down timers.
         stopRestTimer();
+        stopTimedTimer();
         persistClientState();
         removeBeforeListener?.();
         removeVisibilityListener?.();
@@ -624,10 +650,61 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         setForm.weight_kg = gramsToKg(normalized.total_g);
     };
 
-    const completeSet = () => {
-        if (!current.value || props.workout.status !== 'in_progress' || !logSheetOpen.value) {
+    const syncTimedFromClock = (): void => {
+        if (timedEndsAt <= 0) {
             return;
         }
+        const remaining = Math.ceil((timedEndsAt - Date.now()) / 1000);
+        if (remaining <= 0) {
+            stopTimedTimer();
+            timedSecondsLeft.value = 0;
+            notifyRestEnded();
+            const target = current.value?.set.target_duration_seconds ?? 30;
+            submitCompleteSet({ durationSeconds: target });
+            return;
+        }
+        timedSecondsLeft.value = remaining;
+    };
+
+    const startTimedCountdown = (): void => {
+        if (!current.value || current.value.set.prescription_mode !== 'duration') {
+            return;
+        }
+        stopTimedTimer();
+        const seconds = timedSecondsLeft.value > 0 ? timedSecondsLeft.value : (current.value.set.target_duration_seconds ?? 30);
+        timedSecondsLeft.value = seconds;
+        timedEndsAt = Date.now() + seconds * 1000;
+        timedIsRunning.value = true;
+        timedTimer = setInterval(syncTimedFromClock, 250);
+    };
+
+    const pauseTimedCountdown = (): void => {
+        if (timedEndsAt > 0) {
+            timedSecondsLeft.value = Math.max(0, Math.ceil((timedEndsAt - Date.now()) / 1000));
+        }
+        stopTimedTimer();
+    };
+
+    const resetTimedCountdown = (): void => {
+        stopTimedTimer();
+        timedSecondsLeft.value = current.value?.set.target_duration_seconds ?? 30;
+    };
+
+    const finishTimedEarly = (): void => {
+        if (!current.value) {
+            return;
+        }
+        pauseTimedCountdown();
+        const target = current.value.set.target_duration_seconds ?? 30;
+        const elapsed = Math.max(1, target - timedSecondsLeft.value);
+        submitCompleteSet({ durationSeconds: elapsed });
+    };
+
+    const submitCompleteSet = (options?: CompleteSetOptions) => {
+        if (!current.value || props.workout.status !== 'in_progress') {
+            return;
+        }
+        stopTimedTimer();
         preparePlayerInteraction();
         hapticConfirm();
         logSheetOpen.value = false;
@@ -647,15 +724,15 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                     ? normalizePlateLoadForOwnWeight(current.value, draftLoad)
                     : null
                 : null;
-        const payload = buildCompleteSetPayload(set, setForm.reps, setForm.weight_kg, draftSegments.value, finalPlateLoad);
-        const loggedReps = setForm.reps;
-        const loggedWeightKg = setForm.weight_kg;
+        const payload = buildCompleteSetPayload(set, setForm.reps, setForm.weight_kg, draftSegments.value, finalPlateLoad, options);
+        const loggedReps = options?.isSkipped ? null : setForm.reps;
+        const loggedWeightKg = options?.isSkipped ? null : setForm.weight_kg;
 
         pendingRestSeconds.value = restAfter;
 
         postCompleteSet(setForm, props.workout.id, set.id, payload, {
             onSuccess: () => {
-                if (!set.is_dropset && set.group_type === 'working' && typeof loggedWeightKg === 'number') {
+                if (!options?.isSkipped && !set.is_dropset && set.group_type === 'working' && typeof loggedWeightKg === 'number') {
                     lastWorkingWeightKg.value[set.workout_block_exercise_id] = loggedWeightKg;
                 }
                 if (finalPlateLoad) {
@@ -664,7 +741,13 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                 logPlateLoadDraft.value = null;
 
                 const afterLog = async (): Promise<void> => {
-                    if (!set.is_dropset && set.group_type === 'working' && typeof loggedReps === 'number' && typeof loggedWeightKg === 'number') {
+                    if (
+                        !options?.isSkipped &&
+                        !set.is_dropset &&
+                        set.group_type === 'working' &&
+                        typeof loggedReps === 'number' &&
+                        typeof loggedWeightKg === 'number'
+                    ) {
                         await applyMidBlockBumpAfterLog(block, set, loggedWeightKg, loggedReps, restAfter);
                     }
 
@@ -680,6 +763,60 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             },
             onError: () => {
                 pendingRestSeconds.value = 0;
+            },
+        });
+    };
+
+    const completeSet = () => {
+        if (!current.value || !logSheetOpen.value || props.workout.status !== 'in_progress') {
+            return;
+        }
+        if (current.value.set.prescription_mode === 'duration') {
+            submitCompleteSet({ durationSeconds: setForm.duration_seconds });
+        } else {
+            submitCompleteSet();
+        }
+    };
+
+    const skipExercise = (): void => {
+        if (!current.value || mutating.value || props.workout.status !== 'in_progress') {
+            return;
+        }
+        pauseTimedCountdown();
+        submitCompleteSet({ isSkipped: true });
+    };
+
+    const skipCurrentRound = async (): Promise<void> => {
+        const entry = current.value;
+        if (!entry || mutating.value || props.workout.status !== 'in_progress') {
+            return;
+        }
+
+        const ok = await confirmDialog({
+            title: `Skip round ${entry.set.set_index + 1}?`,
+            description: 'Remaining exercises in this round will be marked as skipped.',
+            confirmLabel: 'Skip round',
+        });
+        if (!ok || mutating.value) {
+            return;
+        }
+
+        pauseTimedCountdown();
+        const block = entry.block;
+        const roundIndex = entry.set.set_index;
+
+        const roundSets = circuitRoundSets(block, entry.set);
+        const lastSet = roundSets[roundSets.length - 1];
+        const roundRestSeconds = lastSet?.rest_seconds ?? 60;
+
+        skipRoundMutation(props.workout.id, block.id, roundIndex, {
+            mutating,
+            onSuccess: () => {
+                if (roundRestSeconds > 0) {
+                    startRest(roundRestSeconds);
+                } else {
+                    focus.value = firstIncomplete();
+                }
             },
         });
     };
@@ -703,7 +840,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             current.value.set.group_type === 'working' &&
             !current.value.set.completed &&
             !current.value.set.is_dropset &&
-            !current.value.block.is_superset,
+            !current.value.block.is_superset &&
+            current.value.block.type !== 'circuit',
     );
 
     const canDemoteFromDropset = computed(
@@ -813,6 +951,43 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         };
     });
 
+    const circuitNext = computed(() => {
+        if (!current.value || current.value.block.type !== 'circuit') {
+            return null;
+        }
+
+        const nextSet = nextCircuitSet(current.value.block, current.value.set);
+        if (!nextSet) {
+            return null;
+        }
+
+        const entry = { blockIndex: current.value.blockIndex, block: current.value.block, set: nextSet };
+        const weightKg = workingWeightForEntry(entry);
+        const targetParts: string[] = [];
+        if (weightKg > 0) {
+            targetParts.push(`${weightKg}${props.workout.weight_unit}`);
+        }
+        if (nextSet.prescription_mode === 'duration' && nextSet.target_duration_seconds != null) {
+            targetParts.push(`${nextSet.target_duration_seconds}s`);
+        } else if (nextSet.target_reps != null) {
+            targetParts.push(`× ${nextSet.target_reps}`);
+        }
+
+        return {
+            exerciseName: nextSet.exercise_name,
+            targetLabel: targetParts.length > 0 ? targetParts.join(' ') : null,
+            label:
+                targetParts.length > 0
+                    ? `Next in circuit: ${nextSet.exercise_name} (${targetParts.join(' ')})`
+                    : `Next in circuit: ${nextSet.exercise_name}`,
+        };
+    });
+
+    const isCircuitBlock = computed(() => current.value?.block.type === 'circuit');
+    const isTimedSet = computed(() => current.value?.set.prescription_mode === 'duration');
+    const canSkipExercise = computed(() => props.workout.status === 'in_progress' && isCircuitBlock.value && !current.value?.set.completed);
+    const canSkipRound = computed(() => props.workout.status === 'in_progress' && isCircuitBlock.value && !current.value?.set.completed);
+
     const previewForEntry = (entry: FlatSetEntry, letter: string | null = null) => {
         let weightKg: number | null = null;
         let weightLabel: string | null = null;
@@ -848,6 +1023,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             blockPosition: entry.block.position,
             weightLabel,
             reps: entry.set.target_reps,
+            prescriptionMode: entry.set.prescription_mode ?? 'reps',
+            targetDurationSeconds: entry.set.target_duration_seconds ?? null,
             isDropset: entry.set.is_dropset,
             plateStack,
             letter,
@@ -888,6 +1065,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         exerciseName: string;
         weightLabel: string | null;
         reps: number | null;
+        prescriptionMode: 'reps' | 'duration';
+        targetDurationSeconds: number | null;
         groupLabel: string;
         setNumber: number;
         setCount: number;
@@ -913,15 +1092,22 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
             }
         }
 
+        if (entry.block.type === 'circuit') {
+            const round = circuitRoundSets(entry.block, entry.set);
+            if (round.length > 0) {
+                return round.map((set) => ({ blockIndex: entry.blockIndex, block: entry.block, set }));
+            }
+        }
+
         return [entry];
     };
 
     const setupSteps = computed((): SetupStepView[] => {
         const entries = setupStepEntries();
-        const isPair = entries.length > 1;
+        const isMulti = entries.length > 1;
 
         return entries.map((stepEntry, index) => {
-            const letter = isPair ? String.fromCharCode(65 + index) : null;
+            const letter = isMulti ? String.fromCharCode(65 + index) : null;
             const preview = previewForEntry(stepEntry, letter);
             let weightKg: number | null = null;
             if (stepEntry.set.is_dropset) {
@@ -940,6 +1126,8 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
                 exerciseName: preview.exerciseName,
                 weightLabel: preview.weightLabel,
                 reps: preview.reps,
+                prescriptionMode: preview.prescriptionMode,
+                targetDurationSeconds: preview.targetDurationSeconds,
                 groupLabel: preview.groupLabel,
                 setNumber: preview.setNumber,
                 setCount: preview.setCount,
@@ -1071,11 +1259,23 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (!current.value || props.workout.status !== 'in_progress') {
             return false;
         }
-        if (current.value.set.group_type !== 'working' || current.value.set.completed) {
+        if (current.value.set.group_type !== 'working' || current.value.block.is_parked) {
             return false;
         }
         if (roundsInBlock.value <= 1) {
             return false;
+        }
+
+        const workingSets = current.value.block.sets.filter((s) => s.group_type === 'working');
+        const maxIndex = Math.max(...workingSets.map((s) => s.set_index));
+        const lastRound = workingSets.filter((s) => s.set_index === maxIndex);
+
+        if (!lastRound.every((s) => !s.completed)) {
+            return false;
+        }
+
+        if (current.value.block.type === 'circuit') {
+            return true;
         }
 
         const index = current.value.set.set_index;
@@ -1251,6 +1451,15 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         if (!current.value || !canRemoveWorkingSet.value) {
             return;
         }
+        if (current.value.block.type === 'circuit') {
+            const workingSets = current.value.block.sets.filter((s) => s.group_type === 'working');
+            const maxIndex = Math.max(...workingSets.map((s) => s.set_index));
+            const targetSet = workingSets.find((s) => s.set_index === maxIndex && !s.completed);
+            if (targetSet) {
+                removeWorkingSetMutation(props.workout.id, targetSet.id, { mutating });
+            }
+            return;
+        }
         removeWorkingSetMutation(props.workout.id, current.value.set.id, { mutating });
     };
 
@@ -1423,6 +1632,20 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         changeSetupPlate,
         applySetupNearestLoad,
         supersetNext,
+        circuitNext,
+        isCircuitBlock,
+        isTimedSet,
+        canSkipExercise,
+        canSkipRound,
+        timedSecondsLeft,
+        timedIsRunning,
+        startTimedCountdown,
+        pauseTimedCountdown,
+        resetTimedCountdown,
+        finishTimedEarly,
+        skipExercise,
+        skipCurrentRound,
+        submitCompleteSet,
         canPromoteToDropset,
         canDemoteFromDropset,
         canAddWorkingSet,

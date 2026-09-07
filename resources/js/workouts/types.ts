@@ -24,6 +24,10 @@ export type PlayerSet = {
     has_setup_after: boolean;
     is_dropset: boolean;
     segments: PlayerSetSegment[];
+    prescription_mode?: 'reps' | 'duration';
+    target_duration_seconds?: number | null;
+    logged_duration_seconds?: number | null;
+    is_skipped?: boolean;
 };
 
 export type PlayerBlockExercise = {
@@ -31,10 +35,12 @@ export type PlayerBlockExercise = {
     name: string;
     equipment?: string | null;
     working_weight_kg: number;
-    prescribed_reps: number;
+    prescribed_reps: number | null;
     achievement_floor: number | null;
     progression_target: number | null;
     position: number;
+    prescription_mode?: 'reps' | 'duration';
+    prescribed_duration_seconds?: number | null;
 };
 
 export type PlayerBlock = {
@@ -47,6 +53,8 @@ export type PlayerBlock = {
     has_setup_after_warm_up: boolean;
     exercises: PlayerBlockExercise[];
     sets: PlayerSet[];
+    type?: 'single' | 'superset' | 'circuit';
+    stage_rest_seconds?: number | null;
 };
 
 export type WorkoutPayload = {
@@ -60,7 +68,7 @@ export type WorkoutPayload = {
     blocks: PlayerBlock[];
 };
 
-export type SetupPhase = 'after_warm_up' | 'after_block' | 'after_warm_up_step';
+export type SetupPhase = 'after_warm_up' | 'after_block' | 'after_warm_up_step' | 'before_circuit';
 
 export type Focus =
     | { kind: 'set'; blockIndex: number; setId: number }

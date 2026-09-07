@@ -57,6 +57,7 @@ use App\Workouts\Http\Controllers\ShowProgressionController;
 use App\Workouts\Http\Controllers\ShowWorkoutHistoryController;
 use App\Workouts\Http\Controllers\SkipProgressionController;
 use App\Workouts\Http\Controllers\SkipRestOfBlockController;
+use App\Workouts\Http\Controllers\SkipRoundController;
 use App\Workouts\Http\Controllers\StoreHistoricalWorkoutController;
 use App\Workouts\Http\Controllers\StoreWorkoutController;
 use App\Workouts\Http\Controllers\UpdateWorkoutHistoryController;
@@ -201,6 +202,10 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/{workout}/blocks/{block}/skip-rest', SkipRestOfBlockController::class)
             ->can('update', 'workout')
             ->name('workouts.blocks.skip-rest');
+
+        Route::post('/{workout}/blocks/{block}/skip-round', SkipRoundController::class)
+            ->can('update', 'workout')
+            ->name('workouts.blocks.skip-round');
 
         Route::post('/{workout}/blocks/{block}/later', ParkBlockForLaterController::class)
             ->can('update', 'workout')

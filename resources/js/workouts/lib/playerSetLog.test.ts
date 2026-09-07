@@ -125,4 +125,22 @@ describe('buildCompleteSetPayload', () => {
             },
         });
     });
+
+    it('builds a skipped set payload', () => {
+        const payload = buildCompleteSetPayload(workingSet(), 6, 60, [], null, { isSkipped: true });
+        expect(payload).toEqual({
+            is_skipped: true,
+        });
+    });
+
+    it('builds a timed set payload with duration', () => {
+        const payload = buildCompleteSetPayload(workingSet({ prescription_mode: 'duration', target_duration_seconds: 45 }), null, 0, [], null, {
+            durationSeconds: 40,
+        });
+        expect(payload).toEqual({
+            duration_seconds: 40,
+            weight_kg: 0,
+            plate_stack: null,
+        });
+    });
 });

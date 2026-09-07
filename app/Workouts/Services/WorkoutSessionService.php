@@ -29,16 +29,31 @@ final readonly class WorkoutSessionService
      */
     public function completeSet(
         WorkoutSet $set,
-        int $reps,
+        ?int $reps = null,
         ?int $weightGrams = null,
         ?array $segmentWeightGrams = null,
         ?array $plateStack = null,
+        ?int $durationSeconds = null,
+        bool $isSkipped = false,
     ): WorkoutSet {
         $set->loadMissing(['setGroup.block.workout', 'segments']);
         $this->assertInProgress($set->setGroup->block->workout);
 
         if ($set->completed_at !== null) {
             throw new WorkoutServiceException(WorkoutService::SET_ALREADY_LOGGED_ERROR);
+        }
+
+        if ($isSkipped) {
+            return DB::transaction(function () use ($set): WorkoutSet {
+                $this->setLogger->applyLoggedValues(
+                    $set,
+                    completedAt: now(),
+                    isSkipped: true,
+                );
+                $set->save();
+
+                return $set->fresh(['segments']);
+            });
         }
 
         $isPlannedDropset = $set->isDropset();
@@ -62,16 +77,19 @@ final readonly class WorkoutSessionService
             });
         }
 
-        $this->setLogger->applyLoggedValues(
-            $set,
-            $reps,
-            weightGrams: $weightGrams,
-            plateStack: $plateStack,
-            completedAt: now(),
-        );
-        $set->save();
+        return DB::transaction(function () use ($set, $reps, $weightGrams, $plateStack, $durationSeconds): WorkoutSet {
+            $this->setLogger->applyLoggedValues(
+                $set,
+                $reps,
+                weightGrams: $weightGrams,
+                plateStack: $plateStack,
+                completedAt: now(),
+                durationSeconds: $durationSeconds,
+            );
+            $set->save();
 
-        return $set->fresh(['segments']);
+            return $set->fresh(['segments']);
+        });
     }
 
     /**
@@ -322,6 +340,41 @@ final readonly class WorkoutSessionService
 
             $group->set_count = max(1, $group->set_count - 1);
             $group->save();
+        });
+    }
+
+    /**
+     * Skip all incomplete exercises in a specific round of a block.
+     *
+     * @throws WorkoutServiceException
+     */
+    public function skipRound(WorkoutBlock $block, int $roundIndex): void
+    {
+        $block->loadMissing(['workout', 'workingSetGroup.sets']);
+        $this->assertInProgress($block->workout);
+
+        $workingGroup = $block->workingSetGroup;
+        if ($workingGroup === null) {
+            throw new WorkoutServiceException(WorkoutService::WORKING_SET_GROUP_MISSING_ERROR);
+        }
+
+        $roundSets = $workingGroup->sets
+            ->where('set_index', $roundIndex)
+            ->whereNull('completed_at');
+
+        if ($roundSets->isEmpty()) {
+            throw new WorkoutServiceException('No incomplete exercises left in this round to skip.');
+        }
+
+        DB::transaction(function () use ($roundSets): void {
+            foreach ($roundSets as $set) {
+                $this->setLogger->applyLoggedValues(
+                    $set,
+                    completedAt: now(),
+                    isSkipped: true,
+                );
+                $set->save();
+            }
         });
     }
 

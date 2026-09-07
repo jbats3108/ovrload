@@ -941,4 +941,235 @@ class WorkoutServiceTest extends TestCase
         $this->assertSame(40, $exercises[1]->prescribed_duration_seconds);
         $this->assertNull($exercises[1]->prescribed_reps);
     }
+
+    #[Test]
+    public function it_completes_a_timed_circuit_exercise_with_duration_seconds(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'is_superset' => false,
+            'stage_rest_seconds' => 15,
+        ]);
+        $exercise = RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 45,
+            'working_weight_g' => 0,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 2,
+            'prescription_mode' => PrescriptionMode::Reps,
+            'prescribed_reps' => 10,
+            'working_weight_g' => 20000,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 3,
+            'prescription_mode' => PrescriptionMode::Reps,
+            'prescribed_reps' => 10,
+            'working_weight_g' => 20000,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $set = $workout->blocks->first()->workingSetGroup->sets->first();
+
+        $completedSet = $this->workoutService->completeSet(
+            $set,
+            durationSeconds: 38,
+            weightGrams: 0,
+        );
+
+        $this->assertNotNull($completedSet->completed_at);
+        $this->assertSame(38, $completedSet->duration_seconds);
+        $this->assertNull($completedSet->reps);
+        $this->assertFalse($completedSet->is_skipped);
+    }
+
+    #[Test]
+    public function it_skips_a_single_exercise_in_a_circuit(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'is_superset' => false,
+            'stage_rest_seconds' => 15,
+        ]);
+        for ($i = 1; $i <= 3; $i++) {
+            RoutineBlockExercise::create([
+                'routine_block_id' => $block->id,
+                'exercise_id' => Exercise::factory()->create()->id,
+                'position' => $i,
+                'prescription_mode' => PrescriptionMode::Reps,
+                'prescribed_reps' => 10,
+                'working_weight_g' => 10000,
+            ]);
+        }
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $set = $workout->blocks->first()->workingSetGroup->sets->first();
+
+        $skippedSet = $this->workoutService->completeSet(
+            $set,
+            isSkipped: true,
+        );
+
+        $this->assertNotNull($skippedSet->completed_at);
+        $this->assertTrue($skippedSet->is_skipped);
+        $this->assertNull($skippedSet->reps);
+        $this->assertNull($skippedSet->duration_seconds);
+    }
+
+    #[Test]
+    public function it_skips_all_incomplete_exercises_in_a_circuit_round(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'is_superset' => false,
+            'stage_rest_seconds' => 15,
+        ]);
+        for ($i = 1; $i <= 3; $i++) {
+            RoutineBlockExercise::create([
+                'routine_block_id' => $block->id,
+                'exercise_id' => Exercise::factory()->create()->id,
+                'position' => $i,
+                'prescription_mode' => PrescriptionMode::Reps,
+                'prescribed_reps' => 10,
+                'working_weight_g' => 10000,
+            ]);
+        }
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $workoutBlock = $workout->blocks->first();
+        $setsRound0 = $workoutBlock->workingSetGroup->sets->where('set_index', 0)->values();
+
+        // Complete exercise 1 in round 0 normally
+        $this->workoutService->completeSet($setsRound0[0], reps: 10, weightGrams: 10000);
+
+        // Skip round 0 (exercises 2 and 3)
+        $this->workoutService->skipRound($workoutBlock, 0);
+
+        $setsRound0 = $workoutBlock->fresh()->workingSetGroup->sets->where('set_index', 0)->values();
+        $this->assertFalse($setsRound0[0]->is_skipped);
+        $this->assertTrue($setsRound0[1]->is_skipped);
+        $this->assertNotNull($setsRound0[1]->completed_at);
+        $this->assertTrue($setsRound0[2]->is_skipped);
+        $this->assertNotNull($setsRound0[2]->completed_at);
+
+        // Round 1 sets remain uncompleted
+        $setsRound1 = $workoutBlock->fresh()->workingSetGroup->sets->where('set_index', 1)->values();
+        $this->assertNull($setsRound1[0]->completed_at);
+        $this->assertFalse($setsRound1[0]->is_skipped);
+    }
+
+    #[Test]
+    public function it_rejects_dropping_a_started_circuit_round(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'is_superset' => false,
+            'stage_rest_seconds' => 15,
+        ]);
+        for ($i = 1; $i <= 3; $i++) {
+            RoutineBlockExercise::create([
+                'routine_block_id' => $block->id,
+                'exercise_id' => Exercise::factory()->create()->id,
+                'position' => $i,
+                'prescription_mode' => PrescriptionMode::Reps,
+                'prescribed_reps' => 10,
+                'working_weight_g' => 10000,
+            ]);
+        }
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $workoutBlock = $workout->blocks->first();
+        $setsRound0 = $workoutBlock->workingSetGroup->sets->where('set_index', 0)->values();
+
+        // Complete 1 exercise in round 0
+        $this->workoutService->completeSet($setsRound0[0], reps: 10, weightGrams: 10000);
+
+        // Attempting to remove round 0 must fail
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::SET_ALREADY_COMPLETED_ERROR);
+
+        $this->workoutService->removeWorkingSetRound($setsRound0[1]);
+    }
+
+    #[Test]
+    public function it_allows_dropping_an_unstarted_circuit_round(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'is_superset' => false,
+            'stage_rest_seconds' => 15,
+        ]);
+        for ($i = 1; $i <= 3; $i++) {
+            RoutineBlockExercise::create([
+                'routine_block_id' => $block->id,
+                'exercise_id' => Exercise::factory()->create()->id,
+                'position' => $i,
+                'prescription_mode' => PrescriptionMode::Reps,
+                'prescribed_reps' => 10,
+                'working_weight_g' => 10000,
+            ]);
+        }
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 3,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $workoutBlock = $workout->blocks->first();
+        $setsRound2 = $workoutBlock->workingSetGroup->sets->where('set_index', 2)->values();
+
+        $this->workoutService->removeWorkingSetRound($setsRound2[0]);
+
+        $freshWorkingGroup = $workoutBlock->fresh()->workingSetGroup;
+        $this->assertSame(2, $freshWorkingGroup->set_count);
+        $this->assertCount(6, $freshWorkingGroup->sets);
+    }
 }

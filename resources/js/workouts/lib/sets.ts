@@ -21,7 +21,14 @@ export function workingWeightForSet(entry: FlatSetEntry): number {
     return exercise?.working_weight_kg ?? entry.set.target_weight_kg ?? 0;
 }
 
+export function isCircuit(block: PlayerBlock): boolean {
+    return block.type === 'circuit';
+}
+
 export function shouldRestAfter(block: PlayerBlock, set: PlayerSet): boolean {
+    if (block.type === 'circuit') {
+        return true;
+    }
     if (!block.is_superset) {
         return true;
     }
@@ -42,6 +49,40 @@ export function supersetRoundSets(block: PlayerBlock, set: PlayerSet): PlayerSet
     return block.sets
         .filter((candidate) => candidate.group_type === set.group_type && candidate.set_index === set.set_index)
         .sort((a, b) => exercisePositionInBlock(block, a.workout_block_exercise_id) - exercisePositionInBlock(block, b.workout_block_exercise_id));
+}
+
+/** Sets in the same circuit round, ordered by exercise position. */
+export function circuitRoundSets(block: PlayerBlock, set: PlayerSet): PlayerSet[] {
+    if (block.type !== 'circuit') {
+        return [set];
+    }
+
+    return block.sets
+        .filter((candidate) => candidate.group_type === set.group_type && candidate.set_index === set.set_index)
+        .sort((a, b) => exercisePositionInBlock(block, a.workout_block_exercise_id) - exercisePositionInBlock(block, b.workout_block_exercise_id));
+}
+
+/** Next exercise still to play in this circuit round, or null on the last exercise. */
+export function nextCircuitSet(block: PlayerBlock, set: PlayerSet): PlayerSet | null {
+    if (block.type !== 'circuit') {
+        return null;
+    }
+
+    const round = circuitRoundSets(block, set);
+    const index = round.findIndex((candidate) => candidate.id === set.id);
+    if (index < 0 || index >= round.length - 1) {
+        return null;
+    }
+
+    return round[index + 1] ?? null;
+}
+
+export function isLastInCircuitRound(block: PlayerBlock, set: PlayerSet): boolean {
+    if (block.type !== 'circuit') {
+        return false;
+    }
+    const round = circuitRoundSets(block, set);
+    return round.length > 0 && round[round.length - 1]?.id === set.id;
 }
 
 /** Next exercise still to play in this superset round (A → B), or null on the last of the pair. */

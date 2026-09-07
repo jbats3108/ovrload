@@ -3,6 +3,7 @@
 namespace App\Workouts\Data\Player;
 
 use App\Exercises\Enums\ExerciseEquipment;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Enums\WarmUpWeightMode;
 use App\Shared\Support\WarmUpStepSupport;
@@ -40,6 +41,10 @@ class WorkoutPlayerSetData extends Data
         public readonly bool $isDropset,
         #[DataCollectionOf(WorkoutPlayerSetSegmentData::class)]
         public readonly DataCollection $segments,
+        public readonly string $prescriptionMode = 'reps',
+        public readonly ?int $targetDurationSeconds = null,
+        public readonly ?int $loggedDurationSeconds = null,
+        public readonly bool $isSkipped = false,
     ) {}
 
     public static function fromSet(
@@ -47,11 +52,13 @@ class WorkoutPlayerSetData extends Data
         string $exerciseName,
         ?ExerciseEquipment $equipment,
         int $workingWeightG,
-        int $prescribedReps,
+        ?int $prescribedReps,
         SetGroupType $groupType,
         int $restSeconds,
         ?WorkoutWarmUpStep $warmUpStep = null,
         ?int $defaultBarWeightG = null,
+        PrescriptionMode $prescriptionMode = PrescriptionMode::Reps,
+        ?int $prescribedDurationSeconds = null,
     ): self {
         $set->loadMissing('segments');
 
@@ -102,6 +109,10 @@ class WorkoutPlayerSetData extends Data
                 && (bool) $warmUpStep->has_setup_after,
             isDropset: $isDropset,
             segments: WorkoutPlayerSetSegmentData::collect($segments, DataCollection::class),
+            prescriptionMode: $prescriptionMode->value,
+            targetDurationSeconds: $groupType === SetGroupType::WarmUp ? null : $prescribedDurationSeconds,
+            loggedDurationSeconds: $set->duration_seconds,
+            isSkipped: (bool) $set->is_skipped,
         );
     }
 }
