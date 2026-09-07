@@ -8,8 +8,11 @@ export type DraftSet = {
     set_index: number;
     is_dropset: boolean;
     weight_kg: number | null;
-    reps: number;
+    reps: number | null;
     segments: { weight_kg: number }[];
+    prescription_mode?: 'reps' | 'duration';
+    duration_seconds?: number | null;
+    is_skipped?: boolean;
 };
 
 export type DraftWarmUpSet = {
@@ -27,6 +30,7 @@ export type DraftWarmUpSet = {
 export type DraftBlock = {
     position: number;
     is_superset: boolean;
+    type?: 'single' | 'superset' | 'circuit';
     exercise_names: string[];
     working_set_count: number;
     sets: DraftSet[];
@@ -37,7 +41,10 @@ function scaleWeight(kg: number, factor: number): number {
     return Math.round(kg * factor * 1000) / 1000;
 }
 
-function scaleReps(reps: number, factor: number): number {
+function scaleReps(reps: number | null | undefined, factor: number): number | null {
+    if (reps == null) {
+        return null;
+    }
     return Math.max(1, Math.round(reps * factor));
 }
 
@@ -132,13 +139,14 @@ export function buildDraftBlocks(
         const draft: DraftBlock = {
             position: block.position,
             is_superset: block.is_superset,
+            type: block.type ?? (block.is_superset ? 'superset' : 'single'),
             exercise_names: block.exercises.map((exercise) => (deload && exercise.deload_name ? exercise.deload_name : exercise.name)),
             working_set_count: block.working_set_count,
             sets,
             warm_ups: [],
         };
 
-        if (!deload) {
+        if (!deload && block.type !== 'circuit') {
             draft.warm_ups = (block.warm_ups ?? []).map((recipe) => {
                 const exercise = block.exercises.find((row) => row.position === recipe.exercise_position);
 
@@ -162,6 +170,9 @@ function scaleSet(set: HistoricalCreateSet, block: HistoricalCreateBlock, deload
             weight_kg: exercise.deload_working_weight_kg,
             reps: scaleReps(set.reps, repsFactor),
             segments: [],
+            prescription_mode: set.prescription_mode ?? 'reps',
+            duration_seconds: set.duration_seconds ?? null,
+            is_skipped: Boolean(set.is_skipped),
         };
     }
 
@@ -175,6 +186,9 @@ function scaleSet(set: HistoricalCreateSet, block: HistoricalCreateBlock, deload
         segments: set.segments.map((segment) => ({
             weight_kg: scaleWeight(segment.weight_kg, weightFactor),
         })),
+        prescription_mode: set.prescription_mode ?? 'reps',
+        duration_seconds: set.duration_seconds ?? null,
+        is_skipped: Boolean(set.is_skipped),
     };
 }
 
@@ -188,6 +202,7 @@ export function addWorkingRound(block: DraftBlock): void {
             ...set,
             set_index: nextIndex,
             segments: set.segments.map((segment) => ({ ...segment })),
+            is_skipped: false,
         });
     }
 
@@ -209,6 +224,10 @@ export function removeWorkingRound(block: DraftBlock): boolean {
 export function blockTitle(block: DraftBlock): string {
     if (block.exercise_names.length === 0) {
         return 'Exercise';
+    }
+
+    if (block.type === 'circuit') {
+        return block.exercise_names.join(' · ');
     }
 
     if (block.is_superset || block.exercise_names.length > 1) {

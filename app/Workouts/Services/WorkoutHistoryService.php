@@ -82,20 +82,33 @@ final readonly class WorkoutHistoryService
             throw new WorkoutServiceException(self::WARM_UP_SETS_READ_ONLY_ERROR);
         }
 
-        if ($data->segments !== null) {
+        if ($data->isSkipped) {
             $this->setLogger->applyLoggedValues(
                 $set,
-                $data->reps,
+                reps: null,
+                durationSeconds: null,
+                isSkipped: true,
+            );
+        } elseif ($data->segments !== null) {
+            $this->setLogger->applyLoggedValues(
+                $set,
+                reps: $data->reps,
                 segmentWeightGrams: $data->segmentWeightGrams(),
+                durationSeconds: $data->durationSeconds,
+                isSkipped: false,
             );
         } elseif ($set->isDropset()) {
             $set->reps = $data->reps;
+            $set->duration_seconds = $data->durationSeconds;
+            $set->is_skipped = false;
         } else {
             $this->setLogger->applyLoggedValues(
                 $set,
-                $data->reps,
-                weightGrams: $data->weightGrams(),
+                reps: $data->reps,
+                weightGrams: $data->weightGrams() ?? 0,
                 plateStack: null,
+                durationSeconds: $data->durationSeconds,
+                isSkipped: false,
             );
         }
 

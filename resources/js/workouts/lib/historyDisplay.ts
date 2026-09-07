@@ -17,6 +17,10 @@ export function historyBlockTitle(block: PlayerBlock): string {
         return `Exercise ${block.position}`;
     }
 
+    if (block.type === 'circuit') {
+        return names.join(' · ');
+    }
+
     if (block.is_superset && names.length >= 2) {
         return `${names[0]} / ${names[1]}`;
     }
@@ -88,4 +92,102 @@ export function historyRowsForBlock(sets: PlayerSet[]): HistoryBlockRow[] {
     }
 
     return rows;
+}
+
+/** Format a single circuit set result for summary display. */
+export function formatSetSummary(set: PlayerSet): string {
+    if (set.is_skipped) {
+        return 'Skipped';
+    }
+
+    const weightKg = set.logged_weight_kg ?? set.target_weight_kg;
+    const weightText = weightKg != null && weightKg > 0 ? ` @ ${formatKg(weightKg)}kg` : '';
+
+    if (set.prescription_mode === 'duration') {
+        if (
+            set.logged_duration_seconds != null &&
+            set.target_duration_seconds != null &&
+            set.logged_duration_seconds !== set.target_duration_seconds
+        ) {
+            return `${set.target_duration_seconds}s target · ${set.logged_duration_seconds}s${weightText}`;
+        }
+
+        const duration = set.logged_duration_seconds ?? set.target_duration_seconds ?? 0;
+        return `${duration}s${weightText}`;
+    }
+
+    const reps = set.logged_reps ?? set.target_reps ?? 0;
+    return `${reps} reps${weightText}`;
+}
+
+export function areSetsIdentical(sets: PlayerSet[]): boolean {
+    if (sets.length <= 1) {
+        return true;
+    }
+
+    const first = sets[0];
+    const firstSkipped = Boolean(first.is_skipped);
+    const firstReps = first.logged_reps ?? first.target_reps;
+    const firstDuration = first.logged_duration_seconds ?? first.target_duration_seconds;
+    const firstWeight = first.logged_weight_kg ?? first.target_weight_kg;
+
+    for (let i = 1; i < sets.length; i++) {
+        const current = sets[i];
+        if (Boolean(current.is_skipped) !== firstSkipped) {
+            return false;
+        }
+        if ((current.logged_reps ?? current.target_reps) !== firstReps) {
+            return false;
+        }
+        if ((current.logged_duration_seconds ?? current.target_duration_seconds) !== firstDuration) {
+            return false;
+        }
+        if ((current.logged_weight_kg ?? current.target_weight_kg) !== firstWeight) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+export type CircuitExerciseSummary = {
+    exerciseId: number;
+    exerciseName: string;
+    prescriptionMode: 'reps' | 'duration';
+    isIdentical: boolean;
+    summaryText: string;
+    sets: PlayerSet[];
+};
+
+export function circuitExerciseSummaries(sets: PlayerSet[]): CircuitExerciseSummary[] {
+    const working = sets.filter((set) => set.group_type === 'working');
+    const groups = new Map<number, PlayerSet[]>();
+
+    for (const set of working) {
+        const existing = groups.get(set.workout_block_exercise_id);
+        if (existing) {
+            existing.push(set);
+            continue;
+        }
+        groups.set(set.workout_block_exercise_id, [set]);
+    }
+
+    const summaries: CircuitExerciseSummary[] = [];
+
+    for (const [exerciseId, groupSets] of groups) {
+        const sorted = [...groupSets].sort((a, b) => a.set_index - b.set_index);
+        const identical = areSetsIdentical(sorted);
+        const summaryText = identical ? `${formatSetSummary(sorted[0])} · ×${sorted.length} rounds` : `${sorted.length} rounds (varied)`;
+
+        summaries.push({
+            exerciseId,
+            exerciseName: sorted[0].exercise_name,
+            prescriptionMode: sorted[0].prescription_mode ?? 'reps',
+            isIdentical: identical,
+            summaryText,
+            sets: sorted,
+        });
+    }
+
+    return summaries;
 }

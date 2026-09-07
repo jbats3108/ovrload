@@ -1,4 +1,12 @@
-import { formatKg, historyBlockTitle, historyRowsForBlock, historyWarmUpGroups } from '@/workouts/lib/historyDisplay';
+import {
+    areSetsIdentical,
+    circuitExerciseSummaries,
+    formatKg,
+    formatSetSummary,
+    historyBlockTitle,
+    historyRowsForBlock,
+    historyWarmUpGroups,
+} from '@/workouts/lib/historyDisplay';
 import type { PlayerBlock, PlayerSet } from '@/workouts/types';
 import { describe, expect, it } from 'vitest';
 
@@ -65,6 +73,43 @@ describe('historyBlockTitle', () => {
         } satisfies PlayerBlock;
 
         expect(historyBlockTitle(block)).toBe('Press / Row');
+    });
+
+    it('joins circuit exercises with a middle dot', () => {
+        const block = {
+            id: 3,
+            position: 1,
+            type: 'circuit',
+            is_superset: false,
+            is_ad_hoc: false,
+            is_parked: false,
+            has_setup_after: false,
+            has_setup_after_warm_up: false,
+            exercises: [
+                {
+                    id: 10,
+                    name: 'Push-up',
+                    working_weight_kg: 0,
+                    prescribed_reps: 15,
+                    achievement_floor: null,
+                    progression_target: null,
+                    position: 0,
+                },
+                {
+                    id: 11,
+                    name: 'Plank',
+                    working_weight_kg: 0,
+                    prescribed_reps: null,
+                    achievement_floor: null,
+                    progression_target: null,
+                    position: 1,
+                },
+                { id: 12, name: 'Squat', working_weight_kg: 20, prescribed_reps: 12, achievement_floor: null, progression_target: null, position: 2 },
+            ],
+            sets: [],
+        } satisfies PlayerBlock;
+
+        expect(historyBlockTitle(block)).toBe('Push-up · Plank · Squat');
     });
 });
 
@@ -187,5 +232,112 @@ describe('historyRowsForBlock', () => {
                 sets: [expect.objectContaining({ id: 2 }), expect.objectContaining({ id: 4 })],
             }),
         ]);
+    });
+});
+
+describe('formatSetSummary', () => {
+    it('formats skipped set', () => {
+        expect(formatSetSummary(set({ id: 1, group_type: 'working', is_skipped: true }))).toBe('Skipped');
+    });
+
+    it('formats rep-based set with and without weight', () => {
+        expect(formatSetSummary(set({ id: 1, group_type: 'working', logged_reps: 10, logged_weight_kg: 25 }))).toBe('10 reps @ 25kg');
+        expect(formatSetSummary(set({ id: 1, group_type: 'working', logged_reps: 15, logged_weight_kg: 0 }))).toBe('15 reps');
+    });
+
+    it('formats duration set with and without target divergence', () => {
+        expect(
+            formatSetSummary(
+                set({
+                    id: 1,
+                    group_type: 'working',
+                    prescription_mode: 'duration',
+                    target_duration_seconds: 30,
+                    logged_duration_seconds: 30,
+                    logged_weight_kg: 0,
+                }),
+            ),
+        ).toBe('30s');
+
+        expect(
+            formatSetSummary(
+                set({
+                    id: 1,
+                    group_type: 'working',
+                    prescription_mode: 'duration',
+                    target_duration_seconds: 30,
+                    logged_duration_seconds: 25,
+                    logged_weight_kg: 10,
+                }),
+            ),
+        ).toBe('30s target · 25s @ 10kg');
+    });
+});
+
+describe('areSetsIdentical and circuitExerciseSummaries', () => {
+    it('detects identical rounds and formats xN summary', () => {
+        const sets = [
+            set({
+                id: 1,
+                group_type: 'working',
+                workout_block_exercise_id: 10,
+                exercise_name: 'Push-up',
+                set_index: 0,
+                logged_reps: 12,
+                logged_weight_kg: 0,
+            }),
+            set({
+                id: 2,
+                group_type: 'working',
+                workout_block_exercise_id: 10,
+                exercise_name: 'Push-up',
+                set_index: 1,
+                logged_reps: 12,
+                logged_weight_kg: 0,
+            }),
+            set({
+                id: 3,
+                group_type: 'working',
+                workout_block_exercise_id: 10,
+                exercise_name: 'Push-up',
+                set_index: 2,
+                logged_reps: 12,
+                logged_weight_kg: 0,
+            }),
+        ];
+
+        expect(areSetsIdentical(sets)).toBe(true);
+        const summaries = circuitExerciseSummaries(sets);
+        expect(summaries).toHaveLength(1);
+        expect(summaries[0].isIdentical).toBe(true);
+        expect(summaries[0].summaryText).toBe('12 reps · ×3 rounds');
+    });
+
+    it('detects varied rounds and flags non-identical', () => {
+        const sets = [
+            set({
+                id: 1,
+                group_type: 'working',
+                workout_block_exercise_id: 10,
+                exercise_name: 'Push-up',
+                set_index: 0,
+                logged_reps: 12,
+                logged_weight_kg: 0,
+            }),
+            set({
+                id: 2,
+                group_type: 'working',
+                workout_block_exercise_id: 10,
+                exercise_name: 'Push-up',
+                set_index: 1,
+                logged_reps: 10,
+                logged_weight_kg: 0,
+            }),
+        ];
+
+        expect(areSetsIdentical(sets)).toBe(false);
+        const summaries = circuitExerciseSummaries(sets);
+        expect(summaries[0].isIdentical).toBe(false);
+        expect(summaries[0].summaryText).toBe('2 rounds (varied)');
     });
 });

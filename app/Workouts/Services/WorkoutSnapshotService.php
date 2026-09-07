@@ -313,6 +313,20 @@ final readonly class WorkoutSnapshotService
         StoreHistoricalSetData $data,
         CarbonInterface $finishedAt,
     ): void {
+        if ($data->isSkipped) {
+            $this->setLogger->applyLoggedValues(
+                $set,
+                reps: null,
+                durationSeconds: null,
+                isSkipped: true,
+                completedAt: $finishedAt,
+                deleteExistingSegments: false,
+            );
+            $set->save();
+
+            return;
+        }
+
         $segmentWeightGrams = $data->segmentWeightGrams();
         $hasSegments = $segmentWeightGrams !== null && count($segmentWeightGrams) >= 2;
         $isPlannedDropset = $set->isDropset();
@@ -328,28 +342,28 @@ final readonly class WorkoutSnapshotService
 
             $this->setLogger->applyLoggedValues(
                 $set,
-                $data->reps,
+                reps: $data->reps,
                 segmentWeightGrams: $segmentWeightGrams,
                 completedAt: $finishedAt,
                 deleteExistingSegments: false,
+                durationSeconds: $data->durationSeconds,
+                isSkipped: $data->isSkipped,
             );
             $set->save();
 
             return;
         }
 
-        $weightGrams = $data->weightGrams();
-
-        if ($weightGrams === null) {
-            throw new WorkoutServiceException(WorkoutService::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
-        }
+        $weightGrams = $data->weightGrams() ?? 0;
 
         $this->setLogger->applyLoggedValues(
             $set,
-            $data->reps,
+            reps: $data->reps,
             weightGrams: $weightGrams,
             completedAt: $finishedAt,
             deleteExistingSegments: false,
+            durationSeconds: $data->durationSeconds,
+            isSkipped: $data->isSkipped,
         );
         $set->save();
     }

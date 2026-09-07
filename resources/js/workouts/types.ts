@@ -108,8 +108,11 @@ export type HistoricalCreateSet = {
     set_index: number;
     is_dropset: boolean;
     weight_kg: number | null;
-    reps: number;
+    reps: number | null;
     segments: HistoricalCreateSegment[];
+    prescription_mode?: 'reps' | 'duration';
+    duration_seconds?: number | null;
+    is_skipped?: boolean;
 };
 
 export type HistoricalCreateWarmUp = {
@@ -127,15 +130,18 @@ export type HistoricalCreateExercise = {
     name: string;
     equipment: string | null;
     working_weight_kg: number;
-    prescribed_reps: number;
+    prescribed_reps: number | null;
     deload_name: string | null;
     deload_equipment: string | null;
     deload_working_weight_kg: number | null;
+    prescription_mode?: 'reps' | 'duration';
+    prescribed_duration_seconds?: number | null;
 };
 
 export type HistoricalCreateBlock = {
     position: number;
     is_superset: boolean;
+    type?: 'single' | 'superset' | 'circuit';
     exercises: HistoricalCreateExercise[];
     working_set_count: number;
     working_sets: HistoricalCreateSet[];

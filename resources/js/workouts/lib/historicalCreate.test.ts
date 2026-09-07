@@ -3,6 +3,7 @@ import type { HistoricalCreateBlock, HistoricalCreateSet } from '@/workouts/type
 import { describe, expect, it } from 'vitest';
 import {
     addWorkingRound,
+    blockTitle,
     buildDraftBlocks,
     datetimeLocalToPayload,
     isFinishedAtInFuture,
@@ -211,5 +212,100 @@ describe('historicalCreate', () => {
         expect(isFinishedAtInFuture('2099-01-01T12:00')).toBe(true);
         expect(isFinishedAtInFuture('2020-01-01T12:00')).toBe(false);
         expect(isFinishedAtInFuture('')).toBe(false);
+    });
+
+    it('builds circuit draft blocks with duration, skipped flags and middle dot title', () => {
+        const circuitBlocks: HistoricalCreateBlock[] = [
+            {
+                position: 1,
+                is_superset: false,
+                type: 'circuit',
+                exercises: [
+                    {
+                        position: 1,
+                        name: 'Push-up',
+                        equipment: 'bodyweight',
+                        working_weight_kg: 0,
+                        prescribed_reps: 12,
+                        deload_name: null,
+                        deload_equipment: null,
+                        deload_working_weight_kg: null,
+                        prescription_mode: 'reps',
+                    },
+                    {
+                        position: 2,
+                        name: 'Plank',
+                        equipment: 'bodyweight',
+                        working_weight_kg: 0,
+                        prescribed_reps: null,
+                        deload_name: null,
+                        deload_equipment: null,
+                        deload_working_weight_kg: null,
+                        prescription_mode: 'duration',
+                        prescribed_duration_seconds: 45,
+                    },
+                    {
+                        position: 3,
+                        name: 'Squat',
+                        equipment: 'barbell',
+                        working_weight_kg: 40,
+                        prescribed_reps: 10,
+                        deload_name: null,
+                        deload_equipment: null,
+                        deload_working_weight_kg: null,
+                        prescription_mode: 'reps',
+                    },
+                ],
+                working_set_count: 1,
+                working_sets: [
+                    {
+                        exercise_position: 1,
+                        exercise_name: 'Push-up',
+                        set_index: 0,
+                        is_dropset: false,
+                        weight_kg: 0,
+                        reps: 12,
+                        segments: [],
+                        prescription_mode: 'reps',
+                    },
+                    {
+                        exercise_position: 2,
+                        exercise_name: 'Plank',
+                        set_index: 0,
+                        is_dropset: false,
+                        weight_kg: 0,
+                        reps: null,
+                        segments: [],
+                        prescription_mode: 'duration',
+                        duration_seconds: 45,
+                    },
+                    {
+                        exercise_position: 3,
+                        exercise_name: 'Squat',
+                        set_index: 0,
+                        is_dropset: false,
+                        weight_kg: 40,
+                        reps: 10,
+                        segments: [],
+                        prescription_mode: 'reps',
+                        is_skipped: true,
+                    },
+                ],
+                warm_ups: [],
+            },
+        ];
+
+        const [draft] = buildDraftBlocks(circuitBlocks, false, 1, 1);
+        expect(draft).toBeDefined();
+        expect(draft!.type).toBe('circuit');
+        expect(blockTitle(draft!)).toBe('Push-up · Plank · Squat');
+        expect(draft!.sets[1]?.prescription_mode).toBe('duration');
+        expect(draft!.sets[1]?.duration_seconds).toBe(45);
+        expect(draft!.sets[2]?.is_skipped).toBe(true);
+
+        addWorkingRound(draft!);
+        expect(draft!.working_set_count).toBe(2);
+        expect(draft!.sets).toHaveLength(6);
+        expect(draft!.sets[5]?.is_skipped).toBe(false);
     });
 });

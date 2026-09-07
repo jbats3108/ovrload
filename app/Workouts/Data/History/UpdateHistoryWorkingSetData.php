@@ -9,7 +9,6 @@ use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Attributes\Validation\Nullable;
-use Spatie\LaravelData\Attributes\Validation\RequiredWithout;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\DataCollection;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -24,11 +23,15 @@ class UpdateHistoryWorkingSetData extends Data
         #[Min(1)]
         public readonly int $id,
 
-        #[Min(0), Max(100)]
-        public readonly int $reps,
+        #[Nullable, Min(0), Max(100)]
+        public readonly ?int $reps = null,
+
+        #[Nullable, Min(0), Max(3600)]
+        public readonly ?int $durationSeconds = null,
+
+        public readonly bool $isSkipped = false,
 
         #[Nullable, Min(0)]
-        #[RequiredWithout('segments')]
         public readonly ?float $weightKg = null,
 
         #[Nullable]

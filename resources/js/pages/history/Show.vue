@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { historyBlockTitle, historyRowsForBlock, historyWarmUpGroups } from '@/workouts/lib/historyDisplay';
+import { circuitExerciseSummaries, historyBlockTitle, historyRowsForBlock, historyWarmUpGroups } from '@/workouts/lib/historyDisplay';
 import { useHistoryDelete } from '@/workouts/lib/historyMutations';
 import type { WorkoutPayload } from '@/workouts/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Trash2 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
     history: {
@@ -25,12 +25,19 @@ const workingSets = props.history.workout.blocks.flatMap((block) => block.sets.f
 const form = useForm({
     sets: workingSets.map((set) => ({
         id: set.id,
-        reps: set.logged_reps ?? set.target_reps ?? 0,
+        reps: set.prescription_mode === 'duration' ? null : (set.logged_reps ?? set.target_reps ?? 0),
+        duration_seconds: set.prescription_mode === 'duration' ? (set.logged_duration_seconds ?? set.target_duration_seconds ?? 30) : null,
         weight_kg: set.logged_weight_kg ?? set.target_weight_kg ?? 0,
+        is_skipped: Boolean(set.is_skipped),
     })),
 });
 
 const setFieldIndex = Object.fromEntries(form.sets.map((set, index) => [set.id, index]));
+
+const expandedExercises = ref<Record<string, boolean>>({});
+const toggleExpand = (key: string) => {
+    expandedExercises.value[key] = !expandedExercises.value[key];
+};
 
 const { deleteForm, destroy: deleteWorkout } = useHistoryDelete();
 
@@ -86,10 +93,101 @@ const removeWorkout = () => deleteWorkout(props.history.workout.id, props.histor
                 >
                     <header class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-border bg-card/40 px-3 py-2">
                         <p class="font-medium">{{ title }}</p>
-                        <p v-if="block.is_superset" class="font-mono text-xs text-muted-foreground uppercase">Superset</p>
+                        <p v-if="block.type === 'circuit'" class="font-mono text-xs font-semibold text-primary uppercase">Circuit</p>
+                        <p v-else-if="block.is_superset" class="font-mono text-xs text-muted-foreground uppercase">Superset</p>
                     </header>
 
-                    <div class="divide-y divide-border">
+                    <!-- CIRCUIT BLOCK DISPLAY -->
+                    <template v-if="block.type === 'circuit'">
+                        <div class="divide-y divide-border">
+                            <div v-for="item in circuitExerciseSummaries(block.sets)" :key="`cct-${item.exerciseId}`" class="px-3 py-2.5">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div>
+                                        <p class="font-mono text-xs tracking-wide text-primary uppercase">
+                                            Station · <span class="font-medium text-foreground normal-case">{{ item.exerciseName }}</span>
+                                        </p>
+                                        <p
+                                            v-if="item.isIdentical && !expandedExercises[`${block.id}-${item.exerciseId}`]"
+                                            class="mt-1 font-mono text-sm text-muted-foreground"
+                                        >
+                                            {{ item.summaryText }}
+                                        </p>
+                                    </div>
+                                    <button
+                                        v-if="item.isIdentical"
+                                        type="button"
+                                        class="rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                                        @click="toggleExpand(`${block.id}-${item.exerciseId}`)"
+                                    >
+                                        {{ expandedExercises[`${block.id}-${item.exerciseId}`] ? 'Collapse' : 'Details' }}
+                                    </button>
+                                </div>
+
+                                <ul
+                                    v-if="!item.isIdentical || expandedExercises[`${block.id}-${item.exerciseId}`]"
+                                    class="mt-2 space-y-2 border-l-2 border-primary/40 pl-3"
+                                >
+                                    <li v-for="set in item.sets" :key="set.id" class="flex flex-wrap items-center gap-2">
+                                        <span class="w-16 shrink-0 font-mono text-xs text-muted-foreground">Round {{ set.set_index + 1 }}</span>
+                                        <label class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <input
+                                                v-model="form.sets[setFieldIndex[set.id]].is_skipped"
+                                                type="checkbox"
+                                                class="size-3.5 rounded border-border"
+                                            />
+                                            Skip
+                                        </label>
+                                        <template v-if="!form.sets[setFieldIndex[set.id]].is_skipped">
+                                            <template v-if="set.prescription_mode === 'duration'">
+                                                <label class="flex items-center gap-1 text-xs text-muted-foreground">
+                                                    <span class="sr-only">Duration</span>
+                                                    <input
+                                                        v-model.number="form.sets[setFieldIndex[set.id]].duration_seconds"
+                                                        type="number"
+                                                        min="1"
+                                                        max="3600"
+                                                        class="w-16 rounded border border-border bg-background px-1.5 py-1 font-mono text-sm"
+                                                        aria-label="Duration (seconds)"
+                                                    />
+                                                    <span>s</span>
+                                                </label>
+                                            </template>
+                                            <template v-else>
+                                                <label class="flex items-center gap-1 text-xs text-muted-foreground">
+                                                    <span class="sr-only">Reps</span>
+                                                    <input
+                                                        v-model.number="form.sets[setFieldIndex[set.id]].reps"
+                                                        type="number"
+                                                        min="0"
+                                                        class="w-14 rounded border border-border bg-background px-1.5 py-1 font-mono text-sm"
+                                                        aria-label="Reps"
+                                                    />
+                                                </label>
+                                                <span class="text-xs text-muted-foreground">×</span>
+                                            </template>
+                                            <label class="flex items-center gap-1 text-xs text-muted-foreground">
+                                                <span class="sr-only">Weight</span>
+                                                <input
+                                                    v-model.number="form.sets[setFieldIndex[set.id]].weight_kg"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    inputmode="decimal"
+                                                    class="w-16 rounded border border-border bg-background px-1.5 py-1 font-mono text-sm"
+                                                    aria-label="Weight (kg)"
+                                                />
+                                                <span>kg</span>
+                                            </label>
+                                        </template>
+                                        <span v-else class="font-mono text-xs text-muted-foreground italic">Skipped</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- STANDARD / SUPERSET BLOCK DISPLAY -->
+                    <div v-else class="divide-y divide-border">
                         <div v-for="row in rows" :key="row.key" class="px-3 py-2.5">
                             <template v-if="row.type === 'warm_up'">
                                 <p class="font-mono text-xs tracking-wide text-muted-foreground uppercase">Warm-up</p>

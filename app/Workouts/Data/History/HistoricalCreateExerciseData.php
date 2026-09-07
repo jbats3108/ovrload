@@ -16,10 +16,12 @@ class HistoricalCreateExerciseData extends Data
         public readonly string $name,
         public readonly ?string $equipment,
         public readonly float $workingWeightKg,
-        public readonly int $prescribedReps,
+        public readonly ?int $prescribedReps = null,
         public readonly ?string $deloadName = null,
         public readonly ?string $deloadEquipment = null,
         public readonly ?float $deloadWorkingWeightKg = null,
+        public readonly string $prescriptionMode = 'reps',
+        public readonly ?int $prescribedDurationSeconds = null,
     ) {}
 
     public static function fromRoutineBlockExercise(RoutineBlockExercise $exercise): self
@@ -37,6 +39,8 @@ class HistoricalCreateExerciseData extends Data
             deloadWorkingWeightKg: $hasAlternate
                 ? Weight::gramsToKg((int) $exercise->deload_working_weight_g)
                 : null,
+            prescriptionMode: $exercise->prescription_mode?->value ?? (string) ($exercise->prescription_mode ?? 'reps'),
+            prescribedDurationSeconds: $exercise->prescribed_duration_seconds,
         );
     }
 }
