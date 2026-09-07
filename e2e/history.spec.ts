@@ -63,4 +63,63 @@ test.describe('history', () => {
         await expect(page.getByLabel('Weight (kg)').first()).toHaveValue(next);
         await expect(save).toBeDisabled();
     });
+
+    test('shows circuit workout with collapsed summary and allows expanding', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+
+        // Create a routine with a circuit
+        const routineName = `Hist CCT ${Date.now()}`;
+        await page.goto('/routines/create');
+        await expect(page).toHaveURL(/\/routines\/create/);
+        await page.getByLabel('Name').fill(routineName);
+        await page.getByRole('button', { name: 'Continue' }).click();
+
+        const addCircuitBtn = page.locator('[data-add-circuit-btn]');
+        await expect(addCircuitBtn).toBeVisible();
+        await addCircuitBtn.click();
+        await expect(page.getByText('CCT', { exact: true })).toBeVisible();
+        await page.getByRole('button', { name: /save/i }).click();
+        await expect(page.getByText('Routine saved.')).toBeVisible({ timeout: 10_000 });
+
+        // Add historical entry for this circuit routine
+        await page.goto('/history');
+        await page.getByRole('link', { name: 'Add historical' }).click();
+        await expect(page).toHaveURL(/\/history\/create/);
+
+        await page.getByRole('link', { name: routineName }).click();
+        await expect(page.getByRole('heading', { name: routineName })).toBeVisible();
+
+        await page.getByLabel(/Finished at/i).fill('2026-09-07T08:00');
+        await page.getByRole('button', { name: 'Continue to sets' }).click();
+        await expect(page.getByRole('button', { name: 'Save workout' })).toBeVisible();
+        await page.getByRole('button', { name: 'Save workout' }).click();
+
+        // If redirected to progression screen, confirm and finish
+        await page.waitForTimeout(1000);
+        if (page.url().includes('/progression')) {
+            await page
+                .getByRole('button', { name: /confirm|finish|continue|done/i })
+                .first()
+                .click();
+        }
+
+        // Navigate to history show
+        await page.goto('/history');
+        await expect(page).toHaveURL(/\/history$/);
+        const link = page
+            .getByRole('link')
+            .filter({ has: page.getByText(routineName) })
+            .first();
+        await expect(link).toBeVisible();
+        await link.click();
+        await expect(page).toHaveURL(/\/history\/[0-9A-HJKMNP-TV-Z]{26}/i);
+
+        // History detail view for circuit
+        await expect(page.getByText('Circuit', { exact: true })).toBeVisible();
+        await expect(page.getByText(/×\d+ rounds/).first()).toBeVisible();
+        const detailsBtn = page.getByRole('button', { name: 'Details' }).first();
+        await expect(detailsBtn).toBeVisible();
+        await detailsBtn.click();
+        await expect(page.getByRole('button', { name: 'Collapse' }).first()).toBeVisible();
+    });
 });

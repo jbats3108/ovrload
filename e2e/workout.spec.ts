@@ -90,4 +90,52 @@ test.describe('workout player', () => {
         await expect(page.getByText(/working/i)).toBeVisible();
         await expect(page.getByText('Plates', { exact: true })).toBeVisible();
     });
+
+    test('plays circuit workout with station controls and skipping', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+
+        const routineName = `E2E Circuit ${Date.now()}`;
+
+        // Create a routine
+        await page.goto('/routines/create');
+        await expect(page).toHaveURL(/\/routines\/create/);
+        await page.getByLabel('Name').fill(routineName);
+        await page.getByRole('button', { name: 'Continue' }).click();
+
+        await expect(page).toHaveURL(/\/routines\/[a-z0-9-]+\/edit/);
+
+        const addCircuitBtn = page.locator('[data-add-circuit-btn]');
+        await expect(addCircuitBtn).toBeVisible();
+        await addCircuitBtn.click();
+
+        await expect(page.getByText('CCT')).toBeVisible();
+
+        await page.getByRole('button', { name: /save/i }).click();
+        await expect(page.getByText('Routine saved.')).toBeVisible({ timeout: 10_000 });
+
+        // Go to dashboard to start workout
+        await page.goto('/dashboard');
+        await expect(page).toHaveURL(/\/dashboard/);
+
+        const card = page.locator('div.rounded-xl.border').filter({ has: page.getByRole('heading', { name: routineName, level: 3 }) });
+        await card.getByRole('button', { name: 'Start' }).click();
+        await expect(page).toHaveURL(/\/workouts\/[0-9A-HJKMNP-TV-Z]{26}/i);
+
+        // Preview setup stage
+        await expect(page.getByRole('button', { name: 'Start circuit' })).toBeVisible();
+        await page.getByRole('button', { name: 'Start circuit' }).click();
+
+        // Exercise 1 in circuit
+        await expect(page.getByRole('button', { name: 'Skip exercise' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Skip round' })).toBeVisible();
+
+        // Skip the current exercise directly
+        await page.getByRole('button', { name: 'Skip exercise' }).click();
+
+        // Rest countdown appears
+        await skipRest(page);
+
+        // Now on exercise 2
+        await expect(page.getByRole('button', { name: 'Skip exercise' })).toBeVisible();
+    });
 });

@@ -8,13 +8,13 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
-- 
+-
 
 ## Backlog
 
 Single triage list — reprioritize across buckets as needed. **Features (FAQ)** are listed on the public help/FAQ page for beta testers. Notion [inbox](https://app.notion.com/p/3aae5dd99f0c80ad928ade1a5c6b0749) → pull new bullets into the right bucket below.
 
-- 
+-
 
 ### Features (FAQ)
 
@@ -30,14 +30,13 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 8. ~~**Choose an alternate exercise for Deload sessions**~~ — recently added
 9. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
 10. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
-11. **Circuit workouts** — >2 exercises per round; intra-circuit + end-of-circuit rest; rest presets — grill: [Circuit workouts](#grill-circuit-workouts)
+11. ~~**Circuit workouts**~~ — recently added
 12. **Skip a block and come back later in Play** — overlaps with **Do groups later**; retained to mirror the public FAQ
 13. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
 
-
-
 ### Parked (internal — not on public FAQ)
 
+- **Automatic progression for circuits** — evaluate after user feedback on fixed-load circuit training
 - **Resend → Gmail forward webhook** — optional; forms/mailboxes work without it
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
@@ -54,30 +53,22 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
-
-
 ### Ops (internal)
 
 - **Soft host cap ~100 accounts** — prod: Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 - **Maintenance handoff plan** — reduce ongoing Cursor dependence so a human can keep the app running without constant AI spend
 - **Storybook for components?** — component catalog to support human handover (from Notion inbox)
 
-
-
 ## Backlog: 121 Feedback (gym owner)
 
 Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5dd99f0c8077bed9d976fb53af77).
-
 
 | Raw note                                       | Feature                                                                      |
 | ---------------------------------------------- | ---------------------------------------------------------------------------- |
 | PT mode; contacts; account switcher            | [PT mode](#grill-pt-mode)                                                    |
 | Share workouts                                 | [PT mode](#grill-pt-mode) (PT→client; low demand for 1-2-1 individual share) |
 | Videos; custom videos with routines            | [Exercise videos](#grill-exercise-videos-pt)                                 |
-| Time range rather than reps; rest 60s circuits | [Circuit workouts](#grill-circuit-workouts)                                  |
-
-
-
+| Time range rather than reps; rest 60s circuits | Circuit blocks (shipped)                                                     |
 
 ## Grill: PT mode
 
@@ -100,8 +91,6 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 - Data ownership and GDPR when PT holds client data
 - How sharing is delivered (in-app assign, link, email?)
 
-
-
 ## Grill: Exercise videos (PT)
 
 **Motivation:** Gym-owner 1:1 — attach demo/form videos to exercises or routines.
@@ -119,26 +108,3 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 - Attach to shared catalog exercise vs custom exercise vs routine block
 - Privacy, retention, delete on client unlink
 - MVP: embed external URL (YouTube/Vimeo) vs hosted upload
-
-
-
-## Grill: Circuit workouts
-
-**Motivation:** Gym-owner 1:1 — circuit-style training beyond two-exercise supersets.
-
-**Scope sketch (initial):**
-
-- New structure (like **Superset**, but **>2 exercises** per round).
-- **Rest between stages** within a circuit round; **longer rest at end** of the full circuit (cf. superset: transition A→B, then group rest).
-- **Rest presets** for circuit modes (raw note: “rest 60s circuits”) — same idea as presets elsewhere.
-- **Time range rather than reps** for circuit-style work (duration-based sets) — may belong here or as a circuit set type; grill together.
-
-**Open (grill later):**
-
-- Domain name and model: new block kind vs generalised “round group”
-- Max exercises per circuit; order within a round
-- Warm-ups and setup in circuits
-- Progression rules (if any) for timed vs rep-based circuit sets
-- Player UX: how “stage” rest differs visually from end-of-circuit rest
-- Relationship to existing Superset machinery — extend or parallel type
-

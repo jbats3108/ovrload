@@ -76,4 +76,21 @@ test.describe('routine editor', () => {
 
         await expect(kgInput).toHaveValue('30');
     });
+
+    test('adds and configures a circuit block with stations and dual rest', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await openBarbellEditor(page);
+
+        const addCircuitBtn = page.locator('[data-add-circuit-btn]');
+        await expect(addCircuitBtn).toBeVisible();
+        await addCircuitBtn.click();
+
+        await expect(page.getByText('CCT').first()).toBeVisible();
+        await expect(page.locator('[data-circuit-station-rest]').first()).toBeVisible();
+        await expect(page.locator('[data-circuit-round-rest]').first()).toBeVisible();
+
+        const addStationBtn = page.locator('[data-add-circuit-station]').first();
+        await expect(addStationBtn).toBeVisible();
+        await addStationBtn.click();
+    });
 });
