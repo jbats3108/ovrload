@@ -170,10 +170,8 @@ class RoutineEditorService
                 if ($exerciseData->prescribedDurationSeconds === null || $exerciseData->prescribedDurationSeconds < 1) {
                     throw new InvalidArgumentException('Timed exercises require a duration of at least 1 second.');
                 }
-            } else {
-                if ($exerciseData->prescribedReps === null || $exerciseData->prescribedReps < 1) {
-                    throw new InvalidArgumentException('Rep-based exercises require prescribed reps of at least 1.');
-                }
+            } elseif ($exerciseData->prescribedReps === null || $exerciseData->prescribedReps < 1) {
+                throw new InvalidArgumentException('Rep-based exercises require prescribed reps of at least 1.');
             }
 
             $exerciseProfile = $isCircuit ? null : $this->profileFromId($routine->user, $exerciseData->exerciseProfileId);

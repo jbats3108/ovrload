@@ -548,11 +548,11 @@ class HistoricalWorkoutControllerTest extends TestCase
 
         $this->assertCount(6, $sets);
 
-        $timedSet = $sets->first(fn ($s) => $s->set_index === 1 && $s->duration_seconds !== null);
+        $timedSet = $sets->first(fn ($s): bool => $s->set_index === 1 && $s->duration_seconds !== null);
         $this->assertNotNull($timedSet);
         $this->assertSame(25, $timedSet->duration_seconds);
 
-        $skippedSet = $sets->first(fn ($s) => $s->set_index === 1 && $s->is_skipped);
+        $skippedSet = $sets->first(fn ($s): bool => $s->set_index === 1 && $s->is_skipped);
         $this->assertNotNull($skippedSet);
         $this->assertTrue($skippedSet->is_skipped);
     }

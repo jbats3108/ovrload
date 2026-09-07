@@ -64,10 +64,6 @@ final readonly class WorkoutSetLogger
             $set->plate_stack = $plateStack;
         }
 
-        if ($completedAt !== null) {
-            $set->completed_at = Carbon::instance($completedAt);
-        } else {
-            $set->completed_at = now();
-        }
+        $set->completed_at = $completedAt !== null ? Carbon::instance($completedAt) : now();
     }
 }
