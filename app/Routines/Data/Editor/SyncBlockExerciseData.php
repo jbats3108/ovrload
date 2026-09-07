@@ -4,6 +4,7 @@ namespace App\Routines\Data\Editor;
 
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Support\Weight;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\Validation\Different;
@@ -25,8 +26,13 @@ class SyncBlockExerciseData extends Data
         #[Min(0)]
         public readonly float $workingWeightKg,
 
-        #[Min(1), Max(100)]
-        public readonly int $prescribedReps,
+        #[Nullable, Min(1), Max(100)]
+        public readonly ?int $prescribedReps = null,
+
+        public readonly PrescriptionMode $prescriptionMode = PrescriptionMode::Reps,
+
+        #[Nullable, Min(1), Max(3600)]
+        public readonly ?int $prescribedDurationSeconds = null,
 
         #[Nullable, Min(1), Max(100)]
         public readonly ?int $achievementFloor = null,

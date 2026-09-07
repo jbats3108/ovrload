@@ -2,6 +2,7 @@
 
 namespace App\Workouts\Models;
 
+use App\Shared\Enums\BlockType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +15,9 @@ class WorkoutBlock extends Model
     protected $fillable = [
         'workout_id',
         'position',
+        'type',
         'is_superset',
+        'stage_rest_seconds',
         'is_ad_hoc',
         'is_parked',
         'has_setup_after',
@@ -27,12 +30,29 @@ class WorkoutBlock extends Model
     {
         return [
             'position' => 'integer',
+            'type' => BlockType::class,
             'is_superset' => 'boolean',
+            'stage_rest_seconds' => 'integer',
             'is_ad_hoc' => 'boolean',
             'is_parked' => 'boolean',
             'has_setup_after' => 'boolean',
             'has_setup_after_warm_up' => 'boolean',
         ];
+    }
+
+    public function isCircuit(): bool
+    {
+        return $this->type === BlockType::Circuit;
+    }
+
+    public function isSuperset(): bool
+    {
+        return $this->type === BlockType::Superset;
+    }
+
+    public function isSingle(): bool
+    {
+        return $this->type === BlockType::Single;
     }
 
     /** @return BelongsTo<Workout, $this> */

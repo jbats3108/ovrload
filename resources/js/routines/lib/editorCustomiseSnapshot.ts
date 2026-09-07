@@ -3,7 +3,7 @@ import type { Block, BlockExercise, WarmUpStep } from '@/routines/types';
 export type ExerciseCustomiseSnapshot = {
     exercise_profile_id: number | null;
     exercise_profile_fingerprint: string | null;
-    prescribed_reps: number;
+    prescribed_reps: number | null;
     achievement_floor: number | null;
     floor_is_derived: boolean | null;
 };

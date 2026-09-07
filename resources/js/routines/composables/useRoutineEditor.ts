@@ -1,4 +1,15 @@
-import { emptyBlock, normalizeBlock, swapSupersetExercises, syncSetupAfterBlockFlags, toggleSuperset } from '@/routines/lib/blocks';
+import {
+    addCircuitExercise as addCircuitExerciseLib,
+    emptyBlock,
+    moveCircuitExercise as moveCircuitExerciseLib,
+    normalizeBlock,
+    removeCircuitExercise as removeCircuitExerciseLib,
+    setExercisePrescriptionMode as setExercisePrescriptionModeLib,
+    swapSupersetExercises,
+    syncSetupAfterBlockFlags,
+    togglePrescriptionMode as togglePrescriptionModeLib,
+    toggleSuperset,
+} from '@/routines/lib/blocks';
 import {
     addDropsetSegment,
     applyRunTheRack,
@@ -166,21 +177,63 @@ export function createRoutineEditor(props: EditRoutineProps) {
 
     const exerciseName = (id: number | null) => catalog.value.find((e) => e.id === id)?.name ?? 'Exercise';
 
-    const addBlock = (superset = false) => {
+    const addBlock = (type: 'single' | 'superset' | 'circuit' | boolean = false) => {
+        const resolvedType: 'single' | 'superset' | 'circuit' = typeof type === 'boolean' ? (type ? 'superset' : 'single') : type;
+        const isCircuit = resolvedType === 'circuit';
+        const isSuperset = resolvedType === 'superset';
         const seedWarmUp = (props.warm_up_defaults_scope ?? 'all_blocks') === 'all_blocks' || form.blocks.length === 0;
-        const profile = profileById(form.default_exercise_profile_id ?? null);
+        const profile = isCircuit ? null : profileById(form.default_exercise_profile_id ?? null);
         const block = emptyBlock({
-            superset,
-            seedWarmUp: profile === null ? seedWarmUp : false,
+            type: resolvedType,
+            superset: isSuperset,
+            seedWarmUp: isCircuit ? false : profile === null ? seedWarmUp : false,
             warmUpDefaults: defaultWarmUpSteps(),
             firstCatalogId: firstCatalogId(),
             prescribedReps: defaultTargetReps(),
         });
-        if (profile !== null) {
+        if (profile !== null && !isCircuit) {
             applyProfileToBlock(block, profile, seedWarmUp);
         }
         form.blocks.push(block);
         active.value = form.blocks.length - 1;
+    };
+
+    const addCircuitExercise = (block: Block) => {
+        addCircuitExerciseLib(block, firstCatalogId(), defaultTargetReps());
+    };
+
+    const removeCircuitExercise = (block: Block, index: number): boolean => {
+        const removed = removeCircuitExerciseLib(block, index);
+        if (removed && activeExerciseIndex.value >= block.exercises.length) {
+            activeExerciseIndex.value = Math.max(0, block.exercises.length - 1);
+        }
+        return removed;
+    };
+
+    const moveCircuitExercise = (block: Block, fromIndex: number, toIndex: number): boolean => {
+        const moved = moveCircuitExerciseLib(block, fromIndex, toIndex);
+        if (moved && activeExerciseIndex.value === fromIndex) {
+            activeExerciseIndex.value = toIndex;
+        }
+        return moved;
+    };
+
+    const togglePrescriptionMode = (exercise: BlockExercise) => {
+        togglePrescriptionModeLib(exercise);
+    };
+
+    const setPrescriptionMode = (exercise: BlockExercise, mode: 'reps' | 'duration') => {
+        setExercisePrescriptionModeLib(exercise, mode);
+    };
+
+    const setExerciseDuration = (exercise: BlockExercise, duration: string | number) => {
+        const parsed = typeof duration === 'number' ? duration : Number(duration);
+        exercise.prescribed_duration_seconds = Number.isFinite(parsed) ? Math.max(1, Math.min(3600, parsed)) : 30;
+    };
+
+    const setBlockStageRest = (block: Block, rest: string | number) => {
+        const parsed = typeof rest === 'number' ? rest : Number(rest);
+        block.stage_rest_seconds = Number.isFinite(parsed) ? Math.max(0, Math.min(3600, parsed)) : 0;
     };
 
     const removeBlock = (index: number) => {
@@ -496,39 +549,49 @@ export function createRoutineEditor(props: EditRoutineProps) {
             ...data,
             default_exercise_profile_id: coerceProfileId(data.default_exercise_profile_id),
             blocks: data.blocks.map((block) => {
-                const warmUpSteps = sanitizeWarmUpStepsForSave(block.warm_up.steps);
+                const isCircuit = block.type === 'circuit';
+                const warmUpSteps = isCircuit ? [] : sanitizeWarmUpStepsForSave(block.warm_up.steps);
 
                 return {
                     ...block,
-                    has_setup_after_warm_up: warmUpSteps.length === 0 ? false : block.has_setup_after_warm_up,
-                    shared_profile_id: block.shared_profile_id,
-                    shared_profile_fingerprint: block.shared_profile_fingerprint,
-                    exercises: block.exercises.map((exercise) => ({
-                        ...exercise,
-                        exercise_profile_id: exercise.exercise_profile_id ?? null,
-                        exercise_profile_fingerprint: exercise.exercise_profile_fingerprint ?? null,
-                        floor_is_derived: exercise.floor_is_derived ?? null,
-                        achievement_floor: achievementFloorForSave(exercise),
-                        progression_target: null,
-                        deload_exercise_id: exercise.deload_exercise_id,
-                        deload_working_weight_kg: exercise.deload_exercise_id != null ? exercise.deload_working_weight_kg : null,
-                    })),
+                    type: isCircuit ? 'circuit' : block.is_superset ? 'superset' : 'single',
+                    stage_rest_seconds: isCircuit ? normalizeRestSeconds(block.stage_rest_seconds ?? 15) : null,
+                    has_setup_after_warm_up: isCircuit || warmUpSteps.length === 0 ? false : block.has_setup_after_warm_up,
+                    shared_profile_id: isCircuit ? null : block.shared_profile_id,
+                    shared_profile_fingerprint: isCircuit ? null : block.shared_profile_fingerprint,
+                    exercises: block.exercises.map((exercise) => {
+                        const isTimed = exercise.prescription_mode === 'duration';
+                        return {
+                            ...exercise,
+                            prescription_mode: exercise.prescription_mode ?? 'reps',
+                            prescribed_reps: isTimed ? null : (exercise.prescribed_reps ?? 6),
+                            prescribed_duration_seconds: isTimed ? (exercise.prescribed_duration_seconds ?? 30) : null,
+                            exercise_profile_id: isCircuit ? null : (exercise.exercise_profile_id ?? null),
+                            exercise_profile_fingerprint: isCircuit ? null : (exercise.exercise_profile_fingerprint ?? null),
+                            floor_is_derived: isCircuit || isTimed ? null : (exercise.floor_is_derived ?? null),
+                            achievement_floor: isCircuit || isTimed ? null : achievementFloorForSave(exercise),
+                            progression_target: null,
+                            deload_exercise_id: isCircuit ? null : exercise.deload_exercise_id,
+                            deload_working_weight_kg: isCircuit || exercise.deload_exercise_id == null ? null : exercise.deload_working_weight_kg,
+                        };
+                    }),
                     warm_up: {
-                        set_count: warmUpSteps.length,
-                        rest_seconds: normalizeRestSeconds(block.warm_up.rest_seconds),
+                        set_count: isCircuit ? 0 : warmUpSteps.length,
+                        rest_seconds: isCircuit ? 0 : normalizeRestSeconds(block.warm_up.rest_seconds),
                         steps: warmUpSteps,
                     },
                     working: {
                         set_count: block.working.set_count,
                         rest_seconds: normalizeRestSeconds(block.working.rest_seconds),
-                        dropsets: block.is_superset
-                            ? []
-                            : block.working.dropsets
-                                  .filter((d) => d.set_index < block.working.set_count && d.segments.length >= 2)
-                                  .map((d) => ({
-                                      set_index: d.set_index,
-                                      segments: d.segments.map((s) => ({ weight_kg: s.weight_kg })),
-                                  })),
+                        dropsets:
+                            isCircuit || block.is_superset
+                                ? []
+                                : block.working.dropsets
+                                      .filter((d) => d.set_index < block.working.set_count && d.segments.length >= 2)
+                                      .map((d) => ({
+                                          set_index: d.set_index,
+                                          segments: d.segments.map((s) => ({ weight_kg: s.weight_kg })),
+                                      })),
                     },
                 };
             }),
@@ -604,6 +667,13 @@ export function createRoutineEditor(props: EditRoutineProps) {
         exerciseName,
         addBlock,
         removeBlock,
+        addCircuitExercise,
+        removeCircuitExercise,
+        moveCircuitExercise,
+        togglePrescriptionMode,
+        setPrescriptionMode,
+        setExerciseDuration,
+        setBlockStageRest,
         toggleSuperset: onToggleSuperset,
         swapSupersetExercises: onSwapSupersetExercises,
         warmUpText,

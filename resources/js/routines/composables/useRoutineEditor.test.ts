@@ -612,4 +612,73 @@ describe('createRoutineEditor', () => {
         inertiaMocks().routerMocks.delete.mock.calls[0][1].onFinish();
         expect(editor.mutating.value).toBe(false);
     });
+
+    it('adds circuit block and supports station reordering and resizing', () => {
+        const editor = mountEditor();
+        editor.addBlock('circuit');
+
+        expect(editor.form.blocks).toHaveLength(1);
+        const block = editor.form.blocks[0];
+        expect(block.type).toBe('circuit');
+        expect(block.exercises).toHaveLength(3);
+        expect(block.stage_rest_seconds).toBe(15);
+        expect(block.working.rest_seconds).toBe(60);
+
+        // Cannot remove when at minimum of 3
+        expect(editor.removeCircuitExercise(block, 0)).toBe(false);
+        expect(block.exercises).toHaveLength(3);
+
+        // Add 4th station
+        editor.addCircuitExercise(block);
+        expect(block.exercises).toHaveLength(4);
+
+        // Reorder stations
+        block.exercises[0].exercise_id = 11;
+        block.exercises[1].exercise_id = 22;
+        editor.moveCircuitExercise(block, 0, 1);
+        expect(block.exercises[0].exercise_id).toBe(22);
+        expect(block.exercises[1].exercise_id).toBe(11);
+
+        // Remove station
+        expect(editor.removeCircuitExercise(block, 0)).toBe(true);
+        expect(block.exercises).toHaveLength(3);
+    });
+
+    it('supports setting prescription mode, duration, and dual rests on circuit blocks', () => {
+        const editor = mountEditor();
+        editor.addBlock('circuit');
+        const block = editor.form.blocks[0];
+        const ex = block.exercises[0];
+
+        editor.setPrescriptionMode(ex, 'duration');
+        expect(ex.prescription_mode).toBe('duration');
+        expect(ex.prescribed_duration_seconds).toBe(30);
+        expect(ex.prescribed_reps).toBeNull();
+
+        editor.setExerciseDuration(ex, 45);
+        expect(ex.prescribed_duration_seconds).toBe(45);
+
+        editor.setBlockStageRest(block, 25);
+        expect(block.stage_rest_seconds).toBe(25);
+
+        editor.save();
+
+        const payload = inertiaMocks().lastTransformed as {
+            blocks: Array<{
+                type: string;
+                stage_rest_seconds: number;
+                working: { rest_seconds: number; dropsets: unknown[] };
+                warm_up: { steps: unknown[] };
+                exercises: Array<{ prescription_mode: string; prescribed_duration_seconds: number; prescribed_reps: number | null }>;
+            }>;
+        };
+
+        expect(payload.blocks[0].type).toBe('circuit');
+        expect(payload.blocks[0].stage_rest_seconds).toBe(25);
+        expect(payload.blocks[0].working.dropsets).toEqual([]);
+        expect(payload.blocks[0].warm_up.steps).toEqual([]);
+        expect(payload.blocks[0].exercises[0].prescription_mode).toBe('duration');
+        expect(payload.blocks[0].exercises[0].prescribed_duration_seconds).toBe(45);
+        expect(payload.blocks[0].exercises[0].prescribed_reps).toBeNull();
+    });
 });

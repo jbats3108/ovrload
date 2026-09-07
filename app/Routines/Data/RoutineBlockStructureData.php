@@ -7,6 +7,7 @@ use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
 use App\Shared\Data\WeightKgSegmentData;
+use App\Shared\Enums\BlockType;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Support\Weight;
 use Illuminate\Support\Collection;
@@ -32,6 +33,8 @@ class RoutineBlockStructureData extends Data
         public readonly ?RoutineSetGroup $warmUpGroup,
         #[DataCollectionOf(SyncDropsetData::class)]
         public readonly DataCollection $dropsets,
+        public readonly BlockType $type = BlockType::Single,
+        public readonly ?int $stageRestSeconds = null,
     ) {}
 
     public static function fromRoutineBlock(RoutineBlock $block): self
@@ -66,6 +69,8 @@ class RoutineBlockStructureData extends Data
             workingGroup: $working instanceof RoutineSetGroup ? $working : null,
             warmUpGroup: $warmUp instanceof RoutineSetGroup ? $warmUp : null,
             dropsets: SyncDropsetData::collect($dropsets, DataCollection::class),
+            type: $block->type ?? ($block->is_superset ? BlockType::Superset : BlockType::Single),
+            stageRestSeconds: $block->stage_rest_seconds,
         );
     }
 }

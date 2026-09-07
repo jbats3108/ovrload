@@ -59,6 +59,30 @@ export function findFirstIncompleteFocus(blocks: PlayerBlock[], setupDone: Recor
             continue;
         }
 
+        if (block.type === 'circuit') {
+            const hasCompleted = block.sets.some((s) => s.completed);
+            const hasIncomplete = block.sets.some((s) => !s.completed);
+            if (!hasCompleted && hasIncomplete && !setupDone[setupKey(block.id, 'before_circuit')]) {
+                return { kind: 'setup', blockIndex, phase: 'before_circuit' };
+            }
+
+            const incomplete = block.sets.find((s) => !s.completed);
+            if (incomplete) {
+                return { kind: 'set', blockIndex, setId: incomplete.id };
+            }
+
+            if (
+                block.has_setup_after &&
+                hasLaterPlayableIncomplete(blocks, blockIndex) &&
+                !setupDone[setupKey(block.id, 'after_block')] &&
+                !setupAfterBlockPassed(blocks, blockIndex)
+            ) {
+                return { kind: 'setup', blockIndex, phase: 'after_block' };
+            }
+
+            continue;
+        }
+
         const stepIndexes = warmUpStepIndexes(block);
         const working = block.sets.filter((s) => s.group_type === 'working');
         const hasIncompleteWorking = working.some((s) => !s.completed);

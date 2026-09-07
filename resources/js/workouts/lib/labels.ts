@@ -25,6 +25,9 @@ export function setupHintText(focus: Focus, block: PlayerBlock | null): string {
 
     const name = historyBlockTitle(block);
 
+    if (focus.phase === 'before_circuit') {
+        return `Prepare circuit stations — ${name}`;
+    }
     if (focus.phase === 'after_warm_up') {
         return `${name} — before working sets`;
     }

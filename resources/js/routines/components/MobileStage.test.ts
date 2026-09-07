@@ -296,6 +296,52 @@ describe('MobileStage', () => {
 
         wrapper.unmount();
     });
+
+    it('renders circuit block on mobile with stations, dual rest inputs, and allows adding stations', async () => {
+        const { wrapper, editor } = mountStage({
+            routine: routinePayload({
+                blocks: [
+                    {
+                        ...routinePayload().blocks[0],
+                        type: 'circuit',
+                        stage_rest_seconds: 15,
+                        is_superset: false,
+                        working: { set_count: 3, rest_seconds: 60, dropsets: [] },
+                        warm_up: { set_count: 0, rest_seconds: 0, steps: [] },
+                        exercises: [
+                            { ...routinePayload().blocks[0].exercises[0], prescribed_reps: 10, prescription_mode: 'reps' },
+                            { ...routinePayload().blocks[0].exercises[0], prescribed_reps: 12, prescription_mode: 'reps' },
+                            {
+                                ...routinePayload().blocks[0].exercises[0],
+                                prescribed_reps: null,
+                                prescription_mode: 'duration',
+                                prescribed_duration_seconds: 30,
+                            },
+                        ],
+                    },
+                ],
+            }),
+        });
+
+        await openFirstExerciseTab();
+
+        expect(document.body.textContent).toContain('Circuit 1');
+        expect(document.body.textContent).toContain('Station 1');
+        expect(document.body.textContent).toContain('Station 2');
+        expect(document.body.textContent).toContain('Station 3');
+        expect(document.body.querySelector('[data-circuit-station-rest-mobile]')).toBeTruthy();
+        expect(document.body.querySelector('[data-circuit-round-rest-mobile]')).toBeTruthy();
+        expect(document.body.querySelector('[data-exercise-duration-mobile]')).toBeTruthy();
+
+        const addStationBtn = document.body.querySelector<HTMLButtonElement>('[data-add-circuit-station-mobile]');
+        expect(addStationBtn).toBeTruthy();
+        addStationBtn!.click();
+        await nextTick();
+
+        expect(editor.form.blocks[0].exercises).toHaveLength(4);
+
+        wrapper.unmount();
+    });
 });
 
 describe('RoutineEditorHeader', () => {

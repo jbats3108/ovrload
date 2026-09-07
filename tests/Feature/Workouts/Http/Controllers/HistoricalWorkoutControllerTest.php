@@ -8,6 +8,8 @@ use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Enums\WarmUpWeightMode;
 use App\Workouts\Enums\WorkoutMode;
@@ -462,6 +464,97 @@ class HistoricalWorkoutControllerTest extends TestCase
             ])
             ->assertRedirect(route('history.create', $routine))
             ->assertSessionHasErrors();
+    }
+
+    #[Test]
+    public function store_historical_circuit_workout_with_mixed_prescriptions_and_skipped_stages(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create(['name' => 'Circuit Test']);
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'stage_rest_seconds' => 15,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 30000,
+            'prescription_mode' => PrescriptionMode::Reps,
+            'prescribed_reps' => 10,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 2,
+            'working_weight_g' => 0,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 30,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 3,
+            'working_weight_g' => 15000,
+            'prescription_mode' => PrescriptionMode::Reps,
+            'prescribed_reps' => 12,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 60,
+        ]);
+
+        $finishedAt = now()->subHours(2);
+
+        $payload = [
+            'finished_at' => $finishedAt->format('Y-m-d H:i:s'),
+            'mode' => 'standard',
+            'blocks' => [
+                [
+                    'position' => 1,
+                    'working_set_count' => 2,
+                    'sets' => [
+                        // Round 0
+                        ['exercise_position' => 1, 'set_index' => 0, 'reps' => 10, 'weight_kg' => 30],
+                        ['exercise_position' => 2, 'set_index' => 0, 'duration_seconds' => 30, 'weight_kg' => 0],
+                        ['exercise_position' => 3, 'set_index' => 0, 'reps' => 12, 'weight_kg' => 15],
+                        // Round 1
+                        ['exercise_position' => 1, 'set_index' => 1, 'reps' => 8, 'weight_kg' => 30],
+                        ['exercise_position' => 2, 'set_index' => 1, 'duration_seconds' => 25, 'weight_kg' => 0],
+                        ['exercise_position' => 3, 'set_index' => 1, 'is_skipped' => true],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->actingAs($this->user)
+            ->post(route('history.store', $routine), $payload)
+            ->assertRedirect();
+
+        $workout = Workout::where('routine_id', $routine->id)->latest('id')->first();
+        $this->assertNotNull($workout);
+        $this->assertSame(WorkoutStatus::Finished, $workout->status);
+
+        $workoutBlock = $workout->blocks->first();
+        $this->assertSame(BlockType::Circuit, $workoutBlock->type);
+        $this->assertSame(15, $workoutBlock->stage_rest_seconds);
+
+        $sets = WorkoutSet::whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(6, $sets);
+
+        $timedSet = $sets->first(fn ($s): bool => $s->set_index === 1 && $s->duration_seconds !== null);
+        $this->assertNotNull($timedSet);
+        $this->assertSame(25, $timedSet->duration_seconds);
+
+        $skippedSet = $sets->first(fn ($s): bool => $s->set_index === 1 && $s->is_skipped);
+        $this->assertNotNull($skippedSet);
+        $this->assertTrue($skippedSet->is_skipped);
     }
 
     /**

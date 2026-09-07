@@ -34,7 +34,7 @@ export function qualifiesForMidBlockBump(
     if (options.isDropset || options.groupType !== 'working') {
         return false;
     }
-    if (loggedReps < exercise.prescribed_reps) {
+    if (exercise.prescribed_reps == null || loggedReps < exercise.prescribed_reps) {
         return false;
     }
     if (loggedWeightKg < exercise.working_weight_kg) {

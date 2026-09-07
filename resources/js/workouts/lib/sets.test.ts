@@ -1,9 +1,13 @@
 import { playerBlock, playerSet } from '@/test/factories';
 import { flattenPlayerSets } from '@/workouts/lib/focus';
 import {
+    circuitRoundSets,
     defaultPromoteSegments,
     finishesWarmUpGroup,
     finishesWarmUpStep,
+    isCircuit,
+    isLastInCircuitRound,
+    nextCircuitSet,
     nextDropSegmentWeight,
     nextSupersetSet,
     plannedSetCount,
@@ -93,6 +97,94 @@ describe('nextSupersetSet', () => {
     it('returns null outside supersets', () => {
         const block = playerBlock();
         expect(nextSupersetSet(block, block.sets[0])).toBeNull();
+    });
+});
+
+describe('circuit helpers', () => {
+    const makeCircuitBlock = () =>
+        playerBlock({
+            type: 'circuit',
+            exercises: [
+                {
+                    id: 10,
+                    name: 'Burpees',
+                    working_weight_kg: 0,
+                    prescribed_reps: null,
+                    prescription_mode: 'duration',
+                    prescribed_duration_seconds: 45,
+                    achievement_floor: null,
+                    progression_target: null,
+                    position: 0,
+                },
+                {
+                    id: 11,
+                    name: 'Kettlebell Swings',
+                    working_weight_kg: 24,
+                    prescribed_reps: 15,
+                    prescription_mode: 'reps',
+                    prescribed_duration_seconds: null,
+                    achievement_floor: null,
+                    progression_target: null,
+                    position: 1,
+                },
+                {
+                    id: 12,
+                    name: 'Plank',
+                    working_weight_kg: 0,
+                    prescribed_reps: null,
+                    prescription_mode: 'duration',
+                    prescribed_duration_seconds: 60,
+                    achievement_floor: null,
+                    progression_target: null,
+                    position: 2,
+                },
+            ],
+            sets: [
+                playerSet({ id: 1, workout_block_exercise_id: 10, exercise_name: 'Burpees', set_index: 0, rest_seconds: 15 }),
+                playerSet({ id: 2, workout_block_exercise_id: 11, exercise_name: 'Kettlebell Swings', set_index: 0, rest_seconds: 15 }),
+                playerSet({ id: 3, workout_block_exercise_id: 12, exercise_name: 'Plank', set_index: 0, rest_seconds: 60 }),
+                playerSet({ id: 4, workout_block_exercise_id: 10, exercise_name: 'Burpees', set_index: 1, rest_seconds: 15 }),
+                playerSet({ id: 5, workout_block_exercise_id: 11, exercise_name: 'Kettlebell Swings', set_index: 1, rest_seconds: 15 }),
+                playerSet({ id: 6, workout_block_exercise_id: 12, exercise_name: 'Plank', set_index: 1, rest_seconds: 60 }),
+            ],
+        });
+
+    it('identifies circuit block correctly', () => {
+        const circuit = makeCircuitBlock();
+        expect(isCircuit(circuit)).toBe(true);
+
+        const standard = playerBlock({ type: 'single' });
+        expect(isCircuit(standard)).toBe(false);
+    });
+
+    it('returns ordered sets for a round', () => {
+        const block = makeCircuitBlock();
+        const round0 = circuitRoundSets(block, block.sets[0]);
+        expect(round0.map((s) => s.id)).toEqual([1, 2, 3]);
+
+        const round1 = circuitRoundSets(block, block.sets[4]);
+        expect(round1.map((s) => s.id)).toEqual([4, 5, 6]);
+    });
+
+    it('finds the next exercise in the circuit round', () => {
+        const block = makeCircuitBlock();
+        expect(nextCircuitSet(block, block.sets[0])?.id).toBe(2);
+        expect(nextCircuitSet(block, block.sets[1])?.id).toBe(3);
+        expect(nextCircuitSet(block, block.sets[2])).toBeNull();
+    });
+
+    it('identifies the last exercise in a round', () => {
+        const block = makeCircuitBlock();
+        expect(isLastInCircuitRound(block, block.sets[0])).toBe(false);
+        expect(isLastInCircuitRound(block, block.sets[1])).toBe(false);
+        expect(isLastInCircuitRound(block, block.sets[2])).toBe(true);
+    });
+
+    it('always rests after every circuit set', () => {
+        const block = makeCircuitBlock();
+        expect(shouldRestAfter(block, block.sets[0])).toBe(true);
+        expect(shouldRestAfter(block, block.sets[1])).toBe(true);
+        expect(shouldRestAfter(block, block.sets[2])).toBe(true);
     });
 });
 

@@ -20,9 +20,11 @@ class WorkoutSet extends Model
         'workout_block_exercise_id',
         'set_index',
         'reps',
+        'duration_seconds',
         'weight_g',
         'plate_stack',
         'completed_at',
+        'is_skipped',
     ];
 
     /** @return array<string, string> */
@@ -32,9 +34,11 @@ class WorkoutSet extends Model
         return [
             'set_index' => 'integer',
             'reps' => 'integer',
+            'duration_seconds' => 'integer',
             'weight_g' => 'integer',
             'plate_stack' => 'array',
             'completed_at' => 'datetime',
+            'is_skipped' => 'boolean',
         ];
     }
 

@@ -78,7 +78,9 @@ const submitForm = useForm({
         sets: {
             exercise_position: number;
             set_index: number;
-            reps: number;
+            reps?: number | null;
+            duration_seconds?: number | null;
+            is_skipped?: boolean;
             weight_kg?: number;
             segments?: { weight_kg: number }[];
         }[];
@@ -158,6 +160,14 @@ const submit = () => {
             position: block.position,
             working_set_count: block.working_set_count,
             sets: block.sets.map((set) => {
+                if (set.is_skipped) {
+                    return {
+                        exercise_position: set.exercise_position,
+                        set_index: set.set_index,
+                        is_skipped: true,
+                    };
+                }
+
                 if (set.is_dropset) {
                     return {
                         exercise_position: set.exercise_position,
@@ -170,8 +180,10 @@ const submit = () => {
                 return {
                     exercise_position: set.exercise_position,
                     set_index: set.set_index,
-                    reps: set.reps,
+                    reps: set.prescription_mode === 'duration' ? null : (set.reps ?? 0),
+                    duration_seconds: set.prescription_mode === 'duration' ? (set.duration_seconds ?? 30) : null,
                     weight_kg: set.weight_kg ?? 0,
+                    is_skipped: false,
                 };
             }),
         };
@@ -253,7 +265,8 @@ const submit = () => {
                     <header class="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-card/40 px-3 py-2">
                         <div class="flex flex-wrap items-baseline gap-x-2">
                             <p class="font-medium">{{ blockTitle(block) }}</p>
-                            <p v-if="block.is_superset" class="font-mono text-xs text-muted-foreground uppercase">Superset</p>
+                            <p v-if="block.type === 'circuit'" class="font-mono text-xs font-semibold text-primary uppercase">Circuit</p>
+                            <p v-else-if="block.is_superset" class="font-mono text-xs text-muted-foreground uppercase">Superset</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <button
@@ -262,14 +275,14 @@ const submit = () => {
                                 :disabled="block.working_set_count <= 1"
                                 @click="removeWorkingRound(block)"
                             >
-                                <Minus class="inline size-3.5" /> Set
+                                <Minus class="inline size-3.5" /> {{ block.type === 'circuit' ? 'Round' : 'Set' }}
                             </button>
                             <button
                                 type="button"
                                 class="rounded-md border border-border px-2 py-1 text-xs hover:bg-card"
                                 @click="addWorkingRound(block)"
                             >
-                                <Plus class="inline size-3.5" /> Set
+                                <Plus class="inline size-3.5" /> {{ block.type === 'circuit' ? 'Round' : 'Set' }}
                             </button>
                             <button
                                 type="button"
@@ -343,7 +356,7 @@ const submit = () => {
 
                         <div v-for="round in roundsForBlock(block)" :key="round.setIndex" class="px-3 py-3">
                             <p class="font-mono text-xs tracking-wide text-primary uppercase">
-                                Set {{ round.setIndex + 1 }}
+                                {{ block.type === 'circuit' ? 'Round' : 'Set' }} {{ round.setIndex + 1 }}
                                 <span class="text-muted-foreground"> / {{ block.working_set_count }}</span>
                             </p>
                             <ul class="mt-2 space-y-3">
@@ -352,11 +365,18 @@ const submit = () => {
                                     :key="`${set.exercise_position}-${set.set_index}-${idx}`"
                                     class="rounded-lg border border-border/80 bg-card/30 px-3 py-2.5"
                                 >
-                                    <p v-if="round.sets.length > 1 || block.is_superset" class="mb-1.5 text-sm font-medium">
-                                        {{ set.exercise_name }}
-                                    </p>
+                                    <div class="mb-1.5 flex items-center justify-between">
+                                        <p v-if="round.sets.length > 1 || block.is_superset || block.type === 'circuit'" class="text-sm font-medium">
+                                            {{ set.exercise_name }}
+                                        </p>
+                                        <label v-if="block.type === 'circuit'" class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <input v-model="set.is_skipped" type="checkbox" class="size-3.5 rounded border-border" />
+                                            Skip
+                                        </label>
+                                    </div>
 
-                                    <div v-if="set.is_dropset" class="flex flex-wrap items-end gap-3">
+                                    <p v-if="set.is_skipped" class="font-mono text-xs text-muted-foreground italic">Skipped</p>
+                                    <div v-else-if="set.is_dropset" class="flex flex-wrap items-end gap-3">
                                         <label
                                             v-for="(segment, si) in set.segments"
                                             :key="si"
@@ -382,6 +402,40 @@ const submit = () => {
                                                 class="w-20 rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground"
                                             />
                                         </label>
+                                    </div>
+                                    <div v-else-if="set.prescription_mode === 'duration'" class="flex flex-wrap items-end gap-3">
+                                        <label class="flex flex-col gap-1 text-xs text-muted-foreground">
+                                            Weight kg
+                                            <input
+                                                v-model.number="set.weight_kg"
+                                                type="number"
+                                                min="0"
+                                                step="0.25"
+                                                class="w-28 rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+                                                @input="round.setIndex === 0 && onWorkingWeightChange(block)"
+                                            />
+                                        </label>
+                                        <label class="flex flex-col gap-1 text-xs text-muted-foreground">
+                                            Duration (s)
+                                            <input
+                                                v-model.number="set.duration_seconds"
+                                                type="number"
+                                                min="1"
+                                                max="3600"
+                                                class="w-24 rounded border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+                                            />
+                                        </label>
+                                        <div class="flex flex-wrap gap-1">
+                                            <button
+                                                v-for="preset in [15, 30, 45, 60]"
+                                                :key="preset"
+                                                type="button"
+                                                class="rounded border border-border px-1.5 py-1 font-mono text-xs hover:bg-muted"
+                                                @click="set.duration_seconds = preset"
+                                            >
+                                                {{ preset }}s
+                                            </button>
+                                        </div>
                                     </div>
                                     <div v-else class="flex flex-wrap items-end gap-3">
                                         <label class="flex flex-col gap-1 text-xs text-muted-foreground">

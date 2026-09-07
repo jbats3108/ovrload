@@ -3,7 +3,7 @@ import LogSetSheet from '@/workouts/components/LogSetSheet.vue';
 import PlateGuideCard from '@/workouts/components/PlateGuideCard.vue';
 import { useWorkoutPlayer } from '@/workouts/composables/useWorkoutPlayer';
 import { skipGroupLabel } from '@/workouts/lib/park';
-import { plannedSetCount } from '@/workouts/lib/sets';
+import { plannedSetCount, workingRoundsInBlock } from '@/workouts/lib/sets';
 import { computed } from 'vue';
 
 const {
@@ -47,9 +47,44 @@ const {
     logSheetOpen,
     logProgressionHints,
     supersetNext,
+    circuitNext,
+    isCircuitBlock,
+    isTimedSet,
+    canSkipExercise,
+    canSkipRound,
+    timedSecondsLeft,
+    timedIsRunning,
+    startTimedCountdown,
+    pauseTimedCountdown,
+    resetTimedCountdown,
+    finishTimedEarly,
+    skipExercise,
+    skipCurrentRound,
 } = useWorkoutPlayer();
 
 const skipLabel = computed(() => (current.value ? skipGroupLabel(current.value.block) : 'Skip group'));
+
+const totalRounds = computed(() => (current.value ? workingRoundsInBlock(current.value.block) : 0));
+
+const circuitExerciseIndex = computed(() => {
+    if (!current.value || current.value.block.type !== 'circuit') {
+        return null;
+    }
+    const round = current.value.block.sets
+        .filter((s) => s.group_type === current.value!.set.group_type && s.set_index === current.value!.set.set_index)
+        .sort((a, b) => a.workout_block_exercise_id - b.workout_block_exercise_id);
+    const pos = round.findIndex((s) => s.id === current.value!.set.id);
+    return {
+        number: pos + 1,
+        total: round.length,
+    };
+});
+
+const formatDuration = (seconds: number): string => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+};
 
 const unlockInput = (event: PointerEvent) => {
     const input = event.currentTarget;
@@ -68,7 +103,13 @@ const unlockInput = (event: PointerEvent) => {
             <div class="flex flex-1 flex-col items-center justify-center gap-8">
                 <div class="space-y-2">
                     <h2 class="text-3xl leading-tight font-semibold">{{ current.set.exercise_name }}</h2>
-                    <p class="text-2xl font-bold tracking-tight text-primary">
+                    <p v-if="isCircuitBlock" class="text-2xl font-bold tracking-tight text-primary">
+                        Round {{ current.set.set_index + 1 }} of {{ totalRounds }}
+                        <span v-if="circuitExerciseIndex" class="block text-base font-normal text-muted-foreground sm:inline sm:text-lg">
+                            · Exercise {{ circuitExerciseIndex.number }} of {{ circuitExerciseIndex.total }}
+                        </span>
+                    </p>
+                    <p v-else class="text-2xl font-bold tracking-tight text-primary">
                         {{ groupLabel(current.set.group_type) }}
                         {{ current.set.set_index + 1 }} of {{ plannedSetCount(current.block, current.set) }}
                     </p>
@@ -80,11 +121,56 @@ const unlockInput = (event: PointerEvent) => {
                         {{ stageDropsetWeights.join(' → ') }}{{ workout.weight_unit }}
                         <span v-if="current.set.target_reps != null"> × {{ current.set.target_reps }}</span>
                     </template>
+                    <template v-else-if="isTimedSet">
+                        <span v-if="stageWeightKg != null && stageWeightKg > 0">{{ stageWeightKg }}{{ workout.weight_unit }} × </span>
+                        <span>{{ current.set.target_duration_seconds }}s</span>
+                    </template>
                     <template v-else>
                         <span v-if="stageWeightKg != null">{{ stageWeightKg }}{{ workout.weight_unit }}</span>
                         <span v-if="current.set.target_reps != null"> × {{ current.set.target_reps }}</span>
                     </template>
                 </p>
+
+                <!-- Timed Exercise Interactive Countdown -->
+                <div v-if="isTimedSet" class="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card/60 p-6">
+                    <p class="font-mono text-5xl font-bold tracking-tight text-foreground">
+                        {{ formatDuration(timedSecondsLeft) }}
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center gap-3">
+                        <button
+                            v-if="!timedIsRunning"
+                            type="button"
+                            class="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-105 active:scale-95"
+                            @click="startTimedCountdown"
+                        >
+                            Start timer
+                        </button>
+                        <button
+                            v-else
+                            type="button"
+                            class="rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
+                            @click="pauseTimedCountdown"
+                        >
+                            Pause
+                        </button>
+                        <button
+                            v-if="timedIsRunning || timedSecondsLeft < (current.set.target_duration_seconds ?? 30)"
+                            type="button"
+                            class="rounded-full border border-border px-4 py-2.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+                            @click="resetTimedCountdown"
+                        >
+                            Reset
+                        </button>
+                        <button
+                            v-if="timedIsRunning || timedSecondsLeft < (current.set.target_duration_seconds ?? 30)"
+                            type="button"
+                            class="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+                            @click="finishTimedEarly"
+                        >
+                            Done ({{ Math.max(0, (current.set.target_duration_seconds ?? 30) - timedSecondsLeft) }}s)
+                        </button>
+                    </div>
+                </div>
 
                 <PlateGuideCard
                     v-if="stagePlateLoad && stageFormatPlateStack"
@@ -98,12 +184,17 @@ const unlockInput = (event: PointerEvent) => {
                 />
 
                 <div class="space-y-2">
-                    <p v-if="current.set.is_dropset || current.block.is_superset" class="text-sm font-semibold tracking-wide text-foreground">
+                    <p
+                        v-if="current.set.is_dropset || current.block.is_superset || isCircuitBlock"
+                        class="text-sm font-semibold tracking-wide text-foreground"
+                    >
                         <template v-if="current.set.is_dropset">Dropset</template>
                         <template v-if="current.set.is_dropset && current.block.is_superset"> · </template>
                         <template v-if="current.block.is_superset">Superset</template>
+                        <template v-if="isCircuitBlock">Circuit</template>
                     </p>
                     <p v-if="supersetNext" class="text-base text-muted-foreground">{{ supersetNext.label }}</p>
+                    <p v-if="circuitNext" class="text-base text-muted-foreground">{{ circuitNext.label }}</p>
                 </div>
             </div>
 
@@ -114,6 +205,24 @@ const unlockInput = (event: PointerEvent) => {
                         class="flex flex-wrap items-center justify-center gap-3"
                     >
                         <button
+                            v-if="canPromoteToDropset"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="promoteToDropset"
+                        >
+                            Make dropset
+                        </button>
+                        <button
+                            v-if="canDemoteFromDropset"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="demoteFromDropset"
+                        >
+                            Single weight
+                        </button>
+                        <button
                             v-if="canAddWorkingSet"
                             type="button"
                             class="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
@@ -121,25 +230,7 @@ const unlockInput = (event: PointerEvent) => {
                             @click="addWorkingSet"
                         >
                             <span class="text-xl leading-none font-semibold">+</span>
-                            Set
-                        </button>
-                        <button
-                            v-if="canPromoteToDropset"
-                            type="button"
-                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                            :disabled="mutating || setForm.processing"
-                            @click="promoteToDropset"
-                        >
-                            Promote to dropset
-                        </button>
-                        <button
-                            v-if="canDemoteFromDropset"
-                            type="button"
-                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
-                            :disabled="mutating || setForm.processing"
-                            @click="demoteFromDropset"
-                        >
-                            Demote to single
+                            {{ isCircuitBlock ? 'Round' : 'Set' }}
                         </button>
                         <button
                             v-if="canRemoveWorkingSet"
@@ -149,9 +240,31 @@ const unlockInput = (event: PointerEvent) => {
                             @click="removeWorkingSet"
                         >
                             <span class="text-xl leading-none font-semibold">−</span>
-                            Set
+                            {{ isCircuitBlock ? 'Round' : 'Set' }}
                         </button>
                     </div>
+
+                    <div v-if="canSkipExercise || canSkipRound" class="flex flex-wrap items-center justify-center gap-3">
+                        <button
+                            v-if="canSkipExercise"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="skipExercise"
+                        >
+                            Skip exercise
+                        </button>
+                        <button
+                            v-if="canSkipRound"
+                            type="button"
+                            class="rounded-full border border-border px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                            :disabled="mutating || setForm.processing"
+                            @click="skipCurrentRound"
+                        >
+                            Skip round
+                        </button>
+                    </div>
+
                     <div v-if="canParkForLater || canSkipRestOfBlock || canRemoveAdHocBlock" class="flex flex-wrap items-center justify-center gap-3">
                         <button
                             v-if="canParkForLater"
@@ -199,7 +312,13 @@ const unlockInput = (event: PointerEvent) => {
                     <div>
                         <p class="text-xs tracking-widest text-muted-foreground uppercase">Log set</p>
                         <h3 class="mt-1 text-xl font-semibold md:text-lg">{{ current.set.exercise_name }}</h3>
-                        <p class="mt-1 text-base font-semibold text-primary">
+                        <p v-if="isCircuitBlock" class="mt-1 text-base font-semibold text-primary">
+                            Round {{ current.set.set_index + 1 }} of {{ totalRounds }}
+                            <span v-if="circuitExerciseIndex" class="text-sm font-normal text-muted-foreground">
+                                · Exercise {{ circuitExerciseIndex.number }} of {{ circuitExerciseIndex.total }}
+                            </span>
+                        </p>
+                        <p v-else class="mt-1 text-base font-semibold text-primary">
                             {{ groupLabel(current.set.group_type) }}
                             {{ current.set.set_index + 1 }} of {{ plannedSetCount(current.block, current.set) }}
                         </p>
@@ -246,6 +365,40 @@ const unlockInput = (event: PointerEvent) => {
                                     </button>
                                 </div>
                                 <button type="button" class="text-sm text-primary" @click="addDropSegment">+ Drop</button>
+                            </div>
+                        </template>
+                        <template v-else-if="isTimedSet">
+                            <div class="flex gap-3">
+                                <label class="flex min-w-0 flex-1 flex-col gap-1 text-sm text-muted-foreground">
+                                    Weight ({{ workout.weight_unit }})
+                                    <input
+                                        v-model.number="setForm.weight_kg"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        inputmode="decimal"
+                                        readonly
+                                        class="rounded-xl border border-border bg-card px-4 py-3 text-lg text-foreground md:rounded-md md:py-2 md:text-base"
+                                        required
+                                        @pointerdown="unlockInput"
+                                        @input="handleLogWeightInput"
+                                    />
+                                </label>
+                                <div class="flex min-w-0 flex-1 flex-col gap-1">
+                                    <label class="flex flex-col gap-1 text-sm text-muted-foreground">
+                                        Duration (seconds)
+                                        <input
+                                            v-model.number="setForm.duration_seconds"
+                                            type="number"
+                                            min="0"
+                                            max="3600"
+                                            readonly
+                                            class="rounded-xl border border-border bg-card px-4 py-3 text-lg text-foreground md:rounded-md md:py-2 md:text-base"
+                                            required
+                                            @pointerdown="unlockInput"
+                                        />
+                                    </label>
+                                </div>
                             </div>
                         </template>
                         <template v-else>

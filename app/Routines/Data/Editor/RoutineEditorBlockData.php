@@ -2,6 +2,7 @@
 
 namespace App\Routines\Data\Editor;
 
+use App\Shared\Enums\BlockType;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Data;
@@ -24,5 +25,7 @@ class RoutineEditorBlockData extends Data
         public readonly DataCollection $exercises,
         public readonly SyncSetGroupData $working,
         public readonly SyncWarmUpData $warmUp,
+        public readonly BlockType $type = BlockType::Single,
+        public readonly ?int $stageRestSeconds = null,
     ) {}
 }

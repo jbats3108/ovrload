@@ -64,7 +64,8 @@ const backlogItems = [
     {
         title: 'Circuit workouts',
         description:
-            'More than two exercises in a round, with short rests between stages and a longer rest at the end of the circuit — beyond today’s two-exercise supersets.',
+            'Group 3+ exercises into a circuit with customizable station rest and round rest. Supports rep targets or timed duration exercises with interactive player countdowns, round skipping, and collapsed history summaries.',
+        recentlyAdded: true,
     },
     {
         title: 'Skip a block and come back later in Play',

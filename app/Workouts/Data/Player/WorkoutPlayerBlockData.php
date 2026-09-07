@@ -2,6 +2,8 @@
 
 namespace App\Workouts\Data\Player;
 
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Workouts\Models\WorkoutBlock;
 use App\Workouts\Models\WorkoutBlockExercise;
@@ -31,17 +33,21 @@ class WorkoutPlayerBlockData extends Data
         public readonly DataCollection $exercises,
         #[DataCollectionOf(WorkoutPlayerSetData::class)]
         public readonly DataCollection $sets,
+        public readonly string $type = 'single',
+        public readonly ?int $stageRestSeconds = null,
     ) {}
 
     public static function fromBlock(WorkoutBlock $block, ?int $defaultBarWeightG = null): self
     {
         $block->loadMissing(['blockExercises', 'setGroups.sets.segments', 'setGroups.warmUpSteps']);
 
-        $exercisesById = $block->blockExercises->keyBy('id');
+        $sortedExercises = $block->blockExercises->sortBy('position')->values();
+        $lastExerciseId = $sortedExercises->last()?->id;
+        $exercisesById = $sortedExercises->keyBy('id');
 
         $setRows = $block->setGroups
             ->sortBy(fn ($group): int => $group->type === SetGroupType::WarmUp ? 0 : 1)
-            ->flatMap(function ($group) use ($exercisesById, $defaultBarWeightG) {
+            ->flatMap(function ($group) use ($block, $exercisesById, $lastExerciseId, $defaultBarWeightG) {
                 $warmUpSteps = $group->warmUpSteps->keyBy('position');
 
                 return $group->sets
@@ -54,13 +60,18 @@ class WorkoutPlayerBlockData extends Data
                             $exercise !== null ? $exercise->position : 0,
                         );
                     })
-                    ->map(function (WorkoutSet $set) use ($group, $exercisesById, $warmUpSteps, $defaultBarWeightG): WorkoutPlayerSetData {
+                    ->map(function (WorkoutSet $set) use ($block, $group, $exercisesById, $lastExerciseId, $warmUpSteps, $defaultBarWeightG): WorkoutPlayerSetData {
                         /** @var WorkoutBlockExercise $exercise */
                         $exercise = $exercisesById->get($set->workout_block_exercise_id);
 
                         $warmUpStep = $group->type === SetGroupType::WarmUp
                             ? $warmUpSteps->get($set->set_index + 1)
                             : null;
+
+                        $isLastExerciseInCircuit = $block->isCircuit() && $exercise->id === $lastExerciseId;
+                        $restSeconds = $block->isCircuit()
+                            ? ($isLastExerciseInCircuit ? ($group->rest_seconds ?? 60) : ($block->stage_rest_seconds ?? 15))
+                            : ($group->rest_seconds ?? 0);
 
                         return WorkoutPlayerSetData::fromSet(
                             $set,
@@ -69,9 +80,11 @@ class WorkoutPlayerBlockData extends Data
                             $exercise->working_weight_g,
                             $exercise->prescribed_reps,
                             $group->type,
-                            $group->rest_seconds ?? 0,
+                            $restSeconds,
                             $warmUpStep,
                             $defaultBarWeightG,
+                            $exercise->prescription_mode ?? PrescriptionMode::Reps,
+                            $exercise->prescribed_duration_seconds,
                         );
                     });
             })
@@ -86,10 +99,12 @@ class WorkoutPlayerBlockData extends Data
             hasSetupAfter: $block->has_setup_after,
             hasSetupAfterWarmUp: $block->has_setup_after_warm_up,
             exercises: WorkoutPlayerExerciseData::collect(
-                $block->blockExercises->map(fn (WorkoutBlockExercise $exercise): WorkoutPlayerExerciseData => WorkoutPlayerExerciseData::fromBlockExercise($exercise)),
+                $sortedExercises->map(fn (WorkoutBlockExercise $exercise): WorkoutPlayerExerciseData => WorkoutPlayerExerciseData::fromBlockExercise($exercise)),
                 DataCollection::class,
             ),
             sets: WorkoutPlayerSetData::collect($setRows, DataCollection::class),
+            type: ($block->type ?? ($block->is_superset ? BlockType::Superset : BlockType::Single))->value,
+            stageRestSeconds: $block->stage_rest_seconds,
         );
     }
 }

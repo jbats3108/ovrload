@@ -236,12 +236,22 @@ final readonly class WorkoutService
      */
     public function completeSet(
         WorkoutSet $set,
-        int $reps,
+        ?int $reps = null,
         ?int $weightGrams = null,
         ?array $segmentWeightGrams = null,
         ?array $plateStack = null,
+        ?int $durationSeconds = null,
+        bool $isSkipped = false,
     ): WorkoutSet {
-        return $this->sessions->completeSet($set, $reps, $weightGrams, $segmentWeightGrams, $plateStack);
+        return $this->sessions->completeSet(
+            $set,
+            $reps,
+            $weightGrams,
+            $segmentWeightGrams,
+            $plateStack,
+            $durationSeconds,
+            $isSkipped,
+        );
     }
 
     /**
@@ -296,6 +306,14 @@ final readonly class WorkoutService
     public function removeWorkingSetRound(WorkoutSet $set): void
     {
         $this->sessions->removeWorkingSetRound($set);
+    }
+
+    /**
+     * @throws WorkoutServiceException
+     */
+    public function skipRound(WorkoutBlock $block, int $roundIndex): void
+    {
+        $this->sessions->skipRound($block, $roundIndex);
     }
 
     /**

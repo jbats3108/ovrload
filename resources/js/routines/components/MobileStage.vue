@@ -33,6 +33,12 @@ const {
     exerciseName,
     removeBlock,
     addBlock,
+    addCircuitExercise,
+    removeCircuitExercise,
+    moveCircuitExercise,
+    setPrescriptionMode,
+    setExerciseDuration,
+    setBlockStageRest,
     trimDropsetsToSetCount,
     formatRest,
     warmUpText,
@@ -86,8 +92,8 @@ const openExercisePane = (blockIndex: number, exerciseIndex = 0): void => {
     selectBlockExercise(blockIndex, exerciseIndex);
 };
 
-const addExerciseBlock = (superset: boolean): void => {
-    addBlock(superset);
+const addExerciseBlock = (type: 'single' | 'superset' | 'circuit' | boolean): void => {
+    addBlock(type);
     openExercisePane(form.blocks.length - 1);
 };
 
@@ -140,8 +146,10 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                     "
                     @click="openExercisePane(i)"
                 >
-                    <div class="font-mono text-xs">{{ i + 1 }}{{ b.is_superset ? ' SS' : '' }}</div>
-                    <div class="max-w-28 truncate">{{ exerciseName(b.exercises[0]?.exercise_id) }}</div>
+                    <div class="font-mono text-xs">{{ i + 1 }}{{ b.type === 'circuit' ? ' Circuit' : b.is_superset ? ' SS' : '' }}</div>
+                    <div class="max-w-28 truncate">
+                        {{ exerciseName(b.exercises[0]?.exercise_id) }}{{ b.type === 'circuit' ? ` +${b.exercises.length - 1}` : '' }}
+                    </div>
                 </button>
             </div>
         </div>
@@ -184,342 +192,576 @@ const onCustomiseSharedRecipe = (block: Block): void => {
             <div class="flex gap-2">
                 <button
                     type="button"
-                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addExerciseBlock(false)"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock('single')"
                 >
-                    Add exercise
+                    + Exercise
                 </button>
                 <button
                     type="button"
-                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addExerciseBlock(true)"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock('superset')"
                 >
-                    Add superset
+                    + Superset
+                </button>
+                <button
+                    type="button"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    data-add-circuit-mobile
+                    @click="addExerciseBlock('circuit')"
+                >
+                    + Circuit
                 </button>
             </div>
         </main>
 
         <main v-else-if="activeBlock" class="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-4">
             <div class="rounded-2xl border border-border bg-card p-4">
-                <div class="mb-3 flex items-center justify-between">
-                    <h2 class="text-base font-semibold">
-                        Exercise {{ active + 1 }}
-                        <span v-if="activeBlock.is_superset" class="ml-2 text-sm font-normal text-primary">Superset</span>
-                    </h2>
-                    <button type="button" class="text-xs text-destructive" @click="removeBlock(active)">Remove</button>
-                </div>
-
-                <div v-for="(ex, ei) in activeBlock.exercises" :key="ei" class="mb-4 last:mb-0">
-                    <p v-if="activeBlock.is_superset" class="mb-1 font-mono text-xs text-muted-foreground">
-                        {{ ei === 0 ? 'A' : 'B' }}
-                    </p>
-                    <ExercisePicker
-                        v-model="ex.exercise_id"
-                        variant="mobile"
-                        :active="ei === activeExerciseIndex"
-                        @open="openExercisePane(active, ei)"
-                    />
-                    <div class="mt-2 grid grid-cols-2 gap-2">
-                        <label class="block">
-                            <span class="text-xs text-muted-foreground">Working kg</span>
-                            <input
-                                v-model.number="ex.working_weight_kg"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                inputmode="decimal"
-                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-2xl font-semibold tabular-nums outline-none focus:border-primary"
-                            />
-                        </label>
-                        <ExerciseProfilePicker
-                            :model-value="ex.exercise_profile_id ?? null"
-                            :profiles="profileOptions"
-                            variant="compact"
-                            :required="false"
-                            label="Profile"
-                            :outdated="exerciseProfileIsOutdated(activeBlock, ei)"
-                            @update:model-value="applyProfile(activeBlock, $event, ei)"
-                        />
+                <!-- CIRCUIT BLOCK VIEW -->
+                <template v-if="activeBlock.type === 'circuit'">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h2 class="text-base font-semibold">Circuit {{ active + 1 }}</h2>
+                        <button type="button" class="text-xs text-destructive" @click="removeBlock(active)">Remove</button>
                     </div>
 
-                    <template v-if="exerciseRecipeIsCustom(ex)">
-                        <div class="mt-2 grid grid-cols-2 gap-2">
+                    <div class="mb-4 rounded-xl border border-border/70 bg-background/50 p-3">
+                        <div class="grid grid-cols-2 gap-2">
                             <label class="block">
-                                <span class="text-xs text-muted-foreground">Target reps</span>
+                                <span class="text-xs text-muted-foreground">Rounds</span>
                                 <input
-                                    :value="ex.prescribed_reps"
+                                    v-model.number="activeBlock.working.set_count"
                                     type="number"
                                     min="1"
-                                    max="100"
-                                    data-exercise-target
                                     class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                    @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
                                 />
                             </label>
                             <label class="block">
-                                <span class="text-xs text-muted-foreground">Floor</span>
+                                <span class="text-xs text-muted-foreground"
+                                    >Station rest ({{ formatRest(activeBlock.stage_rest_seconds ?? 15) }})</span
+                                >
                                 <input
-                                    :value="ex.achievement_floor ?? ''"
+                                    :value="activeBlock.stage_rest_seconds ?? 15"
                                     type="number"
-                                    min="1"
-                                    max="100"
-                                    data-exercise-floor
-                                    :placeholder="exerciseFloorPlaceholder(activeBlock, ei)"
+                                    min="0"
+                                    max="3600"
+                                    step="5"
+                                    data-circuit-station-rest-mobile
                                     class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                    @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
+                                    @input="setBlockStageRest(activeBlock, ($event.target as HTMLInputElement).value)"
                                 />
                             </label>
                         </div>
-                        <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            <span class="self-center text-[10px] text-muted-foreground">Presets:</span>
                             <button
+                                v-for="preset in [0, 15, 30, 45]"
+                                :key="preset"
                                 type="button"
-                                class="text-left text-xs text-primary underline-offset-2 hover:underline"
-                                @click="openSaveProfile(activeBlock, ei)"
+                                class="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] hover:bg-muted"
+                                @click="setBlockStageRest(activeBlock, preset)"
                             >
-                                Save as profile
-                            </button>
-                            <button
-                                v-if="hasExerciseCustomiseSnapshot(activeBlock, ei)"
-                                type="button"
-                                class="text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
-                                data-cancel-customise-exercise
-                                @click="cancelExerciseCustomise(activeBlock, ei)"
-                            >
-                                Cancel
+                                {{ preset }}s
                             </button>
                         </div>
-                    </template>
-                    <div v-else class="mt-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2">
-                        <p class="font-mono text-sm text-foreground">
-                            {{ formatExerciseTargetFloorSummary(ex, exerciseFloorPlaceholder(activeBlock, ei)) }}
-                        </p>
-                        <p class="mt-0.5 text-xs text-muted-foreground">From profile — tap Customise to override.</p>
-                        <button
-                            type="button"
-                            class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
-                            data-customise-exercise
-                            @click="customiseExercise(activeBlock, ei)"
-                        >
-                            Customise
-                        </button>
-                    </div>
-
-                    <DeloadAlternateFields
-                        :deload-exercise-id="ex.deload_exercise_id"
-                        :deload-working-weight-kg="ex.deload_working_weight_kg"
-                        :working-weight-kg="ex.working_weight_kg"
-                        variant="mobile"
-                        @update:deload-exercise-id="ex.deload_exercise_id = $event"
-                        @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
-                    />
-                </div>
-                <p v-if="activeBlock.exercises.some(exerciseRecipeIsCustom)" class="mt-1 text-xs text-muted-foreground">
-                    Blank Floor uses that exercise's profile. Custom exercises fall back to Preferences. Weight bumps follow the exercise Target reps.
-                </p>
-
-                <div class="grid grid-cols-2 gap-2 border-t border-border pt-3">
-                    <label>
-                        <span class="text-xs text-muted-foreground">Working sets</span>
-                        <input
-                            v-model.number="activeBlock.working.set_count"
-                            type="number"
-                            min="1"
-                            class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                            @change="trimDropsetsToSetCount(activeBlock)"
-                        />
-                    </label>
-                    <div v-if="blockSharedRecipeIsCustom(activeBlock)">
-                        <label>
-                            <span class="text-xs text-muted-foreground">Rest</span>
-                            <details class="mt-1">
-                                <summary class="cursor-pointer rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg">
-                                    {{ formatRest(activeBlock.working.rest_seconds) }}
-                                    <span v-if="sharedProfileIsOutdated(activeBlock)" class="text-sm text-amber-400">· Update available</span>
-                                </summary>
+                        <div class="mt-3 border-t border-border/50 pt-2">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Round rest ({{ formatRest(activeBlock.working.rest_seconds) }})</span>
                                 <input
                                     v-model.number="activeBlock.working.rest_seconds"
                                     type="number"
                                     min="0"
                                     max="3600"
                                     step="15"
+                                    data-circuit-round-rest-mobile
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                />
+                            </label>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                <span class="self-center text-[10px] text-muted-foreground">Presets:</span>
+                                <button
+                                    v-for="preset in [30, 60, 90, 120]"
+                                    :key="preset"
+                                    type="button"
+                                    class="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] hover:bg-muted"
+                                    @click="activeBlock.working.rest_seconds = preset"
+                                >
+                                    {{ preset }}s
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-for="(ex, ei) in activeBlock.exercises"
+                        :key="ei"
+                        class="mb-4 rounded-xl border border-border/60 bg-background/40 p-3 last:mb-0"
+                    >
+                        <div class="mb-2 flex items-center justify-between">
+                            <span class="font-mono text-xs font-semibold text-primary">Station {{ ei + 1 }}</span>
+                            <div class="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    title="Move up"
+                                    :disabled="ei === 0"
+                                    class="rounded p-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-30"
+                                    @click="moveCircuitExercise(activeBlock, ei, ei - 1)"
+                                >
+                                    ↑
+                                </button>
+                                <button
+                                    type="button"
+                                    title="Move down"
+                                    :disabled="ei === activeBlock.exercises.length - 1"
+                                    class="rounded p-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-30"
+                                    @click="moveCircuitExercise(activeBlock, ei, ei + 1)"
+                                >
+                                    ↓
+                                </button>
+                                <button
+                                    type="button"
+                                    title="Remove station"
+                                    :disabled="activeBlock.exercises.length <= 3"
+                                    class="rounded p-1 text-xs text-muted-foreground hover:text-destructive disabled:opacity-30"
+                                    @click="removeCircuitExercise(activeBlock, ei)"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                        <ExercisePicker
+                            v-model="ex.exercise_id"
+                            variant="mobile"
+                            :active="ei === activeExerciseIndex"
+                            @open="openExercisePane(active, ei)"
+                        />
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Working kg</span>
+                                <input
+                                    v-model.number="ex.working_weight_kg"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    inputmode="decimal"
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-2xl font-semibold tabular-nums outline-none focus:border-primary"
+                                />
+                            </label>
+                            <div class="flex flex-col justify-end">
+                                <span class="mb-1 text-xs text-muted-foreground">Prescription</span>
+                                <div class="flex h-11 items-center gap-1">
+                                    <button
+                                        type="button"
+                                        class="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
+                                        :class="
+                                            ex.prescription_mode !== 'duration'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'border border-border text-muted-foreground hover:bg-muted'
+                                        "
+                                        @click="setPrescriptionMode(ex, 'reps')"
+                                    >
+                                        Reps
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
+                                        :class="
+                                            ex.prescription_mode === 'duration'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'border border-border text-muted-foreground hover:bg-muted'
+                                        "
+                                        @click="setPrescriptionMode(ex, 'duration')"
+                                    >
+                                        Time
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="ex.prescription_mode === 'duration'" class="mt-2 rounded-xl border border-border/70 bg-background/50 p-2.5">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Duration (seconds)</span>
+                                <input
+                                    :value="ex.prescribed_duration_seconds ?? 30"
+                                    type="number"
+                                    min="1"
+                                    max="3600"
+                                    data-exercise-duration-mobile
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                    @input="setExerciseDuration(ex, ($event.target as HTMLInputElement).value)"
+                                />
+                            </label>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                <button
+                                    v-for="preset in [15, 30, 45, 60]"
+                                    :key="preset"
+                                    type="button"
+                                    class="rounded border border-border px-2 py-1 font-mono text-xs hover:bg-muted"
+                                    @click="setExerciseDuration(ex, preset)"
+                                >
+                                    {{ preset }}s
+                                </button>
+                            </div>
+                        </div>
+                        <div v-else class="mt-2">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Target reps</span>
+                                <input
+                                    :value="ex.prescribed_reps ?? 10"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    data-exercise-target-mobile
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                    @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="mt-2 w-full rounded-xl border border-dashed border-border py-2.5 text-center text-xs font-medium text-primary hover:bg-muted"
+                        data-add-circuit-station-mobile
+                        @click="addCircuitExercise(activeBlock)"
+                    >
+                        + Add exercise to circuit
+                    </button>
+
+                    <div class="mt-3 border-t border-border pt-3">
+                        <BlockSetupOptions :block-index="active" variant="mobile" />
+                    </div>
+                </template>
+
+                <!-- SINGLE / SUPERSET BLOCK VIEW -->
+                <template v-else>
+                    <div class="mb-3 flex items-center justify-between">
+                        <h2 class="text-base font-semibold">
+                            Exercise {{ active + 1 }}
+                            <span v-if="activeBlock.is_superset" class="ml-2 text-sm font-normal text-primary">Superset</span>
+                        </h2>
+                        <button type="button" class="text-xs text-destructive" @click="removeBlock(active)">Remove</button>
+                    </div>
+
+                    <div v-for="(ex, ei) in activeBlock.exercises" :key="ei" class="mb-4 last:mb-0">
+                        <p v-if="activeBlock.is_superset" class="mb-1 font-mono text-xs text-muted-foreground">
+                            {{ ei === 0 ? 'A' : 'B' }}
+                        </p>
+                        <ExercisePicker
+                            v-model="ex.exercise_id"
+                            variant="mobile"
+                            :active="ei === activeExerciseIndex"
+                            @open="openExercisePane(active, ei)"
+                        />
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Working kg</span>
+                                <input
+                                    v-model.number="ex.working_weight_kg"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    inputmode="decimal"
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-2xl font-semibold tabular-nums outline-none focus:border-primary"
+                                />
+                            </label>
+                            <ExerciseProfilePicker
+                                :model-value="ex.exercise_profile_id ?? null"
+                                :profiles="profileOptions"
+                                variant="compact"
+                                :required="false"
+                                label="Profile"
+                                :outdated="exerciseProfileIsOutdated(activeBlock, ei)"
+                                @update:model-value="applyProfile(activeBlock, $event, ei)"
+                            />
+                        </div>
+
+                        <template v-if="exerciseRecipeIsCustom(ex)">
+                            <div class="mt-2 grid grid-cols-2 gap-2">
+                                <label class="block">
+                                    <span class="text-xs text-muted-foreground">Target reps</span>
+                                    <input
+                                        :value="ex.prescribed_reps"
+                                        type="number"
+                                        min="1"
+                                        max="100"
+                                        data-exercise-target
+                                        class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                        @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
+                                    />
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs text-muted-foreground">Floor</span>
+                                    <input
+                                        :value="ex.achievement_floor ?? ''"
+                                        type="number"
+                                        min="1"
+                                        max="100"
+                                        data-exercise-floor
+                                        :placeholder="exerciseFloorPlaceholder(activeBlock, ei)"
+                                        class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                        @input="setExerciseFloor(ex, ($event.target as HTMLInputElement).value)"
+                                    />
+                                </label>
+                            </div>
+                            <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                                <button
+                                    type="button"
+                                    class="text-left text-xs text-primary underline-offset-2 hover:underline"
+                                    @click="openSaveProfile(activeBlock, ei)"
+                                >
+                                    Save as profile
+                                </button>
+                                <button
+                                    v-if="hasExerciseCustomiseSnapshot(activeBlock, ei)"
+                                    type="button"
+                                    class="text-left text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                    data-cancel-customise-exercise
+                                    @click="cancelExerciseCustomise(activeBlock, ei)"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </template>
+                        <div v-else class="mt-2 rounded-xl border border-border/60 bg-background/50 px-3 py-2">
+                            <p class="font-mono text-sm text-foreground">
+                                {{ formatExerciseTargetFloorSummary(ex, exerciseFloorPlaceholder(activeBlock, ei)) }}
+                            </p>
+                            <p class="mt-0.5 text-xs text-muted-foreground">From profile — tap Customise to override.</p>
+                            <button
+                                type="button"
+                                class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
+                                data-customise-exercise
+                                @click="customiseExercise(activeBlock, ei)"
+                            >
+                                Customise
+                            </button>
+                        </div>
+
+                        <DeloadAlternateFields
+                            :deload-exercise-id="ex.deload_exercise_id"
+                            :deload-working-weight-kg="ex.deload_working_weight_kg"
+                            :working-weight-kg="ex.working_weight_kg"
+                            variant="mobile"
+                            @update:deload-exercise-id="ex.deload_exercise_id = $event"
+                            @update:deload-working-weight-kg="ex.deload_working_weight_kg = $event"
+                        />
+                    </div>
+                    <p v-if="activeBlock.exercises.some(exerciseRecipeIsCustom)" class="mt-1 text-xs text-muted-foreground">
+                        Blank Floor uses that exercise's profile. Custom exercises fall back to Preferences. Weight bumps follow the exercise Target
+                        reps.
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-2 border-t border-border pt-3">
+                        <label>
+                            <span class="text-xs text-muted-foreground">Working sets</span>
+                            <input
+                                v-model.number="activeBlock.working.set_count"
+                                type="number"
+                                min="1"
+                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                @change="trimDropsetsToSetCount(activeBlock)"
+                            />
+                        </label>
+                        <div v-if="blockSharedRecipeIsCustom(activeBlock)">
+                            <label>
+                                <span class="text-xs text-muted-foreground">Rest</span>
+                                <details class="mt-1">
+                                    <summary class="cursor-pointer rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg">
+                                        {{ formatRest(activeBlock.working.rest_seconds) }}
+                                        <span v-if="sharedProfileIsOutdated(activeBlock)" class="text-sm text-amber-400">· Update available</span>
+                                    </summary>
+                                    <input
+                                        v-model.number="activeBlock.working.rest_seconds"
+                                        type="number"
+                                        min="0"
+                                        max="3600"
+                                        step="15"
+                                        class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                        @input="markSharedCustom(activeBlock)"
+                                    />
+                                </details>
+                            </label>
+                            <button
+                                v-if="hasSharedCustomiseSnapshot(activeBlock)"
+                                type="button"
+                                class="mt-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                                data-cancel-customise-shared
+                                @click="cancelSharedCustomise(activeBlock)"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                        <div v-else class="flex flex-col justify-center">
+                            <span class="text-xs text-muted-foreground">Rest</span>
+                            <p class="mt-1 font-mono text-lg text-foreground">{{ formatRest(activeBlock.working.rest_seconds) }}</p>
+                            <p v-if="sharedProfileIsOutdated(activeBlock)" class="text-xs text-amber-400">Update available</p>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="!blockSharedRecipeIsCustom(activeBlock)"
+                        class="mt-3 rounded-xl border border-border/60 bg-background/50 px-3 py-2"
+                        data-shared-recipe-summary
+                    >
+                        <p class="truncate font-mono text-sm text-foreground">{{ formatBlockSharedRecipeSummary(activeBlock) }}</p>
+                        <p class="mt-0.5 text-xs text-muted-foreground">Rest &amp; warm-up from profile.</p>
+                        <button
+                            type="button"
+                            class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
+                            data-customise-shared
+                            @click="onCustomiseSharedRecipe(activeBlock)"
+                        >
+                            Customise
+                        </button>
+                    </div>
+
+                    <EditorDisclosure
+                        v-if="!activeBlock.is_superset"
+                        data-dropset-editor
+                        :expanded="dropsetsExpanded"
+                        label="Dropsets"
+                        :summary="dropsetSummary(activeBlock) || 'None'"
+                        @toggle="toggleDropsetsExpanded"
+                    >
+                        <DropsetEditor :block="activeBlock" variant="mobile" />
+                    </EditorDisclosure>
+
+                    <EditorDisclosure
+                        v-if="blockSharedRecipeIsCustom(activeBlock)"
+                        :expanded="warmUpExpanded"
+                        label="Warm-up"
+                        :summary="activeBlock.warm_up.steps.length ? warmUpText(activeBlock) : 'None'"
+                        @toggle="toggleWarmUpExpanded"
+                    >
+                        <div class="space-y-2">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Compact (40%×5, 60%×3)</span>
+                                <input
+                                    :value="warmUpText(activeBlock)"
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm text-primary/90"
+                                    @change="
+                                        markSharedCustom(activeBlock);
+                                        setWarmUpText(activeBlock, ($event.target as HTMLInputElement).value);
+                                    "
+                                />
+                            </label>
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Warm-up rest ({{ formatRest(activeBlock.warm_up.rest_seconds) }})</span>
+                                <input
+                                    v-model.number="activeBlock.warm_up.rest_seconds"
+                                    type="number"
+                                    min="0"
+                                    step="15"
                                     class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
                                     @input="markSharedCustom(activeBlock)"
                                 />
-                            </details>
-                        </label>
-                        <button
-                            v-if="hasSharedCustomiseSnapshot(activeBlock)"
-                            type="button"
-                            class="mt-1 text-xs text-muted-foreground underline-offset-2 hover:underline"
-                            data-cancel-customise-shared
-                            @click="cancelSharedCustomise(activeBlock)"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                    <div v-else class="flex flex-col justify-center">
-                        <span class="text-xs text-muted-foreground">Rest</span>
-                        <p class="mt-1 font-mono text-lg text-foreground">{{ formatRest(activeBlock.working.rest_seconds) }}</p>
-                        <p v-if="sharedProfileIsOutdated(activeBlock)" class="text-xs text-amber-400">Update available</p>
-                    </div>
-                </div>
-
-                <div
-                    v-if="!blockSharedRecipeIsCustom(activeBlock)"
-                    class="mt-3 rounded-xl border border-border/60 bg-background/50 px-3 py-2"
-                    data-shared-recipe-summary
-                >
-                    <p class="truncate font-mono text-sm text-foreground">{{ formatBlockSharedRecipeSummary(activeBlock) }}</p>
-                    <p class="mt-0.5 text-xs text-muted-foreground">Rest &amp; warm-up from profile.</p>
-                    <button
-                        type="button"
-                        class="mt-1 text-xs text-primary underline-offset-2 hover:underline"
-                        data-customise-shared
-                        @click="onCustomiseSharedRecipe(activeBlock)"
-                    >
-                        Customise
-                    </button>
-                </div>
-
-                <EditorDisclosure
-                    v-if="!activeBlock.is_superset"
-                    data-dropset-editor
-                    :expanded="dropsetsExpanded"
-                    label="Dropsets"
-                    :summary="dropsetSummary(activeBlock) || 'None'"
-                    @toggle="toggleDropsetsExpanded"
-                >
-                    <DropsetEditor :block="activeBlock" variant="mobile" />
-                </EditorDisclosure>
-
-                <EditorDisclosure
-                    v-if="blockSharedRecipeIsCustom(activeBlock)"
-                    :expanded="warmUpExpanded"
-                    label="Warm-up"
-                    :summary="activeBlock.warm_up.steps.length ? warmUpText(activeBlock) : 'None'"
-                    @toggle="toggleWarmUpExpanded"
-                >
-                    <div class="space-y-2">
-                        <label class="block">
-                            <span class="text-xs text-muted-foreground">Compact (40%×5, 60%×3)</span>
-                            <input
-                                :value="warmUpText(activeBlock)"
-                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm text-primary/90"
-                                @change="
-                                    markSharedCustom(activeBlock);
-                                    setWarmUpText(activeBlock, ($event.target as HTMLInputElement).value);
-                                "
-                            />
-                        </label>
-                        <label class="block">
-                            <span class="text-xs text-muted-foreground">Warm-up rest ({{ formatRest(activeBlock.warm_up.rest_seconds) }})</span>
-                            <input
-                                v-model.number="activeBlock.warm_up.rest_seconds"
-                                type="number"
-                                min="0"
-                                step="15"
-                                class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
-                                @input="markSharedCustom(activeBlock)"
-                            />
-                        </label>
-                        <div v-for="(step, si) in activeBlock.warm_up.steps" :key="si" class="flex items-center gap-1.5">
-                            <select
-                                v-model="step.mode"
-                                class="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
-                                aria-label="Warm-up mode"
-                                @change="
-                                    if (step.mode === 'bar') step.percent = undefined;
-                                    else if (step.percent == null) step.percent = 50;
-                                    markSharedCustom(activeBlock);
-                                "
-                            >
-                                <option value="percent">%</option>
-                                <option value="bar">Bar</option>
-                            </select>
-                            <input
-                                v-if="(step.mode ?? 'percent') === 'percent'"
-                                v-model.number="step.percent"
-                                type="number"
-                                min="1"
-                                max="100"
-                                class="w-16 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
-                                aria-label="Warm-up percent"
-                                @input="markSharedCustom(activeBlock)"
-                            />
-                            <span class="text-xs text-muted-foreground">×</span>
-                            <input
-                                v-model.number="step.reps"
-                                type="number"
-                                min="1"
-                                max="100"
-                                class="w-14 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
-                                aria-label="Warm-up reps"
-                                @input="markSharedCustom(activeBlock)"
-                            />
-                            <label
-                                v-if="si < activeBlock.warm_up.steps.length - 1"
-                                class="flex items-center gap-1 text-xs text-muted-foreground"
-                                title="Setup after this warm-up"
-                            >
-                                <input v-model="step.has_setup_after" type="checkbox" />
-                                Setup
                             </label>
-                            <button
-                                type="button"
-                                class="ml-auto text-xs text-muted-foreground hover:text-destructive"
-                                @click="
-                                    markSharedCustom(activeBlock);
-                                    removeWarmUpStep(activeBlock, si);
-                                "
-                            >
-                                −
-                            </button>
+                            <div v-for="(step, si) in activeBlock.warm_up.steps" :key="si" class="flex items-center gap-1.5">
+                                <select
+                                    v-model="step.mode"
+                                    class="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
+                                    aria-label="Warm-up mode"
+                                    @change="
+                                        if (step.mode === 'bar') step.percent = undefined;
+                                        else if (step.percent == null) step.percent = 50;
+                                        markSharedCustom(activeBlock);
+                                    "
+                                >
+                                    <option value="percent">%</option>
+                                    <option value="bar">Bar</option>
+                                </select>
+                                <input
+                                    v-if="(step.mode ?? 'percent') === 'percent'"
+                                    v-model.number="step.percent"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    class="w-16 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
+                                    aria-label="Warm-up percent"
+                                    @input="markSharedCustom(activeBlock)"
+                                />
+                                <span class="text-xs text-muted-foreground">×</span>
+                                <input
+                                    v-model.number="step.reps"
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    class="w-14 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
+                                    aria-label="Warm-up reps"
+                                    @input="markSharedCustom(activeBlock)"
+                                />
+                                <label
+                                    v-if="si < activeBlock.warm_up.steps.length - 1"
+                                    class="flex items-center gap-1 text-xs text-muted-foreground"
+                                    title="Setup after this warm-up"
+                                >
+                                    <input v-model="step.has_setup_after" type="checkbox" />
+                                    Setup
+                                </label>
+                                <button
+                                    type="button"
+                                    class="ml-auto text-xs text-muted-foreground hover:text-destructive"
+                                    @click="
+                                        markSharedCustom(activeBlock);
+                                        removeWarmUpStep(activeBlock, si);
+                                    "
+                                >
+                                    −
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    class="text-xs text-primary"
+                                    @click="
+                                        markSharedCustom(activeBlock);
+                                        addWarmUpStep(activeBlock);
+                                    "
+                                >
+                                    + Step
+                                </button>
+                                <button
+                                    v-if="activeBlock.warm_up.steps.length"
+                                    type="button"
+                                    class="text-xs text-muted-foreground hover:text-destructive"
+                                    @click="
+                                        markSharedCustom(activeBlock);
+                                        clearWarmUp(activeBlock);
+                                    "
+                                >
+                                    Clear warm-up
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <button
-                                type="button"
-                                class="text-xs text-primary"
-                                @click="
-                                    markSharedCustom(activeBlock);
-                                    addWarmUpStep(activeBlock);
-                                "
-                            >
-                                + Step
-                            </button>
-                            <button
-                                v-if="activeBlock.warm_up.steps.length"
-                                type="button"
-                                class="text-xs text-muted-foreground hover:text-destructive"
-                                @click="
-                                    markSharedCustom(activeBlock);
-                                    clearWarmUp(activeBlock);
-                                "
-                            >
-                                Clear warm-up
-                            </button>
-                        </div>
-                    </div>
-                </EditorDisclosure>
+                    </EditorDisclosure>
 
-                <div class="mt-3 border-t border-border pt-3">
-                    <BlockSetupOptions :block-index="active" variant="mobile" />
-                </div>
+                    <div class="mt-3 border-t border-border pt-3">
+                        <BlockSetupOptions :block-index="active" variant="mobile" />
+                    </div>
+                </template>
             </div>
 
             <div class="flex gap-2">
                 <button
                     type="button"
-                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addExerciseBlock(false)"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock('single')"
                 >
-                    Add exercise
+                    + Exercise
                 </button>
                 <button
                     type="button"
-                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addExerciseBlock(true)"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock('superset')"
                 >
-                    Add superset
+                    + Superset
+                </button>
+                <button
+                    type="button"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    data-add-circuit-mobile
+                    @click="addExerciseBlock('circuit')"
+                >
+                    + Circuit
                 </button>
             </div>
         </main>
@@ -529,17 +771,25 @@ const onCustomiseSharedRecipe = (block: Block): void => {
             <div class="flex gap-2">
                 <button
                     type="button"
-                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addExerciseBlock(false)"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock('single')"
                 >
-                    Add exercise
+                    + Exercise
                 </button>
                 <button
                     type="button"
-                    class="flex-1 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary"
-                    @click="addExerciseBlock(true)"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    @click="addExerciseBlock('superset')"
                 >
-                    Add superset
+                    + Superset
+                </button>
+                <button
+                    type="button"
+                    class="flex-1 rounded-xl border border-dashed border-border px-3 py-3 text-center text-sm text-muted-foreground hover:border-primary hover:text-primary"
+                    data-add-circuit-mobile
+                    @click="addExerciseBlock('circuit')"
+                >
+                    + Circuit
                 </button>
             </div>
         </div>

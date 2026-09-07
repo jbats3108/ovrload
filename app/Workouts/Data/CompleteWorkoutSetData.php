@@ -9,7 +9,6 @@ use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Attributes\Validation\Nullable;
-use Spatie\LaravelData\Attributes\Validation\RequiredWithout;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\DataCollection;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -21,11 +20,13 @@ class CompleteWorkoutSetData extends Data
      * @param  DataCollection<int, WeightKgSegmentData>|null  $segments
      */
     public function __construct(
-        #[Min(0), Max(100)]
-        public readonly int $reps,
+        #[Nullable, Min(0), Max(100)]
+        public readonly ?int $reps = null,
+
+        #[Nullable, Min(0), Max(3600)]
+        public readonly ?int $durationSeconds = null,
 
         #[Nullable, Min(0)]
-        #[RequiredWithout('segments')]
         public readonly ?float $weightKg = null,
 
         #[Nullable]
@@ -35,6 +36,8 @@ class CompleteWorkoutSetData extends Data
 
         #[Nullable]
         public readonly ?PlateStackData $plateStack = null,
+
+        public readonly bool $isSkipped = false,
     ) {}
 
     public function weightGrams(): ?int

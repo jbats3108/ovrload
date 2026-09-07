@@ -30,6 +30,12 @@ const {
     removeWarmUpStep,
     removeBlock,
     addBlock,
+    addCircuitExercise,
+    removeCircuitExercise,
+    moveCircuitExercise,
+    setPrescriptionMode,
+    setExerciseDuration,
+    setBlockStageRest,
     trimDropsetsToSetCount,
     dropsetSummary,
     profileOptions,
@@ -104,12 +110,18 @@ const toggleDropsets = (blockIndex: number): void => {
                         >
                             <td class="px-2 py-2 font-mono text-muted-foreground">
                                 {{ ei === 0 ? bi + 1 : '' }}
+                                <span v-if="block.type === 'circuit' && ei === 0" class="block font-mono text-[10px] font-semibold text-primary"
+                                    >CCT</span
+                                >
                             </td>
                             <td class="px-2 py-2 align-top">
                                 <div class="flex w-full min-w-0 flex-col gap-1.5" @click.stop>
                                     <div class="flex w-full min-w-0 items-center gap-2">
                                         <span v-if="block.is_superset" class="shrink-0 font-mono text-xs text-primary">{{
                                             ei === 0 ? 'A' : 'B'
+                                        }}</span>
+                                        <span v-else-if="block.type === 'circuit'" class="shrink-0 font-mono text-xs font-semibold text-primary">{{
+                                            ei + 1
                                         }}</span>
                                         <div class="min-w-0 flex-1">
                                             <ExercisePicker
@@ -119,8 +131,38 @@ const toggleDropsets = (blockIndex: number): void => {
                                                 @open="selectBlockExercise(bi, ei)"
                                             />
                                         </div>
+                                        <div v-if="block.type === 'circuit'" class="flex shrink-0 items-center gap-1">
+                                            <button
+                                                type="button"
+                                                title="Move up"
+                                                :disabled="ei === 0"
+                                                class="rounded px-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-30"
+                                                @click="moveCircuitExercise(block, ei, ei - 1)"
+                                            >
+                                                ↑
+                                            </button>
+                                            <button
+                                                type="button"
+                                                title="Move down"
+                                                :disabled="ei === block.exercises.length - 1"
+                                                class="rounded px-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-30"
+                                                @click="moveCircuitExercise(block, ei, ei + 1)"
+                                            >
+                                                ↓
+                                            </button>
+                                            <button
+                                                type="button"
+                                                title="Remove from circuit"
+                                                :disabled="block.exercises.length <= 3"
+                                                class="rounded px-1 text-xs text-muted-foreground hover:text-destructive disabled:opacity-30"
+                                                @click="removeCircuitExercise(block, ei)"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
                                     </div>
                                     <DeloadAlternateFields
+                                        v-if="block.type !== 'circuit'"
                                         :deload-exercise-id="ex.deload_exercise_id"
                                         :deload-working-weight-kg="ex.deload_working_weight_kg"
                                         :working-weight-kg="ex.working_weight_kg"
@@ -142,7 +184,74 @@ const toggleDropsets = (blockIndex: number): void => {
                                 />
                             </td>
                             <td class="px-2 py-2 align-top">
-                                <div class="flex min-w-0 flex-col gap-1.5" @click.stop>
+                                <div v-if="block.type === 'circuit'" class="flex min-w-0 flex-col gap-1.5" @click.stop>
+                                    <div class="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
+                                            :class="
+                                                ex.prescription_mode !== 'duration'
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'border border-border text-muted-foreground hover:bg-muted'
+                                            "
+                                            @click="setPrescriptionMode(ex, 'reps')"
+                                        >
+                                            Reps
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="rounded px-2 py-0.5 text-xs font-medium transition-colors"
+                                            :class="
+                                                ex.prescription_mode === 'duration'
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'border border-border text-muted-foreground hover:bg-muted'
+                                            "
+                                            @click="setPrescriptionMode(ex, 'duration')"
+                                        >
+                                            Time
+                                        </button>
+                                    </div>
+                                    <div v-if="ex.prescription_mode === 'duration'" class="rounded border border-border/70 bg-card/50 px-2 py-1.5">
+                                        <label class="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+                                            Duration (s)
+                                            <input
+                                                :value="ex.prescribed_duration_seconds ?? 30"
+                                                type="number"
+                                                min="1"
+                                                max="3600"
+                                                data-exercise-duration
+                                                class="h-8 w-20 rounded border border-border bg-card px-1.5 font-mono text-sm"
+                                                @input="setExerciseDuration(ex, ($event.target as HTMLInputElement).value)"
+                                            />
+                                        </label>
+                                        <div class="mt-1.5 flex flex-wrap gap-1">
+                                            <button
+                                                v-for="preset in [15, 30, 45, 60]"
+                                                :key="preset"
+                                                type="button"
+                                                class="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] hover:bg-muted"
+                                                @click="setExerciseDuration(ex, preset)"
+                                            >
+                                                {{ preset }}s
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-else class="rounded border border-border/70 bg-card/50 px-2 py-1.5">
+                                        <label class="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+                                            Target reps
+                                            <input
+                                                :value="ex.prescribed_reps ?? 10"
+                                                type="number"
+                                                min="1"
+                                                max="100"
+                                                data-exercise-target
+                                                class="h-8 w-20 rounded border border-border bg-card px-1.5 font-mono text-sm"
+                                                @input="setExerciseTarget(ex, ($event.target as HTMLInputElement).value)"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                                <div v-else class="flex min-w-0 flex-col gap-1.5" @click.stop>
                                     <ExerciseProfilePicker
                                         :model-value="ex.exercise_profile_id ?? null"
                                         :profiles="profileOptions"
@@ -216,18 +325,74 @@ const toggleDropsets = (blockIndex: number): void => {
                                 </div>
                             </td>
                             <td class="px-2 py-2 align-top">
-                                <input
-                                    v-if="ei === 0"
-                                    v-model.number="block.working.set_count"
-                                    type="number"
-                                    min="1"
-                                    class="h-8 w-14 rounded border border-border bg-card px-2 font-mono text-sm"
-                                    @change="trimDropsetsToSetCount(block)"
-                                />
+                                <div v-if="ei === 0" class="flex flex-col gap-0.5">
+                                    <input
+                                        v-model.number="block.working.set_count"
+                                        type="number"
+                                        min="1"
+                                        class="h-8 w-14 rounded border border-border bg-card px-2 font-mono text-sm"
+                                        @change="trimDropsetsToSetCount(block)"
+                                    />
+                                    <span v-if="block.type === 'circuit'" class="font-mono text-[10px] text-muted-foreground">rounds</span>
+                                </div>
                             </td>
                             <td class="px-2 py-2 align-top">
                                 <div v-if="ei === 0" class="min-w-[7rem]" @click.stop>
-                                    <div v-if="blockSharedRecipeIsCustom(block)" class="rounded border border-border/70 bg-card/50 px-2 py-1.5">
+                                    <div
+                                        v-if="block.type === 'circuit'"
+                                        class="flex flex-col gap-2 rounded border border-border/70 bg-card/50 px-2 py-1.5"
+                                    >
+                                        <label class="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
+                                            Station rest (s)
+                                            <input
+                                                :value="block.stage_rest_seconds ?? 15"
+                                                type="number"
+                                                min="0"
+                                                max="3600"
+                                                step="5"
+                                                data-circuit-station-rest
+                                                class="h-8 w-full rounded border border-border bg-card px-1.5 font-mono text-sm"
+                                                @input="setBlockStageRest(block, ($event.target as HTMLInputElement).value)"
+                                            />
+                                            <span class="font-mono text-xs text-foreground">{{ formatRest(block.stage_rest_seconds ?? 15) }}</span>
+                                        </label>
+                                        <div class="flex flex-wrap gap-1">
+                                            <button
+                                                v-for="preset in [0, 15, 30, 45]"
+                                                :key="preset"
+                                                type="button"
+                                                class="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] hover:bg-muted"
+                                                @click="setBlockStageRest(block, preset)"
+                                            >
+                                                {{ preset }}s
+                                            </button>
+                                        </div>
+                                        <label class="flex flex-col gap-0.5 border-t border-border/40 pt-1.5 text-[11px] text-muted-foreground">
+                                            Round rest (s)
+                                            <input
+                                                v-model.number="block.working.rest_seconds"
+                                                type="number"
+                                                min="0"
+                                                max="3600"
+                                                step="15"
+                                                data-circuit-round-rest
+                                                class="h-8 w-full rounded border border-border bg-card px-1.5 font-mono text-sm"
+                                            />
+                                            <span class="font-mono text-xs text-foreground">{{ formatRest(block.working.rest_seconds) }}</span>
+                                        </label>
+                                        <div class="flex flex-wrap gap-1">
+                                            <button
+                                                v-for="preset in [30, 60, 90, 120]"
+                                                :key="preset"
+                                                type="button"
+                                                class="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] hover:bg-muted"
+                                                @click="block.working.rest_seconds = preset"
+                                            >
+                                                {{ preset }}s
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-else-if="blockSharedRecipeIsCustom(block)" class="rounded border border-border/70 bg-card/50 px-2 py-1.5">
                                         <label class="flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                                             Working rest (s)
                                             <span v-if="sharedProfileIsOutdated(block)" class="text-amber-400">Update available</span>
@@ -268,7 +433,8 @@ const toggleDropsets = (blockIndex: number): void => {
                             </td>
                             <td class="h-px min-w-0 px-2 py-2">
                                 <div v-if="ei === 0" class="flex h-full w-full min-w-0 flex-col" @click.stop>
-                                    <template v-if="blockSharedRecipeIsCustom(block)">
+                                    <p v-if="block.type === 'circuit'" class="text-xs text-muted-foreground">No warm-up</p>
+                                    <template v-else-if="blockSharedRecipeIsCustom(block)">
                                         <div v-if="!block.warm_up.steps.length" data-warmup-disabled>
                                             <p class="text-xs text-muted-foreground">No warm-up</p>
                                             <button
@@ -442,8 +608,22 @@ const toggleDropsets = (blockIndex: number): void => {
                             </td>
                         </tr>
 
+                        <tr v-if="block.type === 'circuit'" :key="`${bi}-add-station`" class="border-b border-border bg-card/20">
+                            <td class="px-2 py-1" />
+                            <td class="px-2 py-2" colspan="8">
+                                <button
+                                    type="button"
+                                    class="text-xs text-primary underline-offset-2 hover:underline"
+                                    data-add-circuit-station
+                                    @click="addCircuitExercise(block)"
+                                >
+                                    + Add exercise to circuit
+                                </button>
+                            </td>
+                        </tr>
+
                         <tr
-                            v-if="!block.is_superset"
+                            v-if="!block.is_superset && block.type !== 'circuit'"
                             :key="`${bi}-dropsets`"
                             data-dropset-editor
                             class="border-b border-border"
@@ -471,11 +651,19 @@ const toggleDropsets = (blockIndex: number): void => {
             <p v-if="!form.blocks.length" class="px-4 py-8 text-center text-muted-foreground">No exercises yet. Add one below.</p>
 
             <footer class="flex gap-2 border-t border-border px-4 py-3">
-                <button type="button" class="rounded border border-border px-3 py-2 text-sm hover:border-primary" @click="addBlock(false)">
+                <button type="button" class="rounded border border-border px-3 py-2 text-sm hover:border-primary" @click="addBlock('single')">
                     + Exercise
                 </button>
-                <button type="button" class="rounded border border-border px-3 py-2 text-sm hover:border-primary" @click="addBlock(true)">
+                <button type="button" class="rounded border border-border px-3 py-2 text-sm hover:border-primary" @click="addBlock('superset')">
                     + Superset
+                </button>
+                <button
+                    type="button"
+                    class="rounded border border-border px-3 py-2 text-sm hover:border-primary"
+                    data-add-circuit-btn
+                    @click="addBlock('circuit')"
+                >
+                    + Circuit
                 </button>
             </footer>
         </div>

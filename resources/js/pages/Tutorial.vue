@@ -14,6 +14,7 @@ const toc = [
     { href: '#training', label: 'Training preferences' },
     { href: '#profiles', label: 'Exercise profiles' },
     { href: '#editor', label: 'Create a routine' },
+    { href: '#circuits', label: 'Circuit blocks' },
     { href: '#play', label: 'Play a workout' },
     { href: '#bump', label: 'Bumps' },
     { href: '#deload', label: 'Deloads' },
@@ -183,7 +184,9 @@ const toc = [
                     <strong class="text-foreground">Setup</strong> is a pause so you can load the bar or walk to a machine. You can put setup before
                     the working sets, after warm-ups, or both. For a <strong class="text-foreground">superset</strong>, you pair two exercises in one
                     block — Play will flip between them each round. Use the superset controls in the editor to add or split that pair, or
-                    <strong class="text-foreground">Swap A↔B</strong> to reverse the order.
+                    <strong class="text-foreground">Swap A↔B</strong> to reverse the order. For larger groups,
+                    <strong class="text-foreground">circuit blocks</strong>
+                    link 3 or more exercises together with dual rest intervals.
                 </p>
                 <TutorialShot
                     name="editor"
@@ -193,6 +196,36 @@ const toc = [
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>
                 </p>
+            </section>
+
+            <section id="circuits" class="mt-12 scroll-mt-20 space-y-3">
+                <h2 class="text-2xl font-bold tracking-tight">Circuit blocks</h2>
+                <p class="text-muted-foreground">
+                    A <strong class="text-foreground">circuit block</strong> groups three or more exercises into a round-based rotation. Add a circuit
+                    from the routine editor using <strong class="text-foreground">+ Circuit</strong>.
+                </p>
+                <ul class="list-disc space-y-3 pl-5 text-muted-foreground">
+                    <li>
+                        <strong class="text-foreground">Dual rest periods:</strong> Circuits use two separate rest values —
+                        <strong class="text-foreground">Station rest</strong> (seconds to transition between exercises within a round, default 15s)
+                        and <strong class="text-foreground">Round rest</strong> (recovery between complete rounds, default 60s), both configurable
+                        with quick presets.
+                    </li>
+                    <li>
+                        <strong class="text-foreground">Reps or Timed duration:</strong> Each exercise in a circuit can be prescribed by rep targets
+                        or by timed duration in seconds (such as a 30s plank). Timed exercises run a live countdown timer during Play with pause,
+                        resume, and restart controls.
+                    </li>
+                    <li>
+                        <strong class="text-foreground">Live skipping:</strong> During Play, you can skip any individual exercise station or tap
+                        <strong class="text-foreground">Skip rest of round</strong> to advance straight to the next round or the next block.
+                    </li>
+                    <li>
+                        <strong class="text-foreground">Exclusions & Progression:</strong> Warm-ups, dropsets, deload alternate lifts, and automatic
+                        progression bumps are excluded on circuits. Circuits participate in Deload sessions with scaled loads and reps without
+                        progression prompts.
+                    </li>
+                </ul>
             </section>
 
             <section id="play" class="mt-12 scroll-mt-20 space-y-3">
@@ -208,6 +241,12 @@ const toc = [
                     that edits this workout, not the routine. On a working set you can also
                     <strong class="text-foreground">Promote to dropset</strong> or <strong class="text-foreground">Demote to single</strong> before
                     you log it. Keep the tab open if you can; wake lock tries to stop the phone sleeping.
+                </p>
+                <p class="text-muted-foreground">
+                    In <strong class="text-foreground">circuit blocks</strong>, Play steps through stations in rotation. For timed exercises, an
+                    interactive countdown timer runs with audio cues and pause/resume controls. You can tap
+                    <strong class="text-foreground">Skip station</strong> or <strong class="text-foreground">Skip rest of round</strong> to advance
+                    smoothly.
                 </p>
                 <p class="text-muted-foreground">
                     Machine busy before you have logged anything on a group?
@@ -326,6 +365,13 @@ const toc = [
                         <p class="mt-1">
                             Two exercises share a block. In the editor, use Swap A↔B to reverse order. Setup lists A and B as separate steps with
                             targets and plates; then you complete a round of A then B, with the rest you set on that block.
+                        </p>
+                    </li>
+                    <li>
+                        <p class="font-medium text-foreground">Circuit blocks</p>
+                        <p class="mt-1">
+                            Three or more exercises linked into a circuit with dual rest periods (station and round rest). Supports rep counts or
+                            timed duration exercises with live countdown timers and round skipping.
                         </p>
                     </li>
                     <li>

@@ -30,6 +30,7 @@ class HistoricalCreateBlockData extends Data
         public readonly DataCollection $workingSets,
         #[DataCollectionOf(HistoricalCreateWarmUpPrefillData::class)]
         public readonly DataCollection $warmUps,
+        public readonly string $type = 'single',
     ) {}
 
     public static function fromRoutineBlock(RoutineBlock $block): self
@@ -83,6 +84,7 @@ class HistoricalCreateBlockData extends Data
             workingSetCount: $setCount,
             workingSets: HistoricalCreateSetPrefillData::collect($workingSets, DataCollection::class),
             warmUps: HistoricalCreateWarmUpPrefillData::collect($warmUps, DataCollection::class),
+            type: $block->type?->value ?? ($structure->isSuperset ? 'superset' : 'single'),
         );
     }
 }

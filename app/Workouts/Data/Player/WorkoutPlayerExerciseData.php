@@ -2,6 +2,7 @@
 
 namespace App\Workouts\Data\Player;
 
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Support\Weight;
 use App\Workouts\Models\WorkoutBlockExercise;
 use Spatie\LaravelData\Attributes\MapName;
@@ -16,10 +17,12 @@ class WorkoutPlayerExerciseData extends Data
         public readonly string $name,
         public readonly ?string $equipment,
         public readonly float $workingWeightKg,
-        public readonly int $prescribedReps,
+        public readonly ?int $prescribedReps,
         public readonly ?int $achievementFloor,
         public readonly ?int $progressionTarget,
         public readonly int $position,
+        public readonly string $prescriptionMode = 'reps',
+        public readonly ?int $prescribedDurationSeconds = null,
     ) {}
 
     public static function fromBlockExercise(WorkoutBlockExercise $exercise): self
@@ -33,6 +36,8 @@ class WorkoutPlayerExerciseData extends Data
             achievementFloor: $exercise->achievement_floor,
             progressionTarget: $exercise->progression_target,
             position: $exercise->position,
+            prescriptionMode: ($exercise->prescription_mode ?? PrescriptionMode::Reps)->value,
+            prescribedDurationSeconds: $exercise->prescribed_duration_seconds,
         );
     }
 }

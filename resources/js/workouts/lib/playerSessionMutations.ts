@@ -12,9 +12,11 @@ export type SessionMutationOptions = {
 };
 
 type CompleteSetForm = InertiaForm<{
-    reps: number;
-    weight_kg: number;
-    segments: Array<{ weight_kg: number }>;
+    reps?: number | null;
+    duration_seconds?: number | null;
+    weight_kg?: number | null;
+    segments?: Array<{ weight_kg: number }>;
+    is_skipped?: boolean;
 }>;
 
 const visitOptions = {
@@ -168,6 +170,24 @@ export function skipRestOfBlock(workoutId: string, blockId: number, options: Ses
         {
             ...visitOptions,
             onSuccess: options.onSuccess,
+            onFinish: () => finishMutation(options),
+        },
+    );
+}
+
+/** Mirrors backend `WorkoutSessionService::skipRound`. */
+export function skipRound(workoutId: string, blockId: number, roundIndex: number, options: SessionMutationOptions = {}): void {
+    if (!beginMutation(options)) {
+        return;
+    }
+
+    router.post(
+        route('workouts.blocks.skip-round', [workoutId, blockId]),
+        { round_index: roundIndex },
+        {
+            ...visitOptions,
+            onSuccess: options.onSuccess,
+            onError: options.onError,
             onFinish: () => finishMutation(options),
         },
     );

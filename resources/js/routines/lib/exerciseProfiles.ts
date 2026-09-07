@@ -41,8 +41,8 @@ export function resolvedProfileFloor(profile: ExerciseProfileOption): number {
     return profile.floor;
 }
 
-export function derivedAchievementFloor(prescribedReps: number): number {
-    return Math.max(1, prescribedReps - 2);
+export function derivedAchievementFloor(prescribedReps: number | null | undefined): number {
+    return Math.max(1, (prescribedReps ?? 6) - 2);
 }
 
 export function editorFloorPlaceholder(

@@ -6,6 +6,7 @@ use App\Routines\Data\RoutineBlockStructureData;
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\WarmUpWeightMode;
 use App\Shared\Support\Weight;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
@@ -60,6 +61,8 @@ class RoutineEditorPageData extends Data
                         exerciseId: $row->exercise_id,
                         workingWeightKg: Weight::gramsToKg($row->working_weight_g),
                         prescribedReps: $row->prescribed_reps,
+                        prescriptionMode: $row->prescription_mode ?? PrescriptionMode::Reps,
+                        prescribedDurationSeconds: $row->prescribed_duration_seconds,
                         achievementFloor: $row->achievement_floor_override,
                         progressionTarget: $row->progression_target_override,
                         floorIsDerived: $row->floor_is_derived,
@@ -93,6 +96,8 @@ class RoutineEditorPageData extends Data
                         DataCollection::class,
                     ),
                 ),
+                type: $structure->type,
+                stageRestSeconds: $structure->stageRestSeconds,
             );
         });
 

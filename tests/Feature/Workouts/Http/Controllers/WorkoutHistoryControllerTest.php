@@ -2,7 +2,13 @@
 
 namespace Tests\Feature\Workouts\Http\Controllers;
 
+use App\Exercises\Models\Exercise;
 use App\Routines\Models\Routine;
+use App\Routines\Models\RoutineBlock;
+use App\Routines\Models\RoutineBlockExercise;
+use App\Routines\Models\RoutineSetGroup;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Workouts\Models\WorkoutSet;
 use App\Workouts\Services\WorkoutProgressionService;
@@ -357,6 +363,92 @@ class WorkoutHistoryControllerTest extends TestCase
         $this->assertNull(session("workout_progression_undos.{$older->id}"));
         $this->assertSame(90000, $routineExercise->fresh()->working_weight_g);
         $this->assertNull($older->fresh()->bumpRecords->first()->undone_at);
+    }
+
+    #[Test]
+    public function editing_circuit_workout_updates_duration_and_skipped_status(): void
+    {
+        $routine = Routine::factory()->withUser($this->user)->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'stage_rest_seconds' => 15,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 20000,
+            'prescription_mode' => PrescriptionMode::Reps,
+            'prescribed_reps' => 10,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 2,
+            'working_weight_g' => 0,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 30,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 3,
+            'working_weight_g' => 15000,
+            'prescription_mode' => PrescriptionMode::Reps,
+            'prescribed_reps' => 12,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 1,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = app(WorkoutService::class)->createWorkout($routine);
+        $sets = WorkoutSet::whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))->get();
+        foreach ($sets as $set) {
+            app(WorkoutService::class)->completeSet($set, reps: 10, weightGrams: 20000);
+        }
+        app(WorkoutService::class)->finishWorkout($workout);
+
+        $payload = [
+            'sets' => [
+                [
+                    'id' => $sets[0]->id,
+                    'reps' => 11,
+                    'weight_kg' => 22.5,
+                    'is_skipped' => false,
+                ],
+                [
+                    'id' => $sets[1]->id,
+                    'duration_seconds' => 45,
+                    'weight_kg' => 0,
+                    'is_skipped' => false,
+                ],
+                [
+                    'id' => $sets[2]->id,
+                    'is_skipped' => true,
+                ],
+            ],
+        ];
+
+        $this->actingAs($this->user)
+            ->put(route('history.update', $workout), $payload)
+            ->assertRedirect();
+
+        $freshSets = WorkoutSet::whereIn('id', $sets->pluck('id'))->get()->keyBy('id');
+        $this->assertSame(11, $freshSets[$sets[0]->id]->reps);
+        $this->assertSame(22500, $freshSets[$sets[0]->id]->weight_g);
+        $this->assertFalse($freshSets[$sets[0]->id]->is_skipped);
+
+        $this->assertNull($freshSets[$sets[1]->id]->reps);
+        $this->assertSame(45, $freshSets[$sets[1]->id]->duration_seconds);
+
+        $this->assertTrue($freshSets[$sets[2]->id]->is_skipped);
+        $this->assertNull($freshSets[$sets[2]->id]->reps);
+        $this->assertNull($freshSets[$sets[2]->id]->duration_seconds);
     }
 
     /**

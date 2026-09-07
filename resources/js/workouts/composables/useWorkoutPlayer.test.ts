@@ -1530,6 +1530,110 @@ describe('createWorkoutPlayer', () => {
         player.completeSet();
         expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
     });
+
+    it('manages circuit countdown, next exercise preview, and skipping', async () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    type: 'circuit',
+                    stage_rest_seconds: 15,
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Push-ups',
+                            working_weight_kg: 0,
+                            prescribed_reps: null,
+                            prescription_mode: 'duration',
+                            prescribed_duration_seconds: 30,
+                            achievement_floor: null,
+                            progression_target: null,
+                            position: 0,
+                        },
+                        {
+                            id: 11,
+                            name: 'Kettlebell Swings',
+                            working_weight_kg: 20,
+                            prescribed_reps: 12,
+                            prescription_mode: 'reps',
+                            prescribed_duration_seconds: null,
+                            achievement_floor: null,
+                            progression_target: null,
+                            position: 1,
+                        },
+                        {
+                            id: 12,
+                            name: 'Plank',
+                            working_weight_kg: 0,
+                            prescribed_reps: null,
+                            prescription_mode: 'duration',
+                            prescribed_duration_seconds: 45,
+                            achievement_floor: null,
+                            progression_target: null,
+                            position: 2,
+                        },
+                    ],
+                    sets: [
+                        playerSet({
+                            id: 1,
+                            workout_block_exercise_id: 10,
+                            exercise_name: 'Push-ups',
+                            set_index: 0,
+                            rest_seconds: 15,
+                            prescription_mode: 'duration',
+                            target_duration_seconds: 30,
+                            target_reps: null,
+                        }),
+                        playerSet({
+                            id: 2,
+                            workout_block_exercise_id: 11,
+                            exercise_name: 'Kettlebell Swings',
+                            set_index: 0,
+                            rest_seconds: 15,
+                            prescription_mode: 'reps',
+                            target_reps: 12,
+                            target_weight_kg: 20,
+                        }),
+                        playerSet({
+                            id: 3,
+                            workout_block_exercise_id: 12,
+                            exercise_name: 'Plank',
+                            set_index: 0,
+                            rest_seconds: 60,
+                            prescription_mode: 'duration',
+                            target_duration_seconds: 45,
+                            target_reps: null,
+                        }),
+                    ],
+                }),
+            ],
+        });
+
+        // Starts on setup for circuit (before_circuit phase)
+        expect(player.focus.value.kind).toBe('setup');
+        expect(player.setupSteps.value.length).toBe(3);
+        expect(player.setupSteps.value[0].exerciseName).toBe('Push-ups');
+        expect(player.setupSteps.value[0].targetDurationSeconds).toBe(30);
+
+        // Acknowledge setup moves to first set
+        player.acknowledgeSetup();
+        await flushPromises();
+        expect(player.focus.value.kind).toBe('set');
+        expect(player.isCircuitBlock.value).toBe(true);
+        expect(player.isTimedSet.value).toBe(true);
+        expect(player.canPromoteToDropset.value).toBe(false);
+        expect(player.circuitNext.value?.exerciseName).toBe('Kettlebell Swings');
+
+        // Timer initialization
+        expect(player.timedSecondsLeft.value).toBe(30);
+        player.startTimedCountdown();
+        expect(player.timedIsRunning.value).toBe(true);
+        player.pauseTimedCountdown();
+        expect(player.timedIsRunning.value).toBe(false);
+
+        // Skipping exercise triggers submitCompleteSet with isSkipped
+        player.skipExercise();
+        expect(inertiaMocks().inertiaFormPost).toHaveBeenCalled();
+    });
 });
 
 describe('useWorkoutPlayer', () => {
