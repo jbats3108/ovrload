@@ -16,6 +16,7 @@ import {
     formatExerciseTargetFloorSummary,
 } from '@/routines/lib/editorRecipeSummary';
 import type { Block, ExerciseProfileOption } from '@/routines/types';
+import { setEditorWarmUpMode, type WarmUpWeightMode } from '@/shared/warmUpStep';
 import { reactive, ref } from 'vue';
 
 const {
@@ -501,17 +502,17 @@ const toggleDropsets = (blockIndex: number): void => {
                                                 >
                                                     <span class="w-5 shrink-0 font-mono text-[10px] text-muted-foreground">{{ si + 1 }}</span>
                                                     <select
-                                                        v-model="step.mode"
+                                                        :value="step.mode ?? 'percent'"
                                                         class="rounded border border-border bg-card px-1 py-0.5 text-xs"
                                                         aria-label="Warm-up mode"
                                                         @change="
-                                                            if (step.mode === 'bar') step.percent = undefined;
-                                                            else if (step.percent == null) step.percent = 50;
+                                                            setEditorWarmUpMode(step, ($event.target as HTMLSelectElement).value as WarmUpWeightMode);
                                                             markSharedCustom(block);
                                                         "
                                                     >
                                                         <option value="percent">%</option>
                                                         <option value="bar">Bar</option>
+                                                        <option value="fixed">kg</option>
                                                     </select>
                                                     <input
                                                         v-if="(step.mode ?? 'percent') === 'percent'"
@@ -521,6 +522,17 @@ const toggleDropsets = (blockIndex: number): void => {
                                                         max="100"
                                                         class="w-14 rounded border border-border bg-card px-1 py-0.5 font-mono text-xs"
                                                         aria-label="Warm-up percent"
+                                                        @input="markSharedCustom(block)"
+                                                    />
+                                                    <input
+                                                        v-else-if="step.mode === 'fixed'"
+                                                        v-model.number="step.weight_kg"
+                                                        type="number"
+                                                        min="0.25"
+                                                        max="1000"
+                                                        step="0.25"
+                                                        class="w-14 rounded border border-border bg-card px-1 py-0.5 font-mono text-xs"
+                                                        aria-label="Warm-up fixed weight"
                                                         @input="markSharedCustom(block)"
                                                     />
                                                     <span class="text-[11px] text-muted-foreground">×</span>

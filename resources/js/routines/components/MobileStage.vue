@@ -17,6 +17,7 @@ import {
     formatExerciseTargetFloorSummary,
 } from '@/routines/lib/editorRecipeSummary';
 import type { Block, ExerciseProfileOption } from '@/routines/types';
+import { setEditorWarmUpMode, type WarmUpWeightMode } from '@/shared/warmUpStep';
 import { Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -42,7 +43,6 @@ const {
     trimDropsetsToSetCount,
     formatRest,
     warmUpText,
-    setWarmUpText,
     addWarmUpStep,
     removeWarmUpStep,
     clearWarmUp,
@@ -632,18 +632,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                         :summary="activeBlock.warm_up.steps.length ? warmUpText(activeBlock) : 'None'"
                         @toggle="toggleWarmUpExpanded"
                     >
-                        <div class="space-y-2">
-                            <label class="block">
-                                <span class="text-xs text-muted-foreground">Compact (40%×5, 60%×3)</span>
-                                <input
-                                    :value="warmUpText(activeBlock)"
-                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm text-primary/90"
-                                    @change="
-                                        markSharedCustom(activeBlock);
-                                        setWarmUpText(activeBlock, ($event.target as HTMLInputElement).value);
-                                    "
-                                />
-                            </label>
+                        <div class="space-y-2" data-warmup-editor>
                             <label class="block">
                                 <span class="text-xs text-muted-foreground">Warm-up rest ({{ formatRest(activeBlock.warm_up.rest_seconds) }})</span>
                                 <input
@@ -657,17 +646,17 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                             </label>
                             <div v-for="(step, si) in activeBlock.warm_up.steps" :key="si" class="flex items-center gap-1.5">
                                 <select
-                                    v-model="step.mode"
+                                    :value="step.mode ?? 'percent'"
                                     class="rounded-lg border border-border bg-background px-2 py-1.5 text-xs"
                                     aria-label="Warm-up mode"
                                     @change="
-                                        if (step.mode === 'bar') step.percent = undefined;
-                                        else if (step.percent == null) step.percent = 50;
+                                        setEditorWarmUpMode(step, ($event.target as HTMLSelectElement).value as WarmUpWeightMode);
                                         markSharedCustom(activeBlock);
                                     "
                                 >
                                     <option value="percent">%</option>
                                     <option value="bar">Bar</option>
+                                    <option value="fixed">kg</option>
                                 </select>
                                 <input
                                     v-if="(step.mode ?? 'percent') === 'percent'"
@@ -677,6 +666,17 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                     max="100"
                                     class="w-16 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
                                     aria-label="Warm-up percent"
+                                    @input="markSharedCustom(activeBlock)"
+                                />
+                                <input
+                                    v-else-if="step.mode === 'fixed'"
+                                    v-model.number="step.weight_kg"
+                                    type="number"
+                                    min="0.25"
+                                    max="1000"
+                                    step="0.25"
+                                    class="w-16 rounded-lg border border-border bg-background px-2 py-1.5 font-mono text-sm"
+                                    aria-label="Warm-up fixed weight"
                                     @input="markSharedCustom(activeBlock)"
                                 />
                                 <span class="text-xs text-muted-foreground">×</span>

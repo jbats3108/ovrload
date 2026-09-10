@@ -262,13 +262,43 @@ describe('MobileStage', () => {
 
         await openFirstExerciseTab();
 
-        expect(document.body.textContent).not.toContain('Compact (40%×5, 60%×3)');
+        expect(document.body.querySelector('[data-warmup-editor]')).toBeNull();
 
         document.body.querySelector<HTMLButtonElement>('[data-customise-shared]')!.click();
         await nextTick();
 
-        expect(document.body.textContent).toContain('Compact (40%×5, 60%×3)');
+        expect(document.body.querySelector('[data-warmup-editor]')).not.toBeNull();
+        expect(document.body.textContent).not.toContain('Compact (40%×5, 60%×3)');
         expect(document.body.querySelector('[data-shared-recipe-summary]')).toBeNull();
+
+        wrapper.unmount();
+    });
+
+    it('shows a fixed-weight input for fixed warm-up steps', async () => {
+        const routine = profiledSupersetRoutine();
+        routine.blocks[0].warm_up = {
+            set_count: 1,
+            rest_seconds: 60,
+            steps: [{ mode: 'fixed', weight_kg: 60, reps: 5, has_setup_after: false }],
+        };
+
+        const { wrapper } = mountStage({
+            exercise_profiles: [strength, hypertrophy],
+            routine,
+        });
+
+        await openFirstExerciseTab();
+        document.body.querySelector<HTMLButtonElement>('[data-customise-shared]')!.click();
+        await nextTick();
+
+        const weight = document.body.querySelector<HTMLInputElement>('[aria-label="Warm-up fixed weight"]');
+        expect(weight).toBeTruthy();
+        expect(weight?.value).toBe('60');
+        expect(document.body.querySelector('[aria-label="Warm-up percent"]')).toBeNull();
+
+        const mode = document.body.querySelector<HTMLSelectElement>('[aria-label="Warm-up mode"]');
+        expect(mode?.value).toBe('fixed');
+        expect(Array.from(mode?.options ?? []).map((o) => o.value)).toEqual(['percent', 'bar', 'fixed']);
 
         wrapper.unmount();
     });

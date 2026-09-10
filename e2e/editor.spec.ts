@@ -57,6 +57,43 @@ test.describe('routine editor', () => {
         await expect(page.locator('[data-shared-rest-summary]').first()).toContainText('3m');
     });
 
+    test('desktop warm-up editor can switch a step to fixed kg', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await openBarbellEditor(page);
+
+        await page.locator('.md\\:flex [data-customise-shared]').first().click();
+        const editor = page.locator('.md\\:flex [data-warmup-editor]').first();
+        await expect(editor).toBeVisible();
+
+        const mode = editor.getByLabel('Warm-up mode').first();
+        await mode.selectOption('fixed');
+        await expect(mode).toHaveValue('fixed');
+        const weight = editor.getByLabel('Warm-up fixed weight').first();
+        await expect(weight).toBeVisible();
+        await expect(weight).toHaveValue('60');
+    });
+
+    test('mobile warm-up editor has no compact field and supports fixed kg', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('/routines/barbell-strength/edit');
+        await expect(page).toHaveURL(/\/routines\/barbell-strength\/edit/);
+
+        await page.locator('[data-mobile-stage-tabs] button').nth(1).click();
+        await expect(page.getByRole('heading', { name: /Exercise 1/i })).toBeVisible();
+
+        await page.locator('.md\\:hidden [data-customise-shared]').click();
+        const editor = page.locator('.md\\:hidden [data-warmup-editor]');
+        await expect(editor).toBeVisible();
+        await expect(page.getByText(/Compact \(/i)).toHaveCount(0);
+
+        const mode = editor.getByLabel('Warm-up mode').first();
+        await mode.selectOption('fixed');
+        await expect(mode).toHaveValue('fixed');
+        const weight = editor.getByLabel('Warm-up fixed weight').first();
+        await expect(weight).toBeVisible();
+        await expect(weight).toHaveValue('60');
+    });
+
     test('Swap A↔B reverses a superset pair', async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 900 });
         await page.goto('/routines/superset-pump/edit');
