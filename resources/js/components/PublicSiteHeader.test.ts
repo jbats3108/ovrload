@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('PublicSiteHeader', () => {
-    it('links to home, login, beta FAQs, and privacy', () => {
+    it('links to home, login, about, beta FAQs, and privacy', () => {
         const route = vi.fn((name: string) => `/${name}`);
         vi.stubGlobal('route', route);
 
@@ -25,9 +25,11 @@ describe('PublicSiteHeader', () => {
         const hrefs = wrapper.findAll('a').map((a) => a.attributes('href'));
         expect(hrefs).toContain('/home');
         expect(hrefs).toContain('/login');
+        expect(hrefs).toContain('/about');
         expect(hrefs).toContain('/beta-tester-faqs');
         expect(hrefs).toContain('/privacy');
         expect(wrapper.text()).toContain('Log in');
+        expect(wrapper.text()).toContain('About');
         expect(wrapper.text()).toContain('Beta testers');
         expect(wrapper.text()).toContain('Privacy');
     });
@@ -55,6 +57,7 @@ describe('PublicSiteHeader', () => {
         const hrefs = wrapper.findAll('a').map((a) => a.attributes('href'));
         expect(hrefs).toContain('/home');
         expect(hrefs).toContain('/login');
+        expect(hrefs).toContain('/about');
         expect(hrefs).toContain('/beta-tester-faqs');
         expect(hrefs).not.toContain('/privacy');
         expect(wrapper.text()).not.toContain('Privacy');
@@ -82,6 +85,7 @@ describe('PublicSiteHeader', () => {
 
         const hrefs = wrapper.findAll('a').map((a) => a.attributes('href'));
         expect(hrefs).not.toContain('/login');
+        expect(hrefs).toContain('/about');
         expect(hrefs).toContain('/beta-tester-faqs');
         expect(hrefs).toContain('/privacy');
         expect(wrapper.text()).not.toContain('Log in');

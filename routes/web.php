@@ -28,6 +28,7 @@ use App\Routines\Http\Controllers\EditRoutineController;
 use App\Routines\Http\Controllers\ShowRoutineController;
 use App\Routines\Http\Controllers\StoreRoutineController;
 use App\Routines\Http\Controllers\UpdateRoutineController;
+use App\Shared\Http\Controllers\ShowAboutController;
 use App\Shared\Http\Controllers\ShowBetaTesterFaqsController;
 use App\Shared\Http\Controllers\ShowFeedbackController;
 use App\Shared\Http\Controllers\ShowHomeController;
@@ -65,6 +66,8 @@ use App\Workouts\Models\Workout;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', ShowHomeController::class)->name('home');
+
+Route::get('about', ShowAboutController::class)->name('about');
 
 Route::get('beta-tester-faqs', ShowBetaTesterFaqsController::class)->name('beta-tester-faqs');
 

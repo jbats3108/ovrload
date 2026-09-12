@@ -97,10 +97,16 @@ function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
         <main class="relative z-10 mx-auto w-full max-w-2xl px-6 pb-20 sm:px-10">
             <p class="text-sm font-medium tracking-widest text-primary uppercase">Beta Testers</p>
             <div class="mt-3 space-y-3 text-muted-foreground">
-                <p>Hi there! Thank you for considering being a Beta tester for <BrandName />, the workout tracking app for people who lift.</p>
                 <p>
-                    From this page, you can read some FAQs, see a few features I've got planned, submit feedback, and request an invite if you want to
-                    join up.
+                    Hi there! Thank you for considering being a Beta tester for
+                    <BrandName />
+                    — a workout planning and logging app for people who lift.
+                </p>
+                <p>
+                    From this page you can read FAQs, see what’s on the backlog, submit feedback, and request an invite if you want to join up. For
+                    the longer story of why it exists, see
+                    <Link :href="route('about')" class="font-medium text-primary underline-offset-2 hover:underline">About</Link>
+                    .
                 </p>
             </div>
 
@@ -111,34 +117,44 @@ function recentlyAdded(item: (typeof backlogItems)[number]): boolean {
                     <h2 class="text-lg font-semibold">What exactly <em>is</em> <BrandName />?</h2>
                     <div class="mt-2 space-y-3 text-muted-foreground">
                         <p>
-                            <BrandName /> is a workout planning and logging app for people who are serious about their lifting. You can create
-                            routines, log each set, and apply progressive overload to each exercise as you get stronger. I designed it to have the
-                            features I felt were missing from other apps I tried.
+                            <BrandName />
+                            is a workout planning and logging app. You build routines, log each set on the floor, and apply progressive overload as
+                            you get stronger — as part of the workout, not a spreadsheet you update later at home.
                         </p>
-                        <p>What's more important is what <BrandName /> is <em>not</em>. It is not:</p>
+                        <h3 class="text-base font-semibold text-foreground">Who is it for?</h3>
+                        <p>People who want:</p>
                         <ul class="list-disc space-y-4 pl-5">
                             <li>
-                                <span class="font-medium text-foreground">A Personal Trainer.</span>
+                                <span class="font-medium text-foreground">A clear plan on the floor</span>
                                 <p class="mt-1">
-                                    I'm a Software Engineer, not a PT. I don't want to undercut the wonderful PTs at my gym, or to feign expertise
-                                    where I have none. If you want an app to design your workouts and tell you how to do each exercise, this isn't it.
+                                    Routines with blocks, supersets, circuits, warm-ups, and dropsets — then walk through them set by set when you’re
+                                    at the gym.
                                 </p>
                             </li>
                             <li>
-                                <span class="font-medium text-foreground">A training organiser.</span>
+                                <span class="font-medium text-foreground">Overload built into the flow</span>
                                 <p class="mt-1">
-                                    <BrandName /> doesn't tell you when to do your workouts. It won't nag you to do Chest Day tomorrow or lose your
-                                    streak. <BrandName /> helps you stick to your routine when you're at the gym — getting there is up to you!
+                                    Hit your targets, then bump working weights as you get stronger, without rebuilding the whole routine from
+                                    scratch.
                                 </p>
                             </li>
                             <li>
-                                <span class="font-medium text-foreground">A secret AI data mining project disguised as a workout app.</span>
+                                <span class="font-medium text-foreground">A gym companion, not a coach</span>
                                 <p class="mt-1">
-                                    There is no AI tooling in <BrandName />, and there may never be. I have no interest in using your data to train a
-                                    LLM or anything like that.
+                                    Help sticking to
+                                    <em>your</em>
+                                    routine while you’re there — without designing the program for you, nagging you with streaks, or AI rewriting your
+                                    training. There’s no AI tooling in
+                                    <BrandName />
+                                    , and I have no interest in using your data to train a model.
                                 </p>
                             </li>
                         </ul>
+                        <p>
+                            I’m a software engineer who lifts, not a personal trainer — so the app stays in that lane. More on why I built it on
+                            <Link :href="route('about')" class="font-medium text-primary underline-offset-2 hover:underline">About</Link>
+                            .
+                        </p>
                     </div>
                 </article>
 

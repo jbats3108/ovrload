@@ -3,7 +3,7 @@ import BrandName from '@/components/BrandName.vue';
 import DarkModeToggle from '@/components/DarkModeToggle.vue';
 import { Link } from '@inertiajs/vue3';
 
-type PublicPage = 'home' | 'login' | 'beta-tester-faqs' | 'privacy';
+type PublicPage = 'home' | 'login' | 'about' | 'beta-tester-faqs' | 'privacy';
 
 const props = defineProps<{
     current?: PublicPage;
@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const links = [
     { name: 'login' as const, label: 'Log in', routeName: 'login' },
+    { name: 'about' as const, label: 'About', routeName: 'about' },
     { name: 'beta-tester-faqs' as const, label: 'Beta testers', routeName: 'beta-tester-faqs' },
     { name: 'privacy' as const, label: 'Privacy', routeName: 'privacy' },
 ];
