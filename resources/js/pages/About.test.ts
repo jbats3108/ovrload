@@ -1,13 +1,13 @@
-import Home from '@/pages/Home.vue';
+import About from '@/pages/About.vue';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
-describe('Home', () => {
-    it('links to about, beta tester FAQs and privacy in the site header', () => {
+describe('About', () => {
+    it('renders the three story sections and links to beta FAQs', () => {
         const route = vi.fn((name: string) => `/${name}`);
         vi.stubGlobal('route', route);
 
-        const wrapper = mount(Home, {
+        const wrapper = mount(About, {
             global: {
                 stubs: {
                     DarkModeToggle: true,
@@ -22,18 +22,16 @@ describe('Home', () => {
             },
         });
 
+        expect(wrapper.text()).toContain('About me');
+        expect(wrapper.text()).toContain('Why I built it');
+        expect(wrapper.text()).toContain('Who is it for?');
+        expect(wrapper.text()).toContain('People who want:');
+        expect(wrapper.text()).toContain('A clear plan on the floor');
+        expect(wrapper.text()).toContain('Overload built into the flow');
+        expect(wrapper.text()).toContain('A gym companion, not a coach');
+
         const hrefs = wrapper.findAll('a').map((a) => a.attributes('href'));
-        expect(hrefs).toContain('/login');
-        expect(hrefs).toContain('/about');
         expect(hrefs).toContain('/beta-tester-faqs');
-        expect(hrefs).toContain('/privacy');
-        expect(wrapper.text()).toContain('About');
-        expect(wrapper.text()).toContain('Beta testers');
-        expect(wrapper.text()).toContain('Privacy');
-        expect(wrapper.text()).toContain('OVRLOAD');
-        expect(wrapper.find('.text-primary').text()).toBe('OVR');
-        expect(route).toHaveBeenCalledWith('about');
         expect(route).toHaveBeenCalledWith('beta-tester-faqs');
-        expect(route).toHaveBeenCalledWith('privacy');
     });
 });
