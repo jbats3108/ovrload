@@ -36,6 +36,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Parked (internal — not on public FAQ)
 
+- **Free-text load notes** (pins, stack labels, cues) — Notion pin-number ask; kg stays progression truth — grill: [Free-text load notes](#grill-free-text-load-notes) (after Better History Edits; not on public FAQ)
 - **Automatic progression for circuits** — evaluate after user feedback on fixed-load circuit training
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
@@ -69,6 +70,28 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 | Share workouts                                 | [PT mode](#grill-pt-mode) (PT→client; low demand for 1-2-1 individual share) |
 | Videos; custom videos with routines            | [Exercise videos](#grill-exercise-videos-pt)                                 |
 | Time range rather than reps; rest 60s circuits | Circuit blocks (shipped)                                                     |
+
+## Grill: Free-text load notes
+
+**Motivation:** Notion inbox — store pin numbers alongside weights (and similar gym-local labels). Pin↔kg conversion is gym-specific and belongs with **Gym dumbbell / rack inventory** later; not universal.
+
+**Decided:**
+
+- **Kg stays** the prescription / progression / bump / carry-forward currency. Notes do not replace or drive load math.
+- **No pin-specific field or Machine/Cable gate** — one free-text note surface; pins are just what people type.
+- **Attachment:** optional note on **routine block exercise** (prescription) and on **logged working set** (what you used). Not warm-ups; dropset = one note on the slot, not per segment.
+- **Play:** prefill set note from the (snapshotted) exercise note; editing the set note is local to that set — does not write back to the routine mid-session.
+- **Snapshot:** copy exercise note onto `workout_block_exercises` at workout start (same idea as weight / equipment).
+- **Deload alternate:** own optional note on the alternate exercise row.
+- **Session `workouts.notes`:** leave as a separate session memo; do not merge.
+- **UX:** ~64 char cap; in Play, always-visible one-liner next to kg when non-empty; History shows set notes on set rows; editor shows note next to working weight.
+- **Priority:** parked/internal (not FAQ); implement after **Better History Edits** at least so History can share the surface.
+- **Out of scope:** pin↔kg mapping, progression by pin, charting notes.
+
+**Open (only if reopened):**
+
+- Exact column names / null vs empty-string
+- Whether historical-create must edit set notes in v1 or display-only first
 
 ## Grill: PT mode
 
