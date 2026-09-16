@@ -50,6 +50,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
+- **PHP coverage baseline (advisory)** — Sail: `npm run sail:coverage` → `coverage/index.html`; CI Clover+HTML; advisory **50%** floor via `test:coverage:threshold` (`continue-on-error`). Next: raise/adjust floor from first CI number → CRAP triage → Infection pilot
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)

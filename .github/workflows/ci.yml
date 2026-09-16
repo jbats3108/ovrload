@@ -92,7 +92,7 @@ jobs:
         with:
           php-version: '8.5'
           tools: composer:v2
-          coverage: xdebug
+          coverage: pcov
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -148,7 +148,20 @@ jobs:
         run: npm run test:e2e
 
       - name: PHPUnit
-        run: ./vendor/bin/phpunit
+        run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage/clover.xml --coverage-html=coverage --colors=always
+
+      - name: PHP coverage threshold (advisory)
+        run: composer test:coverage:threshold
+        continue-on-error: true
+
+      - name: Upload PHP coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage-html
+          path: coverage
+          retention-days: 7
+          if-no-files-found: ignore
 
   deploy:
     name: deploy
