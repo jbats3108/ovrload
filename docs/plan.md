@@ -55,7 +55,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
   2. ~~`Workouts\Services\WorkoutSnapshotService::recordHistoricalSet`~~ — historical dropset segments / planned-dropset reject / skip
   3. ~~`Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate`~~ — warm-up reject / dropset segments / reps-only / completed_at fill
   4. ~~`Shared\Support\WarmUpStepSupport::normalize`~~ — edge cases (invalid input, enum mode, fixed/percent rejects, list filter)
-  5. ~~`Exercises\Services\ExerciseCatalogImporter::import`~~ — split sync helpers + skip/restore/empty-prune tests
+  5. ~~`Exercises\Services\ExerciseCatalogImporter`~~ — removed; `ExerciseSeeder` loads `exercises.json` directly (upsert, no prune)
   6. ~~`Routines\Services\RoutineEditorService::createBlock`~~ — split shape/shared-profile/exercise/warm-up helpers
   7. ~~`Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout`~~ — split block/exercise/set-group helpers
   8. ~~`Auth\Console\GenerateRegistrationInviteSecretCommand`~~ — removed (unused; master `REGISTRATION_INVITE` is manual `.env` if ever needed)
