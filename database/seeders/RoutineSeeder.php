@@ -353,7 +353,7 @@ final class RoutineSeeder extends Seeder
         }
 
         throw new RuntimeException(
-            "Shared exercise [{$name}] not found. Run ExerciseSeeder (catalog import) before RoutineSeeder."
+            "Shared exercise [{$name}] not found. Run ExerciseSeeder before RoutineSeeder."
         );
     }
 }

@@ -4,6 +4,7 @@ namespace App\Workouts\Services;
 
 use App\Routines\Models\Routine;
 use App\Routines\Models\RoutineBlock;
+use App\Routines\Models\RoutineSetGroup;
 use App\Shared\Enums\BlockType;
 use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
@@ -62,132 +63,223 @@ final readonly class WorkoutSnapshotService
         }
 
         foreach ($blocks as $routineBlock) {
-            $isCircuit = $routineBlock->isCircuit();
+            $this->snapshotRoutineBlock(
+                $workout,
+                $routine,
+                $routineBlock,
+                $isDeload,
+                $weightFactor,
+                $repsFactor,
+                $workingSetCountByPosition,
+            );
+        }
+    }
 
-            $workoutBlock = WorkoutBlock::create([
-                'workout_id' => $workout->id,
-                'position' => $routineBlock->position,
-                'type' => $routineBlock->type ?? ($routineBlock->is_superset ? BlockType::Superset : BlockType::Single),
-                'is_superset' => $routineBlock->is_superset,
-                'stage_rest_seconds' => $routineBlock->stage_rest_seconds,
-                'has_setup_after' => $routineBlock->has_setup_after,
-                // Deload omits warm-ups; setup-after-warm-up would never fire.
-                'has_setup_after_warm_up' => $isDeload ? false : $routineBlock->has_setup_after_warm_up,
+    /**
+     * @param  array<int, int>  $workingSetCountByPosition
+     */
+    private function snapshotRoutineBlock(
+        Workout $workout,
+        Routine $routine,
+        RoutineBlock $routineBlock,
+        bool $isDeload,
+        float $weightFactor,
+        float $repsFactor,
+        array $workingSetCountByPosition,
+    ): void {
+        $isCircuit = $routineBlock->isCircuit();
+
+        $workoutBlock = WorkoutBlock::create([
+            'workout_id' => $workout->id,
+            'position' => $routineBlock->position,
+            'type' => $routineBlock->type ?? ($routineBlock->is_superset ? BlockType::Superset : BlockType::Single),
+            'is_superset' => $routineBlock->is_superset,
+            'stage_rest_seconds' => $routineBlock->stage_rest_seconds,
+            'has_setup_after' => $routineBlock->has_setup_after,
+            // Deload omits warm-ups; setup-after-warm-up would never fire.
+            'has_setup_after_warm_up' => $isDeload ? false : $routineBlock->has_setup_after_warm_up,
+        ]);
+
+        $skipDropsetsByWorkoutExerciseId = $this->snapshotBlockExercises(
+            $workoutBlock,
+            $routine,
+            $routineBlock,
+            $isDeload,
+            $isCircuit,
+            $weightFactor,
+            $repsFactor,
+        );
+
+        $workoutBlock->load('blockExercises');
+
+        $this->snapshotBlockSetGroups(
+            $workoutBlock,
+            $routineBlock,
+            $isDeload,
+            $weightFactor,
+            $workingSetCountByPosition,
+            $skipDropsetsByWorkoutExerciseId,
+        );
+    }
+
+    /**
+     * @return array<int, true>
+     */
+    private function snapshotBlockExercises(
+        WorkoutBlock $workoutBlock,
+        Routine $routine,
+        RoutineBlock $routineBlock,
+        bool $isDeload,
+        bool $isCircuit,
+        float $weightFactor,
+        float $repsFactor,
+    ): array {
+        /** @var array<int, true> $skipDropsetsByWorkoutExerciseId */
+        $skipDropsetsByWorkoutExerciseId = [];
+
+        foreach ($routineBlock->blockExercises as $routineBlockExercise) {
+            $useAlternate = $isDeload && $routineBlockExercise->hasDeloadAlternate();
+            $sourceExercise = $useAlternate
+                ? $routineBlockExercise->deloadExercise
+                : $routineBlockExercise->exercise;
+            // Alternate weight is already the deload load — do not apply the recipe weight factor.
+            $workingWeightG = $useAlternate
+                ? (int) $routineBlockExercise->deload_working_weight_g
+                : (int) round($routineBlockExercise->working_weight_g * $weightFactor);
+
+            $isTimed = $routineBlockExercise->prescription_mode === PrescriptionMode::Duration;
+
+            $achievementFloor = $isCircuit || $isTimed
+                ? null
+                : ($routineBlockExercise->floor_is_derived === true
+                    ? max(1, $routineBlockExercise->prescribed_reps - 2)
+                    : ($routineBlockExercise->achievement_floor_override
+                        ?? $routine->user->achievement_floor_default));
+
+            $progressionTarget = $isCircuit || $isTimed
+                ? null
+                : $routineBlockExercise->prescribed_reps;
+
+            $prescribedReps = $isTimed
+                ? null
+                : max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor));
+
+            $workoutBlockExercise = WorkoutBlockExercise::create([
+                'workout_block_id' => $workoutBlock->id,
+                'exercise_id' => $sourceExercise->id,
+                'position' => $routineBlockExercise->position,
+                'exercise_name' => $sourceExercise->getName(),
+                'equipment' => $sourceExercise->equipment,
+                'prescription_mode' => $routineBlockExercise->prescription_mode ?? PrescriptionMode::Reps,
+                'prescribed_duration_seconds' => $routineBlockExercise->prescribed_duration_seconds,
+                'working_weight_g' => $workingWeightG,
+                'prescribed_reps' => $prescribedReps,
+                'achievement_floor' => $achievementFloor,
+                'progression_target' => $progressionTarget,
             ]);
 
-            /** @var array<int, true> $skipDropsetsByWorkoutExerciseId */
-            $skipDropsetsByWorkoutExerciseId = [];
+            if ($useAlternate) {
+                $skipDropsetsByWorkoutExerciseId[$workoutBlockExercise->id] = true;
+            }
+        }
 
-            foreach ($routineBlock->blockExercises as $routineBlockExercise) {
-                $useAlternate = $isDeload && $routineBlockExercise->hasDeloadAlternate();
-                $sourceExercise = $useAlternate
-                    ? $routineBlockExercise->deloadExercise
-                    : $routineBlockExercise->exercise;
-                // Alternate weight is already the deload load — do not apply the recipe weight factor.
-                $workingWeightG = $useAlternate
-                    ? (int) $routineBlockExercise->deload_working_weight_g
-                    : (int) round($routineBlockExercise->working_weight_g * $weightFactor);
+        return $skipDropsetsByWorkoutExerciseId;
+    }
 
-                $isTimed = $routineBlockExercise->prescription_mode === PrescriptionMode::Duration;
-
-                $achievementFloor = $isCircuit || $isTimed
-                    ? null
-                    : ($routineBlockExercise->floor_is_derived === true
-                        ? max(1, $routineBlockExercise->prescribed_reps - 2)
-                        : ($routineBlockExercise->achievement_floor_override
-                            ?? $routine->user->achievement_floor_default));
-
-                $progressionTarget = $isCircuit || $isTimed
-                    ? null
-                    : $routineBlockExercise->prescribed_reps;
-
-                $prescribedReps = $isTimed
-                    ? null
-                    : max(1, (int) round($routineBlockExercise->prescribed_reps * $repsFactor));
-
-                $workoutBlockExercise = WorkoutBlockExercise::create([
-                    'workout_block_id' => $workoutBlock->id,
-                    'exercise_id' => $sourceExercise->id,
-                    'position' => $routineBlockExercise->position,
-                    'exercise_name' => $sourceExercise->getName(),
-                    'equipment' => $sourceExercise->equipment,
-                    'prescription_mode' => $routineBlockExercise->prescription_mode ?? PrescriptionMode::Reps,
-                    'prescribed_duration_seconds' => $routineBlockExercise->prescribed_duration_seconds,
-                    'working_weight_g' => $workingWeightG,
-                    'prescribed_reps' => $prescribedReps,
-                    'achievement_floor' => $achievementFloor,
-                    'progression_target' => $progressionTarget,
-                ]);
-
-                if ($useAlternate) {
-                    $skipDropsetsByWorkoutExerciseId[$workoutBlockExercise->id] = true;
-                }
+    /**
+     * @param  array<int, int>  $workingSetCountByPosition
+     * @param  array<int, true>  $skipDropsetsByWorkoutExerciseId
+     */
+    private function snapshotBlockSetGroups(
+        WorkoutBlock $workoutBlock,
+        RoutineBlock $routineBlock,
+        bool $isDeload,
+        float $weightFactor,
+        array $workingSetCountByPosition,
+        array $skipDropsetsByWorkoutExerciseId,
+    ): void {
+        foreach ($routineBlock->setGroups as $routineSetGroup) {
+            if ($isDeload && $routineSetGroup->type === SetGroupType::WarmUp) {
+                continue;
             }
 
-            $workoutBlock->load('blockExercises');
+            $setCount = $routineSetGroup->set_count;
+            if (
+                $routineSetGroup->type === SetGroupType::Working
+                && array_key_exists((string) $routineBlock->position, $workingSetCountByPosition)
+            ) {
+                $setCount = $workingSetCountByPosition[$routineBlock->position];
+            }
 
-            foreach ($routineBlock->setGroups as $routineSetGroup) {
-                if ($isDeload && $routineSetGroup->type === SetGroupType::WarmUp) {
+            $workoutSetGroup = WorkoutSetGroup::create([
+                'workout_block_id' => $workoutBlock->id,
+                'type' => $routineSetGroup->type,
+                'set_count' => $setCount,
+                'rest_seconds' => $routineSetGroup->rest_seconds,
+            ]);
+
+            foreach ($routineSetGroup->warmUpSteps as $warmUpStep) {
+                WorkoutWarmUpStep::create([
+                    'workout_set_group_id' => $workoutSetGroup->id,
+                    'position' => $warmUpStep->position,
+                    'weight_mode' => $warmUpStep->weight_mode,
+                    'percent_of_working' => $warmUpStep->percent_of_working,
+                    'weight_g' => $warmUpStep->weight_g,
+                    'reps' => $warmUpStep->reps,
+                    'has_setup_after' => $warmUpStep->has_setup_after,
+                ]);
+            }
+
+            $this->snapshotSetGroupSets(
+                $workoutBlock,
+                $workoutSetGroup,
+                $routineSetGroup,
+                $setCount,
+                $weightFactor,
+                $skipDropsetsByWorkoutExerciseId,
+            );
+        }
+    }
+
+    /**
+     * @param  array<int, true>  $skipDropsetsByWorkoutExerciseId
+     */
+    private function snapshotSetGroupSets(
+        WorkoutBlock $workoutBlock,
+        WorkoutSetGroup $workoutSetGroup,
+        RoutineSetGroup $routineSetGroup,
+        int $setCount,
+        float $weightFactor,
+        array $skipDropsetsByWorkoutExerciseId,
+    ): void {
+        $segmentsByIndex = $routineSetGroup->dropsetSegments
+            ->groupBy('set_index');
+
+        for ($setIndex = 0; $setIndex < $setCount; $setIndex++) {
+            $recipeSegments = $segmentsByIndex->get($setIndex, collect())
+                ->sortBy('position')
+                ->values();
+
+            foreach ($workoutBlock->blockExercises as $workoutBlockExercise) {
+                $workoutSet = WorkoutSet::create([
+                    'workout_set_group_id' => $workoutSetGroup->id,
+                    'workout_block_exercise_id' => $workoutBlockExercise->id,
+                    'set_index' => $setIndex,
+                ]);
+
+                if (
+                    $recipeSegments->count() < 2
+                    || isset($skipDropsetsByWorkoutExerciseId[$workoutBlockExercise->id])
+                ) {
                     continue;
                 }
 
-                $setCount = $routineSetGroup->set_count;
-                if (
-                    $routineSetGroup->type === SetGroupType::Working
-                    && array_key_exists((string) $routineBlock->position, $workingSetCountByPosition)
-                ) {
-                    $setCount = $workingSetCountByPosition[$routineBlock->position];
-                }
-
-                $workoutSetGroup = WorkoutSetGroup::create([
-                    'workout_block_id' => $workoutBlock->id,
-                    'type' => $routineSetGroup->type,
-                    'set_count' => $setCount,
-                    'rest_seconds' => $routineSetGroup->rest_seconds,
-                ]);
-
-                foreach ($routineSetGroup->warmUpSteps as $warmUpStep) {
-                    WorkoutWarmUpStep::create([
-                        'workout_set_group_id' => $workoutSetGroup->id,
-                        'position' => $warmUpStep->position,
-                        'weight_mode' => $warmUpStep->weight_mode,
-                        'percent_of_working' => $warmUpStep->percent_of_working,
-                        'weight_g' => $warmUpStep->weight_g,
-                        'reps' => $warmUpStep->reps,
-                        'has_setup_after' => $warmUpStep->has_setup_after,
+                foreach ($recipeSegments as $segmentIndex => $recipeSegment) {
+                    WorkoutSetSegment::create([
+                        'workout_set_id' => $workoutSet->id,
+                        'position' => $segmentIndex + 1,
+                        'weight_g' => (int) round($recipeSegment->weight_g * $weightFactor),
                     ]);
-                }
-
-                $segmentsByIndex = $routineSetGroup->dropsetSegments
-                    ->groupBy('set_index');
-
-                for ($setIndex = 0; $setIndex < $setCount; $setIndex++) {
-                    $recipeSegments = $segmentsByIndex->get($setIndex, collect())
-                        ->sortBy('position')
-                        ->values();
-
-                    foreach ($workoutBlock->blockExercises as $workoutBlockExercise) {
-                        $workoutSet = WorkoutSet::create([
-                            'workout_set_group_id' => $workoutSetGroup->id,
-                            'workout_block_exercise_id' => $workoutBlockExercise->id,
-                            'set_index' => $setIndex,
-                        ]);
-
-                        if (
-                            $recipeSegments->count() < 2
-                            || isset($skipDropsetsByWorkoutExerciseId[$workoutBlockExercise->id])
-                        ) {
-                            continue;
-                        }
-
-                        foreach ($recipeSegments as $segmentIndex => $recipeSegment) {
-                            WorkoutSetSegment::create([
-                                'workout_set_id' => $workoutSet->id,
-                                'position' => $segmentIndex + 1,
-                                'weight_g' => (int) round($recipeSegment->weight_g * $weightFactor),
-                            ]);
-                        }
-                    }
                 }
             }
         }
