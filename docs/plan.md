@@ -50,8 +50,8 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
-- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — next action is **#1**. Low-traffic invite/form paths parked at the bottom.
-  1. `ExerciseProfiles\Policies\ExerciseProfilePolicy::update` — CRAP 8, **50%** cov (policy unit tests; custom + admin draft presets)
+- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — next action is **#2**. Low-traffic invite/form paths parked at the bottom.
+  1. ~~`ExerciseProfiles\Policies\ExerciseProfilePolicy::update`~~ — policy unit tests (custom + admin draft presets)
   2. `Workouts\Services\WorkoutSnapshotService::recordHistoricalSet` — CRAP 9, **66%** cov (tests)
   3. `Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate` — CRAP 8, **64%** cov (tests)
   4. `Shared\Support\WarmUpStepSupport::normalize` — CRAP 13, 82% cov (tests / edge cases)
