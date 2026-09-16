@@ -12,6 +12,7 @@ use App\Routines\Models\RoutineWarmUpStep;
 use App\Shared\Enums\BlockType;
 use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
+use App\Workouts\Data\History\StoreHistoricalWorkoutData;
 use App\Workouts\Enums\WorkoutMode;
 use App\Workouts\Enums\WorkoutStatus;
 use App\Workouts\Exceptions\WorkoutServiceException;
@@ -1171,5 +1172,133 @@ class WorkoutServiceTest extends TestCase
         $freshWorkingGroup = $workoutBlock->fresh()->workingSetGroup;
         $this->assertSame(2, $freshWorkingGroup->set_count);
         $this->assertCount(6, $freshWorkingGroup->sets);
+    }
+
+    #[Test]
+    public function create_historical_workout_logs_planned_dropset_segments(): void
+    {
+        $routine = Routine::factory()->create();
+        [$working] = $this->seedPlayableRoutineBlock($routine, setCount: 1, restSeconds: null);
+        RoutineDropsetSegment::create([
+            'routine_set_group_id' => $working->id,
+            'set_index' => 0,
+            'position' => 1,
+            'weight_g' => 20000,
+        ]);
+        RoutineDropsetSegment::create([
+            'routine_set_group_id' => $working->id,
+            'set_index' => 0,
+            'position' => 2,
+            'weight_g' => 15000,
+        ]);
+
+        [$workout] = $this->workoutService->createHistoricalWorkout(
+            $routine,
+            StoreHistoricalWorkoutData::from([
+                'finished_at' => now()->subDay()->toDateTimeString(),
+                'blocks' => [
+                    [
+                        'position' => 1,
+                        'working_set_count' => 1,
+                        'sets' => [
+                            [
+                                'exercise_position' => 1,
+                                'set_index' => 0,
+                                'reps' => 8,
+                                'segments' => [
+                                    ['weight_kg' => 18],
+                                    ['weight_kg' => 12],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        );
+
+        $set = $this->firstWorkingSet($workout->id)->load('segments');
+
+        $this->assertTrue($set->isDropset());
+        $this->assertSame(8, $set->reps);
+        $this->assertNull($set->weight_g);
+        $this->assertSame([18000, 12000], $set->segments->pluck('weight_g')->all());
+        $this->assertNotNull($set->completed_at);
+    }
+
+    #[Test]
+    public function create_historical_workout_rejects_planned_dropset_without_segments(): void
+    {
+        $routine = Routine::factory()->create();
+        [$working] = $this->seedPlayableRoutineBlock($routine, setCount: 1, restSeconds: null);
+        RoutineDropsetSegment::create([
+            'routine_set_group_id' => $working->id,
+            'set_index' => 0,
+            'position' => 1,
+            'weight_g' => 20000,
+        ]);
+        RoutineDropsetSegment::create([
+            'routine_set_group_id' => $working->id,
+            'set_index' => 0,
+            'position' => 2,
+            'weight_g' => 15000,
+        ]);
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::PLANNED_DROPSET_REQUIRES_SEGMENTS_ERROR);
+
+        $this->workoutService->createHistoricalWorkout(
+            $routine,
+            StoreHistoricalWorkoutData::from([
+                'finished_at' => now()->subDay()->toDateTimeString(),
+                'blocks' => [
+                    [
+                        'position' => 1,
+                        'working_set_count' => 1,
+                        'sets' => [
+                            [
+                                'exercise_position' => 1,
+                                'set_index' => 0,
+                                'reps' => 8,
+                                'weight_kg' => 20,
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        );
+    }
+
+    #[Test]
+    public function create_historical_workout_can_skip_a_working_set(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1, restSeconds: null);
+
+        [$workout] = $this->workoutService->createHistoricalWorkout(
+            $routine,
+            StoreHistoricalWorkoutData::from([
+                'finished_at' => now()->subDay()->toDateTimeString(),
+                'blocks' => [
+                    [
+                        'position' => 1,
+                        'working_set_count' => 1,
+                        'sets' => [
+                            [
+                                'exercise_position' => 1,
+                                'set_index' => 0,
+                                'is_skipped' => true,
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        );
+
+        $set = $this->firstWorkingSet($workout->id);
+
+        $this->assertTrue($set->is_skipped);
+        $this->assertNull($set->reps);
+        $this->assertNull($set->weight_g);
+        $this->assertNotNull($set->completed_at);
     }
 }
