@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin\Http\Controllers;
 
 use App\Auth\Mail\RegistrationInviteMail;
 use App\Auth\Models\RegistrationInvite;
+use App\Auth\Services\RegistrationInviteService;
 use App\ExerciseProfiles\Enums\ExerciseProfileStatus;
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\Exercises\Models\Exercise;
@@ -11,6 +12,7 @@ use App\MuscleGroups\Models\MuscleGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use Tests\Helpers\UserHelper;
 use Tests\TestCase;
 
@@ -141,6 +143,64 @@ class AdminPanelTest extends TestCase
             ->assertSessionHas('success');
 
         Mail::assertSent(RegistrationInviteMail::class, fn (RegistrationInviteMail $mail): bool => $mail->hasTo('again@example.com'));
+    }
+
+    #[Test]
+    public function admins_cannot_resend_unusable_or_emailless_invites(): void
+    {
+        Mail::fake();
+
+        $revoked = RegistrationInvite::query()->create([
+            'token' => 'revoked-'.uniqid(),
+            'created_by' => $this->adminUser->id,
+            'role' => 'user',
+            'email' => 'revoked@example.com',
+            'expires_at' => now()->addDay(),
+            'revoked_at' => now(),
+        ]);
+        $noEmail = RegistrationInvite::query()->create([
+            'token' => 'no-email-'.uniqid(),
+            'created_by' => $this->adminUser->id,
+            'role' => 'user',
+            'email' => null,
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.invites.resend', $revoked->id))
+            ->assertRedirect(route('admin.invites'))
+            ->assertSessionHas('error', 'This invite cannot be resent.');
+
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.invites.resend', $noEmail->id))
+            ->assertRedirect(route('admin.invites'))
+            ->assertSessionHas('error', 'This invite cannot be resent.');
+
+        Mail::assertNothingSent();
+    }
+
+    #[Test]
+    public function invite_resend_surfaces_mail_failures(): void
+    {
+        $invite = RegistrationInvite::query()->create([
+            'token' => 'fail-resend-'.uniqid(),
+            'created_by' => $this->adminUser->id,
+            'role' => 'user',
+            'email' => 'fail@example.com',
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->mock(RegistrationInviteService::class, function ($mock) use ($invite): void {
+            $mock->shouldReceive('send')
+                ->once()
+                ->withArgs(fn (RegistrationInvite $arg): bool => $arg->is($invite))
+                ->andThrow(new RuntimeException('smtp down'));
+        });
+
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.invites.resend', $invite->id))
+            ->assertRedirect(route('admin.invites'))
+            ->assertSessionHas('error', 'Could not resend invite email. Try again.');
     }
 
     #[Test]

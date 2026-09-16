@@ -50,7 +50,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
-- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — **triage items 1–7 done**; parked low-traffic invite/form paths remain.
+- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — **done** (items 1–7 + formerly parked invite/form paths).
   1. ~~`ExerciseProfiles\Policies\ExerciseProfilePolicy::update`~~ — policy unit tests (custom + admin draft presets)
   2. ~~`Workouts\Services\WorkoutSnapshotService::recordHistoricalSet`~~ — historical dropset segments / planned-dropset reject / skip
   3. ~~`Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate`~~ — warm-up reject / dropset segments / reps-only / completed_at fill
@@ -59,7 +59,8 @@ Public order matches `/beta-tester-faqs`, including recently added items.
   6. ~~`Routines\Services\RoutineEditorService::createBlock`~~ — split shape/shared-profile/exercise/warm-up helpers
   7. ~~`Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout`~~ — split block/exercise/set-group helpers
   8. ~~`Auth\Console\GenerateRegistrationInviteSecretCommand`~~ — removed (unused; master `REGISTRATION_INVITE` is manual `.env` if ever needed)
-  - **Parked (low traffic):** `FormSubmissionService::recipientAddress` (43%); `ResendAdminInviteController` (46%)
+  9. ~~`FormSubmissionService::recipientAddress`~~ — mailbox + admin + mail.from fallbacks
+  10. ~~`ResendAdminInviteController`~~ — unusable/emailless reject + mail-failure flash
 - **PHP coverage baseline (advisory)** — see PR #116 (`npm run sail:coverage`, advisory **90%** floor). Then Infection pilot → hard gates later
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
