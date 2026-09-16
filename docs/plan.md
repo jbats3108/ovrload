@@ -50,12 +50,12 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
-- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — next action is **#5**. Low-traffic invite/form paths parked at the bottom.
+- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — next action is **#6**. Low-traffic invite/form paths parked at the bottom.
   1. ~~`ExerciseProfiles\Policies\ExerciseProfilePolicy::update`~~ — policy unit tests (custom + admin draft presets)
   2. ~~`Workouts\Services\WorkoutSnapshotService::recordHistoricalSet`~~ — historical dropset segments / planned-dropset reject / skip
   3. ~~`Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate`~~ — warm-up reject / dropset segments / reps-only / completed_at fill
   4. ~~`Shared\Support\WarmUpStepSupport::normalize`~~ — edge cases (invalid input, enum mode, fixed/percent rejects, list filter)
-  5. `Exercises\Services\ExerciseCatalogImporter::import` — CRAP 25, 86% cov (tests + split)
+  5. ~~`Exercises\Services\ExerciseCatalogImporter::import`~~ — split sync helpers + skip/restore/empty-prune tests
   6. `Routines\Services\RoutineEditorService::createBlock` — CRAP 48, 97% cov (split/simplify)
   7. `Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout` — CRAP 29, 100% cov (split)
   8. ~~`Auth\Console\GenerateRegistrationInviteSecretCommand`~~ — removed (unused; master `REGISTRATION_INVITE` is manual `.env` if ever needed)

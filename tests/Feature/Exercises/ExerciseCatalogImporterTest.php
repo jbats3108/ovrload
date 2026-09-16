@@ -169,4 +169,106 @@ class ExerciseCatalogImporterTest extends TestCase
             'equipment' => 'dumbbell',
         ]);
     }
+
+    #[Test]
+    public function it_skips_invalid_rows_and_unknown_muscle_groups(): void
+    {
+        $result = (new ExerciseCatalogImporter)->import([
+            'muscle_groups' => [
+                ['name' => 'Chest', 'slug' => 'chest'],
+                ['name' => '', 'slug' => 'blank'],
+                ['slug' => 'no-name'],
+            ],
+            'exercises' => [
+                ['name' => 'Valid Press', 'slug' => 'valid-press', 'primary' => 'chest'],
+                ['name' => 'Missing Slug', 'primary' => 'chest'],
+                ['name' => 'Bad Primary', 'slug' => 'bad-primary', 'primary' => 'missing'],
+                [
+                    'name' => 'Bad Secondary',
+                    'slug' => 'bad-secondary',
+                    'primary' => 'chest',
+                    'secondary' => 'missing',
+                ],
+                [
+                    'name' => 'Unknown Gear',
+                    'slug' => 'unknown-gear',
+                    'primary' => 'chest',
+                    'equipment' => 'not-real',
+                ],
+            ],
+        ]);
+
+        $this->assertSame(1, $result['muscle_groups']);
+        $this->assertSame(2, $result['created']);
+        $this->assertSame(3, $result['skipped']);
+        $this->assertDatabaseHas('exercises', [
+            'slug' => 'valid-press',
+            'equipment' => null,
+        ]);
+        $this->assertDatabaseHas('exercises', [
+            'slug' => 'unknown-gear',
+            'equipment' => null,
+        ]);
+        $this->assertDatabaseMissing('exercises', ['slug' => 'bad-primary']);
+        $this->assertDatabaseMissing('exercises', ['slug' => 'bad-secondary']);
+    }
+
+    #[Test]
+    public function it_restores_soft_deleted_muscle_groups_and_exercises(): void
+    {
+        $group = MuscleGroup::factory()->create([
+            'name' => 'Chest',
+            'slug' => 'chest',
+        ]);
+        $group->delete();
+
+        $exercise = Exercise::factory()->create([
+            'user_id' => null,
+            'slug' => 'restored-press',
+            'name' => 'Old Name',
+            'primary_muscle_group_id' => $group->id,
+        ]);
+        $exercise->delete();
+
+        $result = (new ExerciseCatalogImporter)->import([
+            'muscle_groups' => [
+                ['name' => 'Chest', 'slug' => 'chest'],
+            ],
+            'exercises' => [
+                [
+                    'name' => 'Restored Press',
+                    'slug' => 'restored-press',
+                    'primary' => 'chest',
+                    'secondary' => 'chest',
+                    'equipment' => 'barbell',
+                ],
+            ],
+        ], prune: false);
+
+        $this->assertSame(0, $result['muscle_groups']);
+        $this->assertSame(0, $result['created']);
+        $this->assertSame(1, $result['updated']);
+        $this->assertNotSoftDeleted($group->fresh());
+        $this->assertNotSoftDeleted($exercise->fresh());
+        $this->assertSame('Restored Press', $exercise->fresh()->name);
+        $this->assertSame($group->id, $exercise->fresh()->secondary_muscle_group_id);
+    }
+
+    #[Test]
+    public function it_prunes_all_shared_exercises_when_catalog_has_none(): void
+    {
+        $importer = new ExerciseCatalogImporter;
+        $importer->importFromPath(ExerciseCatalogImporter::defaultPath());
+        $this->assertGreaterThan(0, Exercise::shared()->count());
+
+        $result = $importer->import([
+            'muscle_groups' => [
+                ['name' => 'Chest', 'slug' => 'chest'],
+            ],
+            'exercises' => [],
+        ]);
+
+        $this->assertGreaterThan(0, $result['pruned']);
+        $this->assertSame(0, Exercise::shared()->count());
+    }
 }
