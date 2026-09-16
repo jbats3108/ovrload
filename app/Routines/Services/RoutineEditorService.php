@@ -86,49 +86,13 @@ class RoutineEditorService
         $isSuperset = $blockType === BlockType::Superset;
         $isCircuit = $blockType === BlockType::Circuit;
         $exercises = $blockData->exercises->all();
-        $sharedProfile = $this->profileFromId($routine->user, $blockData->sharedProfileId);
         $warmUp = $blockData->warmUp ?? new SyncWarmUpData;
         $steps = $warmUp->stepList();
-
-        if ($isSuperset && count($exercises) !== 2) {
-            throw new InvalidArgumentException('A superset must have exactly two exercises.');
-        }
-
-        if ($blockType === BlockType::Single && count($exercises) !== 1) {
-            throw new InvalidArgumentException('A non-superset must have exactly one exercise.');
-        }
-
-        if ($isCircuit && count($exercises) < 3) {
-            throw new InvalidArgumentException('A circuit must have at least three exercises.');
-        }
-
-        if ($isCircuit) {
-            if ($blockData->sharedProfileId !== null) {
-                throw new InvalidArgumentException('Shared exercise profiles are not supported on circuits.');
-            }
-            $sharedProfile = null;
-        } elseif (! $isSuperset) {
-            /** @var SyncBlockExerciseData $single */
-            $single = $exercises[0];
-            if ($single->exerciseProfileId === null) {
-                $sharedProfile = null;
-            }
-        }
-
         $dropsets = $blockData->working->dropsetList();
 
-        if ($isSuperset && $dropsets !== []) {
-            throw new InvalidArgumentException('Dropsets are not supported on supersets.');
-        }
+        $this->assertBlockShape($blockType, $exercises, $dropsets, $steps, $blockData->sharedProfileId);
 
-        if ($isCircuit && $dropsets !== []) {
-            throw new InvalidArgumentException('Dropsets are not supported on circuits.');
-        }
-
-        if ($isCircuit && $steps !== []) {
-            throw new InvalidArgumentException('Warm-up steps are not supported on circuits.');
-        }
-
+        $sharedProfile = $this->resolveSharedProfile($routine->user, $blockData, $exercises, $isSuperset, $isCircuit);
         $this->assertSharedProfileNotTampered($sharedProfile, $blockData, $steps);
         $sharedFingerprint = ExerciseProfileAssignment::sharedProfileFingerprint(
             $sharedProfile,
@@ -149,76 +113,15 @@ class RoutineEditorService
 
         foreach (array_values($exercises) as $index => $exerciseData) {
             /** @var SyncBlockExerciseData $exerciseData */
-            Exercise::assertAvailableFor($routine->user, $exerciseData->exerciseId);
-
-            if ($isCircuit) {
-                if ($exerciseData->exerciseProfileId !== null) {
-                    throw new InvalidArgumentException('Exercise profiles are not supported on circuits.');
-                }
-                if ($exerciseData->deloadExerciseId !== null || $exerciseData->deloadWorkingWeightKg !== null) {
-                    throw new InvalidArgumentException('Deload alternate exercises are not supported on circuits.');
-                }
-                if ($exerciseData->progressionTarget !== null) {
-                    throw new InvalidArgumentException('Automatic progression targets are not supported on circuits.');
-                }
-                if ($exerciseData->achievementFloor !== null) {
-                    throw new InvalidArgumentException('Achievement floor overrides are not supported on circuits.');
-                }
-            }
-
-            if ($exerciseData->prescriptionMode === PrescriptionMode::Duration) {
-                if ($exerciseData->prescribedDurationSeconds === null || $exerciseData->prescribedDurationSeconds < 1) {
-                    throw new InvalidArgumentException('Timed exercises require a duration of at least 1 second.');
-                }
-            } elseif ($exerciseData->prescribedReps === null || $exerciseData->prescribedReps < 1) {
-                throw new InvalidArgumentException('Rep-based exercises require prescribed reps of at least 1.');
-            }
-
-            $exerciseProfile = $isCircuit ? null : $this->profileFromId($routine->user, $exerciseData->exerciseProfileId);
-            $this->assertExerciseProfileNotTampered($exerciseProfile, $exerciseData, $isSuperset);
-
-            if ($exerciseData->deloadExerciseId !== null) {
-                Exercise::assertAvailableFor($routine->user, $exerciseData->deloadExerciseId);
-            }
-            $usesSupersetFingerprint = $isSuperset || $sharedProfile === null;
-            $exerciseFingerprint = ExerciseProfileAssignment::exerciseFingerprint(
-                $exerciseProfile,
-                $usesSupersetFingerprint,
+            $this->createBlockExercise(
+                $routine->user,
+                $block,
+                $exerciseData,
+                $index + 1,
+                $isSuperset,
+                $isCircuit,
+                $sharedProfile,
             );
-            $exerciseAssignmentIsCurrent = $exerciseProfile !== null
-                && ExerciseProfileAssignment::assignmentIsCurrent(
-                    $exerciseData->exerciseProfileFingerprint,
-                    $exerciseFingerprint,
-                );
-            $storedExerciseFingerprint = ExerciseProfileAssignment::storedExerciseFingerprint(
-                $exerciseData->exerciseProfileFingerprint,
-                $exerciseFingerprint,
-            );
-
-            RoutineBlockExercise::create([
-                'routine_block_id' => $block->id,
-                'exercise_profile_id' => $exerciseProfile?->id,
-                'exercise_profile_fingerprint' => $storedExerciseFingerprint,
-                'exercise_id' => $exerciseData->exerciseId,
-                'position' => $index + 1,
-                'prescription_mode' => $exerciseData->prescriptionMode,
-                'prescribed_duration_seconds' => $exerciseData->prescriptionMode === PrescriptionMode::Duration
-                    ? $exerciseData->prescribedDurationSeconds
-                    : null,
-                'working_weight_g' => $exerciseData->workingWeightGrams(),
-                'deload_exercise_id' => $isCircuit ? null : $exerciseData->deloadExerciseId,
-                'deload_working_weight_g' => $isCircuit ? null : $exerciseData->deloadWorkingWeightGrams(),
-                'prescribed_reps' => $exerciseData->prescriptionMode === PrescriptionMode::Reps
-                    ? $exerciseData->prescribedReps
-                    : null,
-                'achievement_floor_override' => $isCircuit ? null : $this->achievementFloorForStorage($exerciseData),
-                'floor_is_derived' => $isCircuit ? null : $this->floorDerivationForAssignment(
-                    $exerciseProfile,
-                    $exerciseData,
-                    $exerciseAssignmentIsCurrent,
-                ),
-                'progression_target_override' => $isCircuit ? null : $exerciseData->progressionTarget,
-            ]);
         }
 
         $workingGroup = RoutineSetGroup::create([
@@ -231,28 +134,194 @@ class RoutineEditorService
         $this->persistDropsets($workingGroup, $blockData->working->setCount, $dropsets);
 
         if (! $isCircuit) {
-            $warmUpGroup = RoutineSetGroup::create([
-                'routine_block_id' => $block->id,
-                'type' => SetGroupType::WarmUp,
-                'set_count' => max(count($steps), $warmUp->setCount),
-                'rest_seconds' => $warmUp->restSeconds,
-            ]);
+            $this->persistWarmUpGroup($block, $warmUp, $steps);
+        }
+    }
 
-            foreach ($steps as $stepIndex => $step) {
-                RoutineWarmUpStep::create([
-                    'routine_set_group_id' => $warmUpGroup->id,
-                    'position' => $stepIndex + 1,
-                    'weight_mode' => $step->mode,
-                    'percent_of_working' => $step->mode === WarmUpWeightMode::Percent
-                        ? min(100, max(1, $step->percent ?? 1))
-                        : null,
-                    'weight_g' => $step->mode === WarmUpWeightMode::Fixed && $step->weightKg !== null
-                        ? Weight::kgToGrams($step->weightKg)
-                        : null,
-                    'reps' => min(100, max(1, $step->reps)),
-                    'has_setup_after' => $step->hasSetupAfter,
-                ]);
+    /**
+     * @param  list<SyncBlockExerciseData>  $exercises
+     * @param  list<SyncDropsetData>  $dropsets
+     * @param  list<SyncWarmUpStepData>  $steps
+     */
+    private function assertBlockShape(
+        BlockType $blockType,
+        array $exercises,
+        array $dropsets,
+        array $steps,
+        ?int $sharedProfileId,
+    ): void {
+        $isSuperset = $blockType === BlockType::Superset;
+        $isCircuit = $blockType === BlockType::Circuit;
+
+        if ($isSuperset && count($exercises) !== 2) {
+            throw new InvalidArgumentException('A superset must have exactly two exercises.');
+        }
+
+        if ($blockType === BlockType::Single && count($exercises) !== 1) {
+            throw new InvalidArgumentException('A non-superset must have exactly one exercise.');
+        }
+
+        if ($isCircuit && count($exercises) < 3) {
+            throw new InvalidArgumentException('A circuit must have at least three exercises.');
+        }
+
+        if ($isCircuit && $sharedProfileId !== null) {
+            throw new InvalidArgumentException('Shared exercise profiles are not supported on circuits.');
+        }
+
+        if ($isSuperset && $dropsets !== []) {
+            throw new InvalidArgumentException('Dropsets are not supported on supersets.');
+        }
+
+        if ($isCircuit && $dropsets !== []) {
+            throw new InvalidArgumentException('Dropsets are not supported on circuits.');
+        }
+
+        if ($isCircuit && $steps !== []) {
+            throw new InvalidArgumentException('Warm-up steps are not supported on circuits.');
+        }
+    }
+
+    /**
+     * @param  list<SyncBlockExerciseData>  $exercises
+     */
+    private function resolveSharedProfile(
+        User $user,
+        SyncRoutineBlockData $blockData,
+        array $exercises,
+        bool $isSuperset,
+        bool $isCircuit,
+    ): ?ExerciseProfile {
+        if ($isCircuit) {
+            return null;
+        }
+
+        $sharedProfile = $this->profileFromId($user, $blockData->sharedProfileId);
+
+        if (! $isSuperset) {
+            /** @var SyncBlockExerciseData $single */
+            $single = $exercises[0];
+            if ($single->exerciseProfileId === null) {
+                return null;
             }
+        }
+
+        return $sharedProfile;
+    }
+
+    private function createBlockExercise(
+        User $user,
+        RoutineBlock $block,
+        SyncBlockExerciseData $exerciseData,
+        int $position,
+        bool $isSuperset,
+        bool $isCircuit,
+        ?ExerciseProfile $sharedProfile,
+    ): void {
+        Exercise::assertAvailableFor($user, $exerciseData->exerciseId);
+
+        if ($isCircuit) {
+            $this->assertCircuitExerciseConstraints($exerciseData);
+        }
+
+        if ($exerciseData->prescriptionMode === PrescriptionMode::Duration) {
+            if ($exerciseData->prescribedDurationSeconds === null || $exerciseData->prescribedDurationSeconds < 1) {
+                throw new InvalidArgumentException('Timed exercises require a duration of at least 1 second.');
+            }
+        } elseif ($exerciseData->prescribedReps === null || $exerciseData->prescribedReps < 1) {
+            throw new InvalidArgumentException('Rep-based exercises require prescribed reps of at least 1.');
+        }
+
+        $exerciseProfile = $isCircuit ? null : $this->profileFromId($user, $exerciseData->exerciseProfileId);
+        $this->assertExerciseProfileNotTampered($exerciseProfile, $exerciseData, $isSuperset);
+
+        if ($exerciseData->deloadExerciseId !== null) {
+            Exercise::assertAvailableFor($user, $exerciseData->deloadExerciseId);
+        }
+
+        $usesSupersetFingerprint = $isSuperset || $sharedProfile === null;
+        $exerciseFingerprint = ExerciseProfileAssignment::exerciseFingerprint(
+            $exerciseProfile,
+            $usesSupersetFingerprint,
+        );
+        $exerciseAssignmentIsCurrent = $exerciseProfile !== null
+            && ExerciseProfileAssignment::assignmentIsCurrent(
+                $exerciseData->exerciseProfileFingerprint,
+                $exerciseFingerprint,
+            );
+        $storedExerciseFingerprint = ExerciseProfileAssignment::storedExerciseFingerprint(
+            $exerciseData->exerciseProfileFingerprint,
+            $exerciseFingerprint,
+        );
+
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_profile_id' => $exerciseProfile?->id,
+            'exercise_profile_fingerprint' => $storedExerciseFingerprint,
+            'exercise_id' => $exerciseData->exerciseId,
+            'position' => $position,
+            'prescription_mode' => $exerciseData->prescriptionMode,
+            'prescribed_duration_seconds' => $exerciseData->prescriptionMode === PrescriptionMode::Duration
+                ? $exerciseData->prescribedDurationSeconds
+                : null,
+            'working_weight_g' => $exerciseData->workingWeightGrams(),
+            'deload_exercise_id' => $isCircuit ? null : $exerciseData->deloadExerciseId,
+            'deload_working_weight_g' => $isCircuit ? null : $exerciseData->deloadWorkingWeightGrams(),
+            'prescribed_reps' => $exerciseData->prescriptionMode === PrescriptionMode::Reps
+                ? $exerciseData->prescribedReps
+                : null,
+            'achievement_floor_override' => $isCircuit ? null : $this->achievementFloorForStorage($exerciseData),
+            'floor_is_derived' => $isCircuit ? null : $this->floorDerivationForAssignment(
+                $exerciseProfile,
+                $exerciseData,
+                $exerciseAssignmentIsCurrent,
+            ),
+            'progression_target_override' => $isCircuit ? null : $exerciseData->progressionTarget,
+        ]);
+    }
+
+    private function assertCircuitExerciseConstraints(SyncBlockExerciseData $exerciseData): void
+    {
+        if ($exerciseData->exerciseProfileId !== null) {
+            throw new InvalidArgumentException('Exercise profiles are not supported on circuits.');
+        }
+        if ($exerciseData->deloadExerciseId !== null || $exerciseData->deloadWorkingWeightKg !== null) {
+            throw new InvalidArgumentException('Deload alternate exercises are not supported on circuits.');
+        }
+        if ($exerciseData->progressionTarget !== null) {
+            throw new InvalidArgumentException('Automatic progression targets are not supported on circuits.');
+        }
+        if ($exerciseData->achievementFloor !== null) {
+            throw new InvalidArgumentException('Achievement floor overrides are not supported on circuits.');
+        }
+    }
+
+    /**
+     * @param  list<SyncWarmUpStepData>  $steps
+     */
+    private function persistWarmUpGroup(RoutineBlock $block, SyncWarmUpData $warmUp, array $steps): void
+    {
+        $warmUpGroup = RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::WarmUp,
+            'set_count' => max(count($steps), $warmUp->setCount),
+            'rest_seconds' => $warmUp->restSeconds,
+        ]);
+
+        foreach ($steps as $stepIndex => $step) {
+            RoutineWarmUpStep::create([
+                'routine_set_group_id' => $warmUpGroup->id,
+                'position' => $stepIndex + 1,
+                'weight_mode' => $step->mode,
+                'percent_of_working' => $step->mode === WarmUpWeightMode::Percent
+                    ? min(100, max(1, $step->percent ?? 1))
+                    : null,
+                'weight_g' => $step->mode === WarmUpWeightMode::Fixed && $step->weightKg !== null
+                    ? Weight::kgToGrams($step->weightKg)
+                    : null,
+                'reps' => min(100, max(1, $step->reps)),
+                'has_setup_after' => $step->hasSetupAfter,
+            ]);
         }
     }
 

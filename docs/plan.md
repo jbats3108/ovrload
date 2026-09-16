@@ -50,14 +50,14 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
-- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — next action is **#6**. Low-traffic invite/form paths parked at the bottom.
+- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — **triage items 1–7 done**; parked low-traffic invite/form paths remain.
   1. ~~`ExerciseProfiles\Policies\ExerciseProfilePolicy::update`~~ — policy unit tests (custom + admin draft presets)
   2. ~~`Workouts\Services\WorkoutSnapshotService::recordHistoricalSet`~~ — historical dropset segments / planned-dropset reject / skip
   3. ~~`Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate`~~ — warm-up reject / dropset segments / reps-only / completed_at fill
   4. ~~`Shared\Support\WarmUpStepSupport::normalize`~~ — edge cases (invalid input, enum mode, fixed/percent rejects, list filter)
   5. ~~`Exercises\Services\ExerciseCatalogImporter::import`~~ — split sync helpers + skip/restore/empty-prune tests
-  6. `Routines\Services\RoutineEditorService::createBlock` — CRAP 48, 97% cov (split/simplify)
-  7. `Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout` — CRAP 29, 100% cov (split)
+  6. ~~`Routines\Services\RoutineEditorService::createBlock`~~ — split shape/shared-profile/exercise/warm-up helpers
+  7. ~~`Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout`~~ — split block/exercise/set-group helpers
   8. ~~`Auth\Console\GenerateRegistrationInviteSecretCommand`~~ — removed (unused; master `REGISTRATION_INVITE` is manual `.env` if ever needed)
   - **Parked (low traffic):** `FormSubmissionService::recipientAddress` (43%); `ResendAdminInviteController` (46%)
 - **PHP coverage baseline (advisory)** — see PR #116 (`npm run sail:coverage`, advisory **90%** floor). Then Infection pilot → hard gates later
