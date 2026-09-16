@@ -28,7 +28,7 @@ if ((ps.status ?? 1) !== 0 || !ps.stdout?.trim()) {
 }
 
 const phpCmd = checkOnly
-    ? ['artisan', 'test', '--coverage', '--min=50', ...passthrough]
+    ? ['artisan', 'test', '--coverage', '--min=90', ...passthrough]
     : [
           'vendor/bin/phpunit',
           '--coverage-html=coverage',

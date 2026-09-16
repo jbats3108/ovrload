@@ -99,7 +99,7 @@
             "npm run sail:coverage -- --check"
         ],
         "test:coverage:threshold": [
-            "@php scripts/check-php-coverage.php coverage/clover.xml 50"
+            "@php scripts/check-php-coverage.php coverage/clover.xml 90"
         ],
         "lint": [
             "@php vendor/bin/pint --ansi"
@@ -144,8 +144,8 @@
         "quality-fix": "Apply Rector→Pint twice so import reordering cannot leave a one-pass Rector leftover.",
         "quality": "Apply Rector + Pint, then run PHPStan.",
         "test:coverage": "Sail PHPUnit coverage → coverage/ (HTML/Clover/Crap4j); requires npm run sail:up.",
-        "test:coverage:check": "Sail suite with advisory 50% floor (npm run sail:coverage -- --check).",
-        "test:coverage:threshold": "Compare coverage/clover.xml to the advisory 50% floor (CI uses continue-on-error)."
+        "test:coverage:check": "Sail suite with advisory 90% floor (npm run sail:coverage -- --check).",
+        "test:coverage:threshold": "Compare coverage/clover.xml to the advisory 90% floor (CI uses continue-on-error)."
     },
     "extra": {
         "laravel": {

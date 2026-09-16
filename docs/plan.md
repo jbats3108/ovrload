@@ -50,7 +50,18 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
-- **PHP coverage baseline (advisory)** — Sail: `npm run sail:coverage` → `coverage/index.html`; CI Clover+HTML; advisory **50%** floor via `test:coverage:threshold` (`continue-on-error`). Next: raise/adjust floor from first CI number → CRAP triage → Infection pilot
+- **PHP coverage baseline (advisory)** — Sail: `npm run sail:coverage` → `coverage/index.html`; local baseline **92.28%**; advisory **90%** floor via `test:coverage:threshold` (`continue-on-error`). Next: work CRAP triage below → Infection pilot → hard gates later
+- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16) — prefer tests for under-covered methods; complexity-only items are refactor candidates:
+  1. `Auth\Console\GenerateRegistrationInviteSecretCommand::handle` — CRAP 42, **0%** cov (tests)
+  2. `Routines\Services\RoutineEditorService::createBlock` — CRAP 48, 97% cov (split/simplify)
+  3. `Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout` — CRAP 29, 100% cov (split)
+  4. `Exercises\Services\ExerciseCatalogImporter::import` — CRAP 25, 86% cov (tests + split)
+  5. `Shared\Services\FormSubmissionService::recipientAddress` — CRAP 10, **43%** cov (tests)
+  6. `Admin\Http\Controllers\ResendAdminInviteController` — CRAP 9, **46%** cov (tests)
+  7. `Workouts\Services\WorkoutSnapshotService::recordHistoricalSet` — CRAP 9, **66%** cov (tests)
+  8. `ExerciseProfiles\Policies\ExerciseProfilePolicy::update` — CRAP 8, **50%** cov (tests)
+  9. `Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate` — CRAP 8, **64%** cov (tests)
+  10. `Shared\Support\WarmUpStepSupport::normalize` — CRAP 13, 82% cov (tests / edge cases)
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)

@@ -9,7 +9,7 @@ declare(strict_types=1);
  * Exit 0 when coverage >= min; exit 1 when below (or on I/O errors).
  */
 $cloverPath = $argv[1] ?? 'coverage/clover.xml';
-$minPercent = isset($argv[2]) ? (float) $argv[2] : 50.0;
+$minPercent = isset($argv[2]) ? (float) $argv[2] : 90.0;
 
 if (! is_file($cloverPath)) {
     fwrite(STDERR, "Clover report not found: {$cloverPath}\n");

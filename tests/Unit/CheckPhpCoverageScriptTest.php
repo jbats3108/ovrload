@@ -44,7 +44,25 @@ class CheckPhpCoverageScriptTest extends TestCase
             'at floor' => [60.0, 0],
             'below floor' => [60.01, 1],
             'above coverage' => [50.0, 0],
+            'default ninety floor fails fixture' => [90.0, 1],
         ];
+    }
+
+    public function test_default_minimum_is_ninety(): void
+    {
+        $clover = dirname(__DIR__).'/Fixtures/coverage/clover-60.xml';
+
+        $command = sprintf(
+            '%s %s %s',
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($this->script),
+            escapeshellarg($clover),
+        );
+
+        exec($command.' 2>&1', $output, $exitCode);
+
+        $this->assertSame(1, $exitCode, implode("\n", $output));
+        $this->assertStringContainsString('90.0%', implode("\n", $output));
     }
 
     public function test_fails_when_clover_missing(): void
@@ -52,7 +70,7 @@ class CheckPhpCoverageScriptTest extends TestCase
         $missing = dirname(__DIR__).'/Fixtures/coverage/does-not-exist.xml';
 
         $command = sprintf(
-            '%s %s %s 50',
+            '%s %s %s 90',
             escapeshellarg(PHP_BINARY),
             escapeshellarg($this->script),
             escapeshellarg($missing),
