@@ -50,6 +50,17 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
+- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — next action is **#1**. Low-traffic invite/form paths parked at the bottom.
+  1. `ExerciseProfiles\Policies\ExerciseProfilePolicy::update` — CRAP 8, **50%** cov (policy unit tests; custom + admin draft presets)
+  2. `Workouts\Services\WorkoutSnapshotService::recordHistoricalSet` — CRAP 9, **66%** cov (tests)
+  3. `Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate` — CRAP 8, **64%** cov (tests)
+  4. `Shared\Support\WarmUpStepSupport::normalize` — CRAP 13, 82% cov (tests / edge cases)
+  5. `Exercises\Services\ExerciseCatalogImporter::import` — CRAP 25, 86% cov (tests + split)
+  6. `Routines\Services\RoutineEditorService::createBlock` — CRAP 48, 97% cov (split/simplify)
+  7. `Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout` — CRAP 29, 100% cov (split)
+  8. ~~`Auth\Console\GenerateRegistrationInviteSecretCommand`~~ — removed (unused; master `REGISTRATION_INVITE` is manual `.env` if ever needed)
+  - **Parked (low traffic):** `FormSubmissionService::recipientAddress` (43%); `ResendAdminInviteController` (46%)
+- **PHP coverage baseline (advisory)** — see PR #116 (`npm run sail:coverage`, advisory **90%** floor). Then Infection pilot → hard gates later
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)
