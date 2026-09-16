@@ -1,0 +1,25 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "app/Shared/Support",
+            "app/ExerciseProfiles/Support",
+            "app/Exercises/Support",
+            "app/ExerciseProfiles/Policies",
+            "app/Exercises/Policies",
+            "app/MuscleGroups/Policies",
+            "app/Routines/Policies",
+            "app/Workouts/Policies"
+        ]
+    },
+    "timeout": 30,
+    "threads": "max",
+    "logs": {
+        "html": "coverage/infection.html",
+        "text": "coverage/infection.log",
+        "summary": "coverage/infection-summary.log",
+        "json": "coverage/infection.json"
+    },
+    "tmpDir": "coverage/infection-tmp",
+    "testFramework": "phpunit"
+}

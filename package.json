@@ -10,6 +10,7 @@
         "sail:localhost": "node --experimental-strip-types scripts/sail-lan.ts --localhost",
         "sail:up": "node --experimental-strip-types scripts/sail-up.ts",
         "sail:coverage": "node --experimental-strip-types scripts/sail-coverage.ts",
+        "sail:infection": "node --experimental-strip-types scripts/sail-infection.ts",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",

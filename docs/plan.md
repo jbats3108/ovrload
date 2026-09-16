@@ -51,7 +51,8 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 ### Code quality & security
 
-- **PHP coverage baseline (advisory)** — Sail: `npm run sail:coverage` → `coverage/index.html`; local baseline **92.28%**; advisory **90%** floor via `test:coverage:threshold` (`continue-on-error`). Next: Infection pilot → hard gates later
+- **PHP coverage baseline (advisory)** — Sail: `npm run sail:coverage` → `coverage/index.html`; local baseline **92.28%**; advisory **90%** floor via `test:coverage:threshold` (`continue-on-error`). Hard gates later.
+- **Infection mutation pilot** — Sail: `npm run sail:infection` / `composer test:infection` (scope: `Support` + `Policies` via `infection.json5` → `coverage/infection.html`). **Baseline 2026-09-16:** Covered MSI **82.56%** (242 mutants; 160 killed, 34 escaped, 1 timeout, 47 skipped/slow). Hotspots: `ExerciseProfilePolicy` `&&`→`||`, `WarmUpStepSupport` boundary/null-safe, `ExercisePickerOptions` visibility/eager-load. Next: kill real escapes or ignore noise mutators; expand to domain Services; no CI MSI gate yet.
 - **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — **done** (items 1–7 + formerly parked invite/form paths).
   1. ~~`ExerciseProfiles\Policies\ExerciseProfilePolicy::update`~~ — policy unit tests (custom + admin draft presets)
   2. ~~`Workouts\Services\WorkoutSnapshotService::recordHistoricalSet`~~ — historical dropset segments / planned-dropset reject / skip
