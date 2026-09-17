@@ -57,6 +57,9 @@ class AdHocExerciseControllerTest extends TestCase
         $this->assertNotNull($workingGroup);
         $this->assertSame(2, $adHocBlock->position);
         $this->assertFalse($adHocBlock->is_superset);
+        $this->assertFalse($adHocBlock->has_setup_after);
+        $this->assertFalse($adHocBlock->has_setup_after_warm_up);
+        $this->assertSame(1, $adHocExercise->position);
         $this->assertSame($exercise->id, $adHocExercise->exercise_id);
         $this->assertSame(0, $adHocExercise->working_weight_g);
         $this->assertSame(6, $adHocExercise->prescribed_reps);
