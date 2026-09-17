@@ -3,13 +3,22 @@
     "source": {
         "directories": [
             "app/Shared/Support",
+            "app/Shared/Services",
             "app/ExerciseProfiles/Support",
-            "app/Exercises/Support",
+            "app/ExerciseProfiles/Services",
             "app/ExerciseProfiles/Policies",
+            "app/Exercises/Support",
+            "app/Exercises/Services",
             "app/Exercises/Policies",
             "app/MuscleGroups/Policies",
             "app/Routines/Policies",
-            "app/Workouts/Policies"
+            "app/Routines/Services",
+            "app/Workouts/Policies",
+            "app/Workouts/Services",
+            "app/Users/Services",
+            "app/Auth/Services",
+            "app/Dashboard/Services",
+            "app/Settings/Services"
         ]
     },
     "timeout": 30,
@@ -21,5 +30,16 @@
         "json": "coverage/infection.json"
     },
     "tmpDir": "coverage/infection-tmp",
-    "testFramework": "phpunit"
+    "testFramework": "phpunit",
+    "mutators": {
+        "@default": true,
+        "PublicVisibility": false,
+        "UnwrapArrayValues": false,
+        "ReturnRemoval": false,
+        "ArrayItemRemoval": {
+            "ignoreSourceCodeByRegex": [
+                ".*->with\\(.*"
+            ]
+        }
+    }
 }

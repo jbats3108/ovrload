@@ -58,6 +58,28 @@ class WarmUpStepSupportTest extends TestCase
     }
 
     #[Test]
+    public function normalize_accepts_fixed_steps_at_the_one_gram_boundary(): void
+    {
+        $this->assertSame(
+            ['mode' => WarmUpWeightMode::Fixed, 'percent' => null, 'weight_g' => 1, 'reps' => 5],
+            WarmUpStepSupport::normalize(['mode' => 'fixed', 'weight_g' => 1, 'reps' => 5]),
+        );
+    }
+
+    #[Test]
+    public function normalize_casts_string_weights_to_grams(): void
+    {
+        $this->assertSame(
+            ['mode' => WarmUpWeightMode::Fixed, 'percent' => null, 'weight_g' => 45_000, 'reps' => 3],
+            WarmUpStepSupport::normalize(['mode' => 'fixed', 'weight_g' => '45000', 'reps' => 3]),
+        );
+        $this->assertSame(
+            ['mode' => WarmUpWeightMode::Fixed, 'percent' => null, 'weight_g' => 60_000, 'reps' => 3],
+            WarmUpStepSupport::normalize(['mode' => 'fixed', 'weight_kg' => '60', 'reps' => 3]),
+        );
+    }
+
+    #[Test]
     public function normalize_prefers_weight_g_for_fixed_steps(): void
     {
         $this->assertSame(
@@ -106,6 +128,20 @@ class WarmUpStepSupportTest extends TestCase
     }
 
     #[Test]
+    public function to_storage_falls_back_to_zero_kg_when_fixed_weight_is_missing(): void
+    {
+        $this->assertSame(
+            ['mode' => 'fixed', 'weight_kg' => 0.0, 'reps' => 5],
+            WarmUpStepSupport::toStorage([
+                'mode' => WarmUpWeightMode::Fixed,
+                'percent' => null,
+                'weight_g' => null,
+                'reps' => 5,
+            ]),
+        );
+    }
+
+    #[Test]
     public function it_resolves_fixed_target_weight_without_using_working_weight(): void
     {
         $weight = WarmUpStepSupport::targetWeightG(
@@ -146,5 +182,104 @@ class WarmUpStepSupportTest extends TestCase
         );
 
         $this->assertNull($weight);
+    }
+
+    #[Test]
+    public function bar_steps_without_equipment_have_no_target_weight(): void
+    {
+        $weight = WarmUpStepSupport::targetWeightG(
+            WarmUpWeightMode::Bar,
+            null,
+            100_000,
+            20_000,
+            null,
+        );
+
+        $this->assertNull($weight);
+    }
+
+    #[Test]
+    public function fixed_target_weight_rejects_null_and_non_positive_values(): void
+    {
+        $this->assertNull(WarmUpStepSupport::targetWeightG(
+            WarmUpWeightMode::Fixed,
+            null,
+            200_000,
+            20_000,
+            ExerciseEquipment::Barbell,
+            null,
+        ));
+        $this->assertNull(WarmUpStepSupport::targetWeightG(
+            WarmUpWeightMode::Fixed,
+            null,
+            200_000,
+            20_000,
+            ExerciseEquipment::Barbell,
+            0,
+        ));
+    }
+
+    #[Test]
+    public function percent_target_weight_uses_exact_percentage_math(): void
+    {
+        $this->assertSame(
+            50_000,
+            WarmUpStepSupport::targetWeightG(
+                WarmUpWeightMode::Percent,
+                50,
+                100_000,
+                20_000,
+                ExerciseEquipment::Barbell,
+            ),
+        );
+        $this->assertSame(
+            33_000,
+            WarmUpStepSupport::targetWeightG(
+                WarmUpWeightMode::Percent,
+                33,
+                100_001,
+                20_000,
+                ExerciseEquipment::Barbell,
+            ),
+        );
+        $this->assertSame(
+            50_000,
+            WarmUpStepSupport::targetWeightG(
+                WarmUpWeightMode::Percent,
+                50,
+                99_999,
+                20_000,
+                ExerciseEquipment::Barbell,
+            ),
+        );
+    }
+
+    #[Test]
+    public function percent_target_weight_rejects_null_and_non_positive_percents(): void
+    {
+        $this->assertNull(WarmUpStepSupport::targetWeightG(
+            WarmUpWeightMode::Percent,
+            null,
+            100_000,
+            20_000,
+            ExerciseEquipment::Barbell,
+        ));
+        $this->assertNull(WarmUpStepSupport::targetWeightG(
+            WarmUpWeightMode::Percent,
+            0,
+            100_000,
+            20_000,
+            ExerciseEquipment::Barbell,
+        ));
+        $this->assertSame(
+            1_000,
+            WarmUpStepSupport::targetWeightG(
+                WarmUpWeightMode::Percent,
+                1,
+                100_000,
+                20_000,
+                ExerciseEquipment::Barbell,
+            ),
+        );
     }
 }

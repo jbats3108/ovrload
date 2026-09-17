@@ -151,7 +151,7 @@
         "test:coverage": "Sail PHPUnit coverage → coverage/ (HTML/Clover/Crap4j); requires npm run sail:up.",
         "test:coverage:check": "Sail suite with advisory 90% floor (npm run sail:coverage -- --check).",
         "test:coverage:threshold": "Compare coverage/clover.xml to the advisory 90% floor (CI uses continue-on-error).",
-        "test:infection": "Sail Infection mutation pilot (Support/Policies → coverage/infection.html); requires npm run sail:up."
+        "test:infection": "Sail Infection (Support/Policies/Services → coverage/infection.html); requires npm run sail:up."
     },
     "extra": {
         "laravel": {
