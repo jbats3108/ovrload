@@ -53,17 +53,6 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 - **PHP coverage baseline (advisory)** — Sail: `npm run sail:coverage` → `coverage/index.html`; local baseline **92.28%**; advisory **90%** floor via `test:coverage:threshold` (`continue-on-error`). Hard gates later.
 - **Infection mutation baseline** — Sail: `npm run sail:infection` / `composer test:infection` (scope: `Support` + `Policies` + domain `Services` via `infection.json5` → `coverage/infection.html`). **Baseline 2026-09-16:** Covered MSI **79.53%** (1831 mutants; 1227 killed, 337 escaped, 82 timeouts, 178 skipped/slow, 7 ignored). Pilot Support/Policies escapes largely killed via policy/warm-up unit tests; remaining noise includes `CastInt`/`CastFloat`. Top escape hotspots: `WorkoutSessionService`, `RoutineEditorService`, `ExerciseProfileService`, `UserDataExporter`, `WorkoutProgressionService`. **Noise policy:** disable `PublicVisibility` / `UnwrapArrayValues` / `ReturnRemoval` / cast mutators; ignore `ArrayItemRemoval`/`MethodCallRemoval` on `with|load|loadMissing|fresh` and `lockForUpdate`. Prefer killing real escapes with asserts. Next: service slices; then diff-only PR Infection; no CI MSI gate yet.
-- **CRAP triage** (from `coverage/crap4j.xml` / `dashboard.html`, 2026-09-16; coverage tooling on `tooling/advisory-coverage` / PR #116) — **done** (items 1–7 + formerly parked invite/form paths).
-  1. ~~`ExerciseProfiles\Policies\ExerciseProfilePolicy::update`~~ — policy unit tests (custom + admin draft presets)
-  2. ~~`Workouts\Services\WorkoutSnapshotService::recordHistoricalSet`~~ — historical dropset segments / planned-dropset reject / skip
-  3. ~~`Workouts\Services\WorkoutHistoryService::applyWorkingSetUpdate`~~ — warm-up reject / dropset segments / reps-only / completed_at fill
-  4. ~~`Shared\Support\WarmUpStepSupport::normalize`~~ — edge cases (invalid input, enum mode, fixed/percent rejects, list filter)
-  5. ~~`Exercises\Services\ExerciseCatalogImporter`~~ — removed; `ExerciseSeeder` loads `exercises.json` directly (upsert, no prune)
-  6. ~~`Routines\Services\RoutineEditorService::createBlock`~~ — split shape/shared-profile/exercise/warm-up helpers
-  7. ~~`Workouts\Services\WorkoutSnapshotService::snapshotRoutineOntoWorkout`~~ — split block/exercise/set-group helpers
-  8. ~~`Auth\Console\GenerateRegistrationInviteSecretCommand`~~ — removed (unused; master `REGISTRATION_INVITE` is manual `.env` if ever needed)
-  9. ~~`FormSubmissionService::recipientAddress`~~ — mailbox + admin + mail.from fallbacks
-  10. ~~`ResendAdminInviteController`~~ — unusable/emailless reject + mail-failure flash
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)
