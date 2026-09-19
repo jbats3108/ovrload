@@ -407,4 +407,84 @@ class WorkoutProgressionServiceTest extends TestCase
             ->orderBy('set_index')
             ->get();
     }
+
+    #[Test]
+    public function pull_progression_session_returns_null_when_session_is_empty(): void
+    {
+        [$routine] = $this->seedRoutine(workingWeightG: 80000, prescribedReps: 6, achievementFloor: 4);
+        $workout = $this->workoutService->createWorkout($routine);
+
+        $this->assertNull($this->progressionService->pullProgressionSession($workout));
+        $this->assertFalse($this->progressionService->hasProgressionSession($workout));
+    }
+
+    #[Test]
+    public function pull_progression_session_restores_bumps_and_undos(): void
+    {
+        [$routine] = $this->seedRoutine(workingWeightG: 80000, prescribedReps: 6, achievementFloor: 4);
+        $workout = $this->workoutService->createWorkout($routine);
+
+        session([
+            "workout_progression.{$workout->id}" => [[
+                'routine_block_exercise_id' => 11,
+                'exercise_name' => 'Squat',
+                'from_weight_g' => 80000,
+                'to_weight_g' => 82500,
+            ]],
+            "workout_progression_undos.{$workout->id}" => [[
+                'bump_record_id' => 22,
+                'routine_block_exercise_id' => 11,
+                'exercise_name' => 'Squat',
+                'from_weight_g' => 82500,
+                'to_weight_g' => 80000,
+            ]],
+        ]);
+
+        $this->assertTrue($this->progressionService->hasProgressionSession($workout));
+
+        $session = $this->progressionService->pullProgressionSession($workout);
+
+        $this->assertNotNull($session);
+        $this->assertCount(1, $session->bumps);
+        $this->assertCount(1, $session->undos);
+        $this->assertSame(11, $session->bumps->first()->routineBlockExerciseId);
+        $this->assertSame(22, $session->undos->first()->bumpRecordId);
+        $this->assertFalse($this->progressionService->hasProgressionSession($workout));
+    }
+
+    #[Test]
+    public function pull_progression_session_supports_bumps_only_or_undos_only(): void
+    {
+        [$routine] = $this->seedRoutine(workingWeightG: 80000, prescribedReps: 6, achievementFloor: 4);
+        $workout = $this->workoutService->createWorkout($routine);
+
+        session([
+            "workout_progression.{$workout->id}" => [[
+                'routine_block_exercise_id' => 11,
+                'exercise_name' => 'Squat',
+                'from_weight_g' => 80000,
+                'to_weight_g' => 82500,
+            ]],
+        ]);
+
+        $bumpsOnly = $this->progressionService->pullProgressionSession($workout);
+        $this->assertNotNull($bumpsOnly);
+        $this->assertCount(1, $bumpsOnly->bumps);
+        $this->assertCount(0, $bumpsOnly->undos);
+
+        session([
+            "workout_progression_undos.{$workout->id}" => [[
+                'bump_record_id' => 22,
+                'routine_block_exercise_id' => 11,
+                'exercise_name' => 'Squat',
+                'from_weight_g' => 82500,
+                'to_weight_g' => 80000,
+            ]],
+        ]);
+
+        $undosOnly = $this->progressionService->pullProgressionSession($workout);
+        $this->assertNotNull($undosOnly);
+        $this->assertCount(0, $undosOnly->bumps);
+        $this->assertCount(1, $undosOnly->undos);
+    }
 }
