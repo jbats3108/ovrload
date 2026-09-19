@@ -496,7 +496,8 @@ class ExerciseProfileServiceTest extends TestCase
         $options = $this->profiles->optionsForUser($user->fresh(), $custom->id);
 
         $this->assertGreaterThan(1, count($options));
-        $defaults = array_values(array_filter($options, fn ($option): bool => $option->isDefault));
+        $defaults = array_filter($options, fn ($option): bool => $option->isDefault)
+            |> array_values(...);
         $this->assertCount(1, $defaults);
         $this->assertSame($custom->id, $defaults[0]->id);
     }
