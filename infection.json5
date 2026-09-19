@@ -1,0 +1,62 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "app/Shared/Support",
+            "app/Shared/Services",
+            "app/ExerciseProfiles/Support",
+            "app/ExerciseProfiles/Services",
+            "app/ExerciseProfiles/Policies",
+            "app/Exercises/Support",
+            "app/Exercises/Services",
+            "app/Exercises/Policies",
+            "app/MuscleGroups/Policies",
+            "app/Routines/Policies",
+            "app/Routines/Services",
+            "app/Workouts/Policies",
+            "app/Workouts/Services",
+            "app/Users/Services",
+            "app/Auth/Services",
+            "app/Dashboard/Services",
+            "app/Settings/Services"
+        ]
+    },
+    "timeout": 30,
+    "threads": "max",
+    "logs": {
+        "html": "coverage/infection.html",
+        "text": "coverage/infection.log",
+        "summary": "coverage/infection-summary.log",
+        "json": "coverage/infection.json"
+    },
+    "tmpDir": "coverage/infection-tmp",
+    "testFramework": "phpunit",
+    "mutators": {
+        "@default": true,
+        // Visibility / reindex / implicit-null returns rarely change observable behavior.
+        "PublicVisibility": false,
+        "UnwrapArrayValues": false,
+        "ReturnRemoval": false,
+        // Casts that PHP coerces anyway; kill with typed asserts only when the cast is load-bearing.
+        "CastInt": false,
+        "CastFloat": false,
+        "CastString": false,
+        // Associative payload builders: `key => val` → `key > val` is almost always noise.
+        "ArrayItem": false,
+        // Relation eager-loads / fresh() are performance; lazy-load still passes tests.
+        "ArrayItemRemoval": {
+            "ignoreSourceCodeByRegex": [
+                ".*->(with|load|loadMissing|fresh)\\(.*",
+                ".*'[a-zA-Z0-9_.:]+'.*"
+            ]
+        },
+        // Same for removing the load call entirely; keep assert*/guard MethodCallRemoval active.
+        "MethodCallRemoval": {
+            "ignoreSourceCodeByRegex": [
+                ".*->(with|load|loadMissing|fresh)\\(.*",
+                ".*lockForUpdate\\(.*",
+                ".*->lock\\(.*"
+            ]
+        }
+    }
+}

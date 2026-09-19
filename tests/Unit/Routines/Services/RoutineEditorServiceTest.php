@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Routines\Services;
 
+use App\ExerciseProfiles\Exceptions\ExerciseProfileNotEditableException;
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\ExerciseProfiles\Services\ExerciseProfileRecipe;
 use App\Exercises\Models\Exercise;
@@ -74,10 +75,12 @@ class RoutineEditorServiceTest extends TestCase
         $this->assertSame(80000, $block->blockExercises->first()->working_weight_g);
         $steps = $block->warmUpSetGroup->warmUpSteps;
         $this->assertCount(2, $steps);
+        $this->assertSame([1, 2], $steps->pluck('position')->all());
         $this->assertSame(50, $steps[0]->percent_of_working);
         $this->assertSame(5, $steps[0]->reps);
         $this->assertSame(75, $steps[1]->percent_of_working);
         $this->assertSame(3, $steps[1]->reps);
+        $this->assertSame(1, $block->position);
     }
 
     #[Test]
@@ -128,6 +131,7 @@ class RoutineEditorServiceTest extends TestCase
         $blocks = $result->blocks->sortBy('position')->values();
         $this->assertFalse($blocks[0]->has_setup_after);
         $this->assertFalse($blocks[1]->has_setup_after);
+        $this->assertSame([1, 2], $blocks->pluck('position')->all());
     }
 
     #[Test]
@@ -214,6 +218,7 @@ class RoutineEditorServiceTest extends TestCase
             ->values();
 
         $this->assertCount(4, $segments);
+        $this->assertSame([1, 2, 3, 4], $segments->pluck('position')->all());
         $this->assertSame([20000, 16000, 12000, 8000], $segments->pluck('weight_g')->all());
     }
 
@@ -1053,5 +1058,250 @@ class RoutineEditorServiceTest extends TestCase
                 ]),
             ],
         ]));
+    }
+
+    #[Test]
+    public function sync_accepts_matching_expected_updated_at(): void
+    {
+        $routine = Routine::factory()->create(['name' => 'Old']);
+        $exercise = Exercise::factory()->create();
+        $expected = $routine->fresh()->updated_at?->toIso8601String();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Fresh Name',
+            'expected_updated_at' => $expected,
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id),
+            ],
+        ]));
+
+        $this->assertSame('Fresh Name', $result->name);
+    }
+
+    #[Test]
+    public function sync_keeps_existing_deload_factors_when_omitted(): void
+    {
+        $routine = Routine::factory()->create([
+            'deload_weight_factor' => 0.7,
+            'deload_reps_factor' => 0.6,
+            'deload_every_n' => 5,
+        ]);
+        $exercise = Exercise::factory()->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Keep Deload Factors',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id),
+            ],
+        ]));
+
+        $this->assertEqualsWithDelta(0.7, (float) $result->deload_weight_factor, 0.0001);
+        $this->assertEqualsWithDelta(0.6, (float) $result->deload_reps_factor, 0.0001);
+        $this->assertSame(5, $result->deload_every_n);
+    }
+
+    #[Test]
+    public function sync_defaults_circuit_stage_rest_and_clears_warm_up_setup(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Circuit Defaults',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock(
+                    [$exerciseA->id, $exerciseB->id, $exerciseC->id],
+                    [
+                        'stage_rest_seconds' => null,
+                        'has_setup_after_warm_up' => true,
+                    ],
+                ),
+            ],
+        ]));
+
+        $block = $result->blocks->firstOrFail();
+        $this->assertSame(15, $block->stage_rest_seconds);
+        $this->assertFalse($block->has_setup_after_warm_up);
+    }
+
+    #[Test]
+    public function sync_accepts_one_second_duration_and_rejects_zero(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $ok = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'One Second',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'prescription_mode' => 'duration', 'prescribed_duration_seconds' => 1],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+        $this->assertSame(1, $ok->blocks->firstOrFail()->blockExercises->firstOrFail()->prescribed_duration_seconds);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Timed exercises require a duration of at least 1 second.');
+
+        $this->service->sync($routine->fresh(), SyncRoutineData::from([
+            'name' => 'Zero Seconds',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'prescription_mode' => 'duration', 'prescribed_duration_seconds' => 0],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_accepts_one_rep_and_rejects_zero_reps(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+        $exerciseC = Exercise::factory()->create();
+
+        $ok = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'One Rep',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'prescription_mode' => 'reps', 'prescribed_reps' => 1],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+        $this->assertSame(1, $ok->blocks->firstOrFail()->blockExercises->firstOrFail()->prescribed_reps);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Rep-based exercises require prescribed reps of at least 1.');
+
+        $this->service->sync($routine->fresh(), SyncRoutineData::from([
+            'name' => 'Zero Reps',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([
+                    ['exercise_id' => $exerciseA->id, 'prescription_mode' => 'reps', 'prescribed_reps' => 0],
+                    $exerciseB->id,
+                    $exerciseC->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_unavailable_deload_exercise(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $routine = Routine::factory()->withUser($owner)->create();
+        $exercise = Exercise::factory()->create();
+        $foreignDeload = Exercise::factory()->custom($other)->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Exercise {$foreignDeload->id} is not available for this routine.");
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Bad Deload',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'deload_exercise_id' => $foreignDeload->id,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_another_users_exercise_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $routine = Routine::factory()->withUser($owner)->create();
+        $exercise = Exercise::factory()->create();
+        $foreignProfile = ExerciseProfile::factory()->forUser($other)->create();
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Foreign Profile',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'exercise_profile_id' => $foreignProfile->id,
+                    'exercise_profile_fingerprint' => $foreignProfile->recipe()->fingerprint(),
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_duplicate_dropset_set_indexes(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Duplicate dropset entry for set index 0.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Duplicate Dropsets',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'working' => [
+                        'set_count' => 2,
+                        'rest_seconds' => 90,
+                        'dropsets' => [
+                            [
+                                'set_index' => 0,
+                                'segments' => [
+                                    ['weight_kg' => 20],
+                                    ['weight_kg' => 16],
+                                ],
+                            ],
+                            [
+                                'set_index' => 0,
+                                'segments' => [
+                                    ['weight_kg' => 18],
+                                    ['weight_kg' => 14],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_persists_minimum_warm_up_percent_and_reps(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Min Warm-up',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [
+                            ['percent' => 1, 'reps' => 1],
+                        ],
+                    ],
+                ]),
+            ],
+        ]));
+
+        $step = $result->blocks->first()->warmUpSetGroup->warmUpSteps->first();
+        $this->assertSame(1, $step->percent_of_working);
+        $this->assertSame(1, $step->reps);
+        $this->assertSame(1, $step->position);
     }
 }

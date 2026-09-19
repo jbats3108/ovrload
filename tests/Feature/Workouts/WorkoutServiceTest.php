@@ -227,6 +227,66 @@ class WorkoutServiceTest extends TestCase
         $working = $block->fresh()->workingSetGroup;
         $this->assertSame(3, $working->set_count);
         $this->assertCount(3, $working->sets);
+        $this->assertSame([0, 1, 2], $working->sets->sortBy('set_index')->pluck('set_index')->values()->all());
+    }
+
+    #[Test]
+    public function session_mutations_require_an_in_progress_workout(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 2);
+        $workout = $this->workoutService->createWorkout($routine);
+        $block = $workout->blocks->first();
+        $set = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->where('set_index', 0)
+            ->firstOrFail();
+
+        $workout->update(['status' => WorkoutStatus::Finished]);
+        $set->load(['setGroup.block.workout']);
+        $block->load(['workout', 'workingSetGroup.sets']);
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::WORKOUT_NOT_IN_PROGRESS_ERROR);
+
+        $this->workoutService->completeSet($set, reps: 5, weightGrams: 80000);
+    }
+
+    #[Test]
+    public function add_working_set_requires_an_in_progress_workout(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 2);
+        $workout = $this->workoutService->createWorkout($routine);
+        $block = $workout->blocks->first()->load(['workout', 'blockExercises', 'workingSetGroup.sets']);
+        $workout->update(['status' => WorkoutStatus::Finished]);
+        $block->setRelation('workout', $workout->fresh());
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::WORKOUT_NOT_IN_PROGRESS_ERROR);
+
+        $this->workoutService->addWorkingSet($block);
+    }
+
+    #[Test]
+    public function skip_rest_of_block_remaps_non_contiguous_logged_set_indexes(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 3);
+        $workout = $this->workoutService->createWorkout($routine);
+        $block = $workout->blocks->first();
+        $last = WorkoutSet::query()
+            ->whereHas('setGroup.block', fn ($q) => $q->where('workout_id', $workout->id))
+            ->where('set_index', 2)
+            ->firstOrFail();
+        $this->workoutService->completeSet($last, reps: 5, weightGrams: 80000);
+
+        $this->workoutService->skipRestOfBlock($block->fresh(['setGroups.sets', 'workout']));
+
+        $working = $block->fresh()->workingSetGroup;
+        $this->assertSame(1, $working->set_count);
+        $this->assertSame([0], $working->sets->pluck('set_index')->all());
+        $this->assertNotNull($working->sets->first()->completed_at);
     }
 
     #[Test]
