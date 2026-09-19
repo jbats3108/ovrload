@@ -5,6 +5,7 @@ namespace Tests\Unit\ExerciseProfiles;
 use App\ExerciseProfiles\Data\SaveExerciseProfileData;
 use App\ExerciseProfiles\Enums\ExerciseProfileKind;
 use App\ExerciseProfiles\Enums\ExerciseProfileStatus;
+use App\ExerciseProfiles\Exceptions\ExerciseProfileNotEditableException;
 use App\ExerciseProfiles\Models\ExerciseProfile;
 use App\ExerciseProfiles\Services\ExerciseProfileService;
 use App\Exercises\Models\Exercise;
@@ -429,6 +430,191 @@ class ExerciseProfileServiceTest extends TestCase
         $this->profiles->delete($user, $profile);
 
         $this->assertDatabaseMissing('exercise_profiles', ['id' => $profile->id]);
+    }
+
+    #[Test]
+    public function create_custom_trims_name_and_scopes_the_slug_to_the_user(): void
+    {
+        $user = User::factory()->create();
+
+        $profile = $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => '  Pump Day  ',
+            'target_reps' => 8,
+            'working_rest_seconds' => 90,
+        ]));
+
+        $this->assertSame('Pump Day', $profile->name);
+        $this->assertSame('pump-day', $profile->slug);
+        $this->assertSame('user-'.$user->id, $profile->slug_scope);
+    }
+
+    #[Test]
+    public function create_custom_suffixes_slug_when_the_base_is_taken(): void
+    {
+        $user = User::factory()->create();
+        ExerciseProfile::factory()->forUser($user)->create([
+            'name' => 'Other',
+            'slug' => 'pump-day',
+        ]);
+
+        $profile = $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => 'Pump Day',
+            'target_reps' => 8,
+            'working_rest_seconds' => 90,
+        ]));
+
+        $this->assertSame('pump-day-2', $profile->slug);
+    }
+
+    #[Test]
+    public function create_custom_rewrites_empty_and_preset_prefixed_slugs(): void
+    {
+        $user = User::factory()->create();
+
+        $empty = $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => '!!!',
+            'target_reps' => 8,
+            'working_rest_seconds' => 90,
+        ]));
+        $this->assertSame('profile', $empty->slug);
+
+        $presetLike = $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => 'preset-strength',
+            'target_reps' => 8,
+            'working_rest_seconds' => 90,
+        ]));
+        $this->assertSame('profile-2', $presetLike->slug);
+    }
+
+    #[Test]
+    public function options_for_user_marks_only_the_default_profile(): void
+    {
+        $user = User::factory()->create();
+        $custom = ExerciseProfile::factory()->forUser($user)->create(['name' => 'My Custom']);
+        $user->forceFill(['default_exercise_profile_id' => $custom->id])->save();
+
+        $options = $this->profiles->optionsForUser($user->fresh(), $custom->id);
+
+        $this->assertGreaterThan(1, count($options));
+        $defaults = array_values(array_filter($options, fn ($option): bool => $option->isDefault));
+        $this->assertCount(1, $defaults);
+        $this->assertSame($custom->id, $defaults[0]->id);
+    }
+
+    #[Test]
+    public function page_data_marks_archived_profiles_as_non_default_with_zero_stale(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->archived()->create(['name' => 'Old Pump']);
+
+        $page = $this->profiles->pageDataFor($user);
+        $archived = collect($page->archivedProfiles->all())->firstWhere('id', $profile->id);
+
+        $this->assertNotNull($archived);
+        $this->assertFalse($archived->isDefault);
+        $this->assertSame(0, $archived->staleAssignmentCount);
+        $this->assertSame([], $archived->assignedRoutines);
+    }
+
+    #[Test]
+    public function set_default_rejects_another_users_custom_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create();
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->setDefault($other, $profile);
+    }
+
+    #[Test]
+    public function set_default_rejects_draft_presets(): void
+    {
+        $user = User::factory()->create();
+        $draft = ExerciseProfile::factory()->preset()->draft()->create();
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->setDefault($user, $draft);
+    }
+
+    #[Test]
+    public function archive_rejects_another_users_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create();
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->archive($other, $profile);
+    }
+
+    #[Test]
+    public function restore_rejects_another_users_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->archived()->create();
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->restore($other, $profile);
+    }
+
+    #[Test]
+    public function restore_rejects_when_a_published_profile_already_uses_the_name(): void
+    {
+        $user = User::factory()->create();
+        ExerciseProfile::factory()->forUser($user)->create(['name' => 'Pump']);
+        $archived = ExerciseProfile::factory()->forUser($user)->archived()->create(['name' => 'Pump']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('You already have a profile with that name.');
+
+        $this->profiles->restore($user, $archived);
+    }
+
+    #[Test]
+    public function delete_rejects_another_users_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create();
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->delete($other, $profile);
+    }
+
+    #[Test]
+    public function assert_selectable_rejects_presets_with_a_user_id(): void
+    {
+        $user = User::factory()->create();
+        $tainted = ExerciseProfile::factory()->preset()->create([
+            'user_id' => $user->id,
+        ]);
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->assertSelectable($user, $tainted);
+    }
+
+    #[Test]
+    public function name_availability_rejects_ascii_case_variants(): void
+    {
+        $user = User::factory()->create();
+        ExerciseProfile::factory()->forUser($user)->create(['name' => 'Pump Day']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('You already have a profile with that name.');
+
+        $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => 'PUMP DAY',
+            'target_reps' => 8,
+            'working_rest_seconds' => 90,
+        ]));
     }
 
     private function assignedProfile(User $user): ExerciseProfile
