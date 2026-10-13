@@ -8,7 +8,7 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
--
+- **Play quick-confirm (Target hit / Floor hit)** — standard single-weight sets: one-tap Target hit / Floor hit; Edit opens today’s log sheet; dropsets + timed keep Done → sheet
 
 ## Backlog
 
@@ -61,7 +61,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 - **Soft host cap ~100 accounts** — prod: Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 - **Maintenance handoff plan** — reduce ongoing Cursor dependence so a human can keep the app running without constant AI spend
 - **Storybook for components?** — component catalog to support human handover (from Notion inbox)
-- **Business card / flyer design, logo files somewhere** — marketing assets; from Notion inbox
+- ~~**Business card / flyer design, logo files somewhere**~~ — done
 
 ## Backlog: 121 Feedback (gym owner)
 
