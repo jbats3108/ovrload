@@ -1601,6 +1601,47 @@ describe('createWorkoutPlayer', () => {
         expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
     });
 
+    it('quick-confirms warm-ups as target and never offers Floor hit', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Squat',
+                            working_weight_kg: 100,
+                            note: null,
+                            prescribed_reps: 5,
+                            achievement_floor: 3,
+                            progression_target: null,
+                            position: 0,
+                        },
+                    ],
+                    sets: [
+                        playerSet({
+                            id: 1,
+                            equipment: null,
+                            group_type: 'warm_up',
+                            target_reps: 5,
+                            target_weight_kg: 60,
+                        }),
+                    ],
+                }),
+            ],
+        });
+
+        expect(player.canQuickConfirm.value).toBe(true);
+        expect(player.canQuickFloor.value).toBe(false);
+        expect(player.quickConfirmPrimaryLabel.value).toBe('Done');
+        player.quickCompleteSet('floor');
+        expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
+
+        player.quickCompleteSet('target');
+        expect(player.setForm.reps).toBe(5);
+        expect(player.setForm.weight_kg).toBe(60);
+        expect(inertiaMocks().inertiaFormPost).toHaveBeenCalled();
+    });
+
     it('disables quick-confirm for dropsets and timed sets', () => {
         const dropset = mountPlayer({
             blocks: [

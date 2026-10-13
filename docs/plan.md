@@ -8,7 +8,7 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
-- **Play quick-confirm (Target hit / Floor hit)** — standard single-weight sets: one-tap Target hit / Floor hit; Edit opens today’s log sheet; dropsets + timed keep Done → sheet
+- **Play quick-confirm (Target hit / Floor hit)** — working sets: Target hit / Floor hit; warm-ups: Done (= target); Edit opens log sheet; dropsets + timed keep Done → sheet
 
 ## Backlog
 

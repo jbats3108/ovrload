@@ -613,10 +613,16 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     });
 
     const canQuickFloor = computed(() => {
-        if (!canQuickConfirm.value) {
+        const entry = current.value;
+        if (!canQuickConfirm.value || !entry || entry.set.group_type !== 'working') {
             return false;
         }
         return currentExercise.value?.achievement_floor != null;
+    });
+
+    /** Warm-ups use Done (still logs target); working sets use Target hit. */
+    const quickConfirmPrimaryLabel = computed(() => {
+        return current.value?.set.group_type === 'warm_up' ? 'Done' : 'Target hit';
     });
 
     const openLogSheet = () => {
@@ -1708,6 +1714,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         gramsToKg,
         canQuickConfirm,
         canQuickFloor,
+        quickConfirmPrimaryLabel,
         openLogSheet,
         cancelLogSheet,
         quickCompleteSet,

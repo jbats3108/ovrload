@@ -122,4 +122,131 @@ describe('Play', () => {
         expect(wrapper.element.className).toContain('overflow-hidden');
         expect(wrapper.element.className).toContain('h-dvh');
     });
+
+    it('offers Target hit and Edit on working sets, and Floor hit when floor exists', () => {
+        const withoutFloor = mount(Play, {
+            props: {
+                workout: workoutPayload({
+                    blocks: [
+                        playerBlock({
+                            sets: [playerSet({ id: 1, completed: false })],
+                        }),
+                    ],
+                }),
+                plate_profile: plateProfile(),
+            },
+        });
+        const withoutFloorStage = withoutFloor.findComponent(SetStage);
+        expect(withoutFloorStage.text()).toContain('Target hit');
+        expect(withoutFloorStage.text()).toContain('Edit');
+        expect(withoutFloorStage.text()).not.toContain('Floor hit');
+        expect(withoutFloorStage.text()).not.toMatch(/\bDone\b/);
+
+        const withFloor = mount(Play, {
+            props: {
+                workout: workoutPayload({
+                    blocks: [
+                        playerBlock({
+                            exercises: [
+                                {
+                                    id: 10,
+                                    name: 'Squat',
+                                    working_weight_kg: 100,
+                                    note: null,
+                                    prescribed_reps: 5,
+                                    achievement_floor: 3,
+                                    progression_target: null,
+                                    position: 0,
+                                },
+                            ],
+                            sets: [playerSet({ id: 1, completed: false })],
+                        }),
+                    ],
+                }),
+                plate_profile: plateProfile(),
+            },
+        });
+        expect(withFloor.findComponent(SetStage).text()).toContain('Floor hit');
+    });
+
+    it('labels warm-up quick-confirm as Done and hides Floor hit', () => {
+        const wrapper = mount(Play, {
+            props: {
+                workout: workoutPayload({
+                    blocks: [
+                        playerBlock({
+                            exercises: [
+                                {
+                                    id: 10,
+                                    name: 'Squat',
+                                    working_weight_kg: 100,
+                                    note: null,
+                                    prescribed_reps: 5,
+                                    achievement_floor: 3,
+                                    progression_target: null,
+                                    position: 0,
+                                },
+                            ],
+                            sets: [playerSet({ id: 1, group_type: 'warm_up', completed: false, target_weight_kg: 60 })],
+                        }),
+                    ],
+                }),
+                plate_profile: plateProfile(),
+            },
+        });
+        const stage = wrapper.findComponent(SetStage);
+        const text = stage.text();
+        expect(text).toContain('Done');
+        expect(text).toContain('Edit');
+        expect(text).not.toContain('Target hit');
+        expect(text).not.toContain('Floor hit');
+    });
+
+    it('keeps Done for dropsets and timed sets', () => {
+        const dropset = mount(Play, {
+            props: {
+                workout: workoutPayload({
+                    blocks: [
+                        playerBlock({
+                            sets: [
+                                playerSet({
+                                    id: 1,
+                                    is_dropset: true,
+                                    segments: [
+                                        { position: 0, weight_kg: 80 },
+                                        { position: 1, weight_kg: 70 },
+                                    ],
+                                }),
+                            ],
+                        }),
+                    ],
+                }),
+                plate_profile: plateProfile(),
+            },
+        });
+        expect(dropset.findComponent(SetStage).text()).toContain('Done');
+        expect(dropset.findComponent(SetStage).text()).not.toContain('Target hit');
+
+        const timed = mount(Play, {
+            props: {
+                workout: workoutPayload({
+                    blocks: [
+                        playerBlock({
+                            sets: [
+                                playerSet({
+                                    id: 1,
+                                    prescription_mode: 'duration',
+                                    target_duration_seconds: 30,
+                                    target_reps: null,
+                                }),
+                            ],
+                        }),
+                    ],
+                }),
+                plate_profile: plateProfile(),
+            },
+        });
+        expect(timed.findComponent(SetStage).text()).toContain('Done');
+        expect(timed.findComponent(SetStage).text()).not.toContain('Target hit');
+    });
 });
