@@ -6,8 +6,12 @@ use App\Exercises\Enums\ExerciseEquipment;
 use App\Exercises\Models\Exercise;
 use App\MuscleGroups\Models\MuscleGroup;
 use App\Routines\Models\Routine;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Enums\WarmUpWeightMode;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Models\User;
 use Database\Seeders\ExerciseProfileSeeder;
@@ -76,6 +80,30 @@ class RoutineSeederTest extends TestCase
         $this->assertCount(3, $working0->dropsetSegments);
         $working1 = $dropset->blocks[1]->setGroups->firstWhere('type', SetGroupType::Working);
         $this->assertSame([1], $working1->dropsetSegments->pluck('set_index')->unique()->values()->all());
+
+        $this->assertSame(ProgressionStyle::ProgressiveOverload, $barbell->progression_style);
+        $this->assertSame(ProgressiveMidBlock::Auto, $barbell->progressive_mid_block);
+        $this->assertSame(ProgressionStyle::ProgressiveOverload, $dumbbell->progression_style);
+        $this->assertSame(ProgressiveMidBlock::Ask, $dumbbell->progressive_mid_block);
+        $this->assertSame(ProgressionStyle::StraightSets, $superset->progression_style);
+        $this->assertSame(ProgressionStyle::StraightSets, $dropset->progression_style);
+
+        $circuit = Routine::query()->where('user_id', $user->id)->where('name', 'Circuit Conditioning')->firstOrFail();
+        $circuit->load(['blocks.blockExercises', 'blocks.setGroups.warmUpSteps']);
+        $this->assertSame(ProgressionStyle::StraightSets, $circuit->progression_style);
+        $this->assertCount(1, $circuit->blocks);
+        $circuitBlock = $circuit->blocks[0];
+        $this->assertSame(BlockType::Circuit, $circuitBlock->type);
+        $this->assertSame(15, $circuitBlock->stage_rest_seconds);
+        $this->assertCount(3, $circuitBlock->blockExercises);
+        $this->assertSame(PrescriptionMode::Reps, $circuitBlock->blockExercises[0]->prescription_mode);
+        $this->assertSame(PrescriptionMode::Duration, $circuitBlock->blockExercises[1]->prescription_mode);
+        $this->assertSame(40, $circuitBlock->blockExercises[1]->prescribed_duration_seconds);
+        $this->assertSame(PrescriptionMode::Reps, $circuitBlock->blockExercises[2]->prescription_mode);
+        $workingCircuit = $circuitBlock->setGroups->firstWhere('type', SetGroupType::Working);
+        $this->assertSame(3, $workingCircuit->set_count);
+        $this->assertSame(60, $workingCircuit->rest_seconds);
+        $this->assertCount(0, $circuitBlock->setGroups->firstWhere('type', SetGroupType::WarmUp)->warmUpSteps);
     }
 
     private function seedCatalogExercises(): void
@@ -94,6 +122,9 @@ class RoutineSeederTest extends TestCase
             ['Barbell Curl', ExerciseEquipment::Barbell],
             ['Bent Over Two-Dumbbell Row', ExerciseEquipment::Dumbbell],
             ['Barbell Shoulder Press', ExerciseEquipment::Barbell],
+            ['Push-Up', ExerciseEquipment::BodyOnly],
+            ['Plank', ExerciseEquipment::BodyOnly],
+            ['Pull-Up', ExerciseEquipment::BodyOnly],
         ];
 
         foreach ($exercises as [$name, $equipment]) {

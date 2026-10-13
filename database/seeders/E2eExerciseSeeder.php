@@ -26,6 +26,9 @@ final class E2eExerciseSeeder extends Seeder
         ['name' => 'Barbell Curl', 'equipment' => ExerciseEquipment::Barbell],
         ['name' => 'Bent Over Two-Dumbbell Row', 'equipment' => ExerciseEquipment::Dumbbell],
         ['name' => 'Barbell Shoulder Press', 'equipment' => ExerciseEquipment::Barbell],
+        ['name' => 'Push-Up', 'equipment' => ExerciseEquipment::BodyOnly],
+        ['name' => 'Plank', 'equipment' => ExerciseEquipment::BodyOnly],
+        ['name' => 'Pull-Up', 'equipment' => ExerciseEquipment::BodyOnly],
     ];
 
     public function run(): void
