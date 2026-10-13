@@ -244,7 +244,7 @@ final class RoutineSeeder extends Seeder
         $routine = $this->createRoutine(
             $user,
             'Circuit Conditioning',
-            null,
+            'preset-endurance',
             ProgressionStyle::StraightSets,
             ProgressiveMidBlock::Ask,
         );
@@ -256,6 +256,7 @@ final class RoutineSeeder extends Seeder
                 'kg' => 0,
                 'mode' => PrescriptionMode::Reps,
                 'reps' => 12,
+                'profile' => 'preset-endurance',
             ],
             [
                 'name' => 'Plank',
@@ -263,6 +264,7 @@ final class RoutineSeeder extends Seeder
                 'kg' => 0,
                 'mode' => PrescriptionMode::Duration,
                 'duration_seconds' => 40,
+                'profile' => 'preset-endurance',
             ],
             [
                 'name' => 'Pull-Up',
@@ -270,8 +272,9 @@ final class RoutineSeeder extends Seeder
                 'kg' => 0,
                 'mode' => PrescriptionMode::Reps,
                 'reps' => 6,
+                'profile' => 'preset-endurance',
             ],
-        ], rounds: 3, stageRestSeconds: 15, roundRestSeconds: 60);
+        ], rounds: 3, stageRestSeconds: 15, roundRestSeconds: 60, sharedProfileSlug: 'preset-endurance');
     }
 
     private function createRoutine(
@@ -298,7 +301,8 @@ final class RoutineSeeder extends Seeder
      *     kg: float|int,
      *     mode: PrescriptionMode,
      *     reps?: int,
-     *     duration_seconds?: int
+     *     duration_seconds?: int,
+     *     profile?: string
      * }>  $stations
      */
     private function addCircuitBlock(
@@ -308,10 +312,13 @@ final class RoutineSeeder extends Seeder
         int $rounds,
         int $stageRestSeconds,
         int $roundRestSeconds,
+        ?string $sharedProfileSlug = null,
     ): void {
         if (count($stations) < 3) {
             throw new RuntimeException('Circuit blocks require at least three stations.');
         }
+
+        $sharedProfile = $this->profile($sharedProfileSlug);
 
         DB::transaction(function () use (
             $routine,
@@ -320,6 +327,8 @@ final class RoutineSeeder extends Seeder
             $rounds,
             $stageRestSeconds,
             $roundRestSeconds,
+            $sharedProfile,
+            $sharedProfileSlug,
         ): void {
             $block = RoutineBlock::create([
                 'routine_id' => $routine->id,
@@ -329,24 +338,31 @@ final class RoutineSeeder extends Seeder
                 'stage_rest_seconds' => $stageRestSeconds,
                 'has_setup_after' => false,
                 'has_setup_after_warm_up' => false,
-                'shared_exercise_profile_id' => null,
-                'shared_profile_fingerprint' => null,
+                'shared_exercise_profile_id' => $sharedProfile?->id,
+                'shared_profile_fingerprint' => $sharedProfile?->recipe()->sharedFingerprint(),
             ]);
 
             foreach (array_values($stations) as $index => $station) {
                 $isTimed = $station['mode'] === PrescriptionMode::Duration;
+                $profile = $this->profile($station['profile'] ?? $sharedProfileSlug);
                 RoutineBlockExercise::create([
                     'routine_block_id' => $block->id,
                     'exercise_id' => $this->resolveExercise($station['name'], $station['equipment'])->id,
                     'position' => $index + 1,
                     'working_weight_g' => Weight::kgToGrams($station['kg']),
                     'prescription_mode' => $station['mode'],
-                    'prescribed_reps' => $isTimed ? null : ($station['reps'] ?? 10),
+                    'prescribed_reps' => $isTimed
+                        ? null
+                        : ($profile !== null ? $profile->target_reps : ($station['reps'] ?? 10)),
                     'prescribed_duration_seconds' => $isTimed ? ($station['duration_seconds'] ?? 30) : null,
-                    'achievement_floor_override' => null,
-                    'floor_is_derived' => null,
-                    'exercise_profile_id' => null,
-                    'exercise_profile_fingerprint' => null,
+                    'achievement_floor_override' => $profile?->floor_override,
+                    'floor_is_derived' => $profile === null ? null : $profile->floor_override === null,
+                    'exercise_profile_id' => $profile?->id,
+                    'exercise_profile_fingerprint' => $profile === null
+                        ? null
+                        : ($sharedProfile === null
+                            ? $profile->recipe()->exerciseFingerprint()
+                            : $profile->recipe()->fingerprint()),
                 ]);
             }
 

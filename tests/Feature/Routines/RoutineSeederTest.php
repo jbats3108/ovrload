@@ -96,6 +96,9 @@ class RoutineSeederTest extends TestCase
         $this->assertSame(BlockType::Circuit, $circuitBlock->type);
         $this->assertSame(15, $circuitBlock->stage_rest_seconds);
         $this->assertCount(3, $circuitBlock->blockExercises);
+        $this->assertTrue($circuitBlock->blockExercises->every(
+            static fn ($exercise): bool => $exercise->exercise_profile_id !== null,
+        ));
         $this->assertSame(PrescriptionMode::Reps, $circuitBlock->blockExercises[0]->prescription_mode);
         $this->assertSame(PrescriptionMode::Duration, $circuitBlock->blockExercises[1]->prescription_mode);
         $this->assertSame(40, $circuitBlock->blockExercises[1]->prescribed_duration_seconds);
