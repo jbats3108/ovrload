@@ -7,6 +7,12 @@ import path from 'node:path';
 
 const guideDir = path.join(process.cwd(), 'public/images/guide');
 
+async function completeWarmUpSet(page: import('@playwright/test').Page): Promise<void> {
+    const done = page.getByRole('button', { name: 'Done', exact: true });
+    await done.scrollIntoViewIfNeeded();
+    await done.click();
+}
+
 test('capture play guide screenshots', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel(/email address/i).fill('user1@test.com');
@@ -27,11 +33,9 @@ test('capture play guide screenshots', async ({ page }) => {
     await expect(page).toHaveURL(/\/workouts\//);
 
     // Advance to first working set with plate guide (4 warm-ups + setup + rest).
+    // Warm-up Done one-tap logs target; Skip rest between warm-ups.
     for (let i = 0; i < 4; i++) {
-        const done = page.getByRole('button', { name: 'Done', exact: true });
-        await done.scrollIntoViewIfNeeded();
-        await done.click();
-        await page.getByRole('button', { name: 'Log set' }).click();
+        await completeWarmUpSet(page);
         if (i < 3) {
             await page.getByRole('button', { name: 'Skip', exact: true }).click();
             await page.getByRole('button', { name: 'Skip', exact: true }).click();
@@ -45,6 +49,8 @@ test('capture play guide screenshots', async ({ page }) => {
 
     await expect(page.getByText(/working/i)).toBeVisible();
     await expect(page.getByText('Plates', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Target hit', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
 
     await page.setViewportSize({ width: 799, height: 937 });
     await page.screenshot({ path: path.join(guideDir, 'play-desktop.png'), fullPage: false });

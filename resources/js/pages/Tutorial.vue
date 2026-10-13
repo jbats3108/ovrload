@@ -225,10 +225,11 @@ const toc = [
                     kg or use notes for progression, bumps, carry-forward, or charts.
                 </p>
                 <p class="text-muted-foreground">
-                    When you start a workout, the exercise note is copied into the snapshot. In Play, the note appears beside the target load and
-                    opens prefilled in the <strong class="text-foreground">Note</strong> field when you tap
-                    <strong class="text-foreground">Done</strong>. Edit that field for the current working-set slot only; it does not change the
-                    routine. Notes are not collected for warm-up sets. A dropset has one note for the slot, not one per segment.
+                    When you start a workout, the exercise note is copied into the snapshot. In Play, the note appears beside the target load. On
+                    standard sets, open <strong class="text-foreground">Edit</strong> to reach the log sheet; on dropsets and timed sets, tap
+                    <strong class="text-foreground">Done</strong>. The <strong class="text-foreground">Note</strong> field opens prefilled there. Edit
+                    that field for the current working-set slot only; it does not change the routine. Notes are not collected for warm-up sets. A
+                    dropset has one note for the slot, not one per segment.
                 </p>
                 <p class="text-muted-foreground">
                     A Deload Alternate has its own note in the alternate controls. Deload Play snapshots that note instead of the primary note.
@@ -272,10 +273,13 @@ const toc = [
                 <p class="text-muted-foreground">
                     From a routine card, start a normal session or a Deload. Play walks you through setup, warm-ups, working sets, and rest. The
                     header shows which set you are on. On <strong class="text-foreground">Setup</strong>, you see each upcoming lift (A and B for a
-                    superset) with the full plate guide so you can load before tapping Setup done. Done opens the log sheet; Log set writes the weight
-                    and reps; Cancel backs out without saving that set. If the exercise has a note, it is shown beside the target. Tap the
-                    <strong class="text-foreground">Note</strong> field in the log sheet to keep the prefilled label or record what you actually used
-                    for this working-set slot.
+                    superset) with the full plate guide so you can load before tapping Setup done. On a standard working set,
+                    <strong class="text-foreground">Target hit</strong> logs the prescribed weight and Target reps in one tap;
+                    <strong class="text-foreground">Floor hit</strong> logs that weight at your achievement Floor (hidden when the exercise has no
+                    Floor). Warm-ups use <strong class="text-foreground">Done</strong> for the same one-tap target log (no Floor).
+                    <strong class="text-foreground">Edit</strong> opens the log sheet for custom weight, reps, or a note. Dropsets and timed sets
+                    still use <strong class="text-foreground">Done</strong> → log sheet. Log set writes the values; Cancel backs out without saving.
+                    If the exercise has a note, it is shown beside the target and prefills in the sheet when you Edit.
                 </p>
                 <p class="text-muted-foreground">
                     Rest counts down with ticks near the end. Skip rest if you need to. You can add or remove incomplete working sets mid-session —
@@ -310,7 +314,7 @@ const toc = [
                 <TutorialShot
                     name="play"
                     alt="Play screen with Add exercise to session in the header under Finish, Abandon, and Leave"
-                    caption="Play: Add exercise to session spans the header under Finish / Abandon / Leave; set actions (+/− Set, Promote/Demote dropset), Later, and Skip group / Skip rest of group stay on the stage; Done opens the log sheet."
+                    caption="Play: Add exercise to session spans the header under Finish / Abandon / Leave; set actions (+/− Set, Promote/Demote dropset), Later, and Skip group / Skip rest of group stay on the stage; Target hit / Floor hit (working) or Done (warm-up) log a standard set; Edit (or Done on dropsets/timed) opens the log sheet."
                 />
             </section>
 

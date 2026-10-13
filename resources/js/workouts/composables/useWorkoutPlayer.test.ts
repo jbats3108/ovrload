@@ -1531,6 +1531,155 @@ describe('createWorkoutPlayer', () => {
         expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
     });
 
+    it('allows Target hit quick-confirm on standard single-weight sets', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Squat',
+                            working_weight_kg: 100,
+                            note: null,
+                            prescribed_reps: 5,
+                            achievement_floor: 3,
+                            progression_target: null,
+                            position: 0,
+                        },
+                    ],
+                    sets: [playerSet({ id: 1, equipment: null, target_reps: 5, target_weight_kg: 100 })],
+                }),
+            ],
+        });
+
+        expect(player.canQuickConfirm.value).toBe(true);
+        expect(player.canQuickFloor.value).toBe(true);
+
+        player.quickCompleteSet('target');
+        expect(player.setForm.reps).toBe(5);
+        expect(player.setForm.weight_kg).toBe(100);
+        expect(player.logSheetOpen.value).toBe(false);
+        expect(inertiaMocks().inertiaFormPost).toHaveBeenCalledWith(
+            '/workouts.sets.complete',
+            expect.objectContaining({ preserveScroll: true, only: ['workout'] }),
+        );
+        expect(haptics.hapticConfirm).toHaveBeenCalled();
+    });
+
+    it('logs Floor hit at achievement_floor without opening the sheet', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Squat',
+                            working_weight_kg: 100,
+                            note: null,
+                            prescribed_reps: 5,
+                            achievement_floor: 3,
+                            progression_target: null,
+                            position: 0,
+                        },
+                    ],
+                    sets: [playerSet({ id: 1, equipment: null, target_reps: 5, target_weight_kg: 100 })],
+                }),
+            ],
+        });
+
+        player.quickCompleteSet('floor');
+        expect(player.setForm.reps).toBe(3);
+        expect(player.setForm.weight_kg).toBe(100);
+        expect(inertiaMocks().inertiaFormPost).toHaveBeenCalled();
+    });
+
+    it('hides Floor hit when achievement_floor is missing', () => {
+        const player = mountPlayer();
+        expect(player.canQuickConfirm.value).toBe(true);
+        expect(player.canQuickFloor.value).toBe(false);
+        player.quickCompleteSet('floor');
+        expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
+    });
+
+    it('quick-confirms warm-ups as target and never offers Floor hit', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Squat',
+                            working_weight_kg: 100,
+                            note: null,
+                            prescribed_reps: 5,
+                            achievement_floor: 3,
+                            progression_target: null,
+                            position: 0,
+                        },
+                    ],
+                    sets: [
+                        playerSet({
+                            id: 1,
+                            equipment: null,
+                            group_type: 'warm_up',
+                            target_reps: 5,
+                            target_weight_kg: 60,
+                        }),
+                    ],
+                }),
+            ],
+        });
+
+        expect(player.canQuickConfirm.value).toBe(true);
+        expect(player.canQuickFloor.value).toBe(false);
+        expect(player.quickConfirmPrimaryLabel.value).toBe('Done');
+        player.quickCompleteSet('floor');
+        expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
+
+        player.quickCompleteSet('target');
+        expect(player.setForm.reps).toBe(5);
+        expect(player.setForm.weight_kg).toBe(60);
+        expect(inertiaMocks().inertiaFormPost).toHaveBeenCalled();
+    });
+
+    it('disables quick-confirm for dropsets and timed sets', () => {
+        const dropset = mountPlayer({
+            blocks: [
+                playerBlock({
+                    sets: [
+                        playerSet({
+                            is_dropset: true,
+                            segments: [
+                                { position: 0, weight_kg: 80 },
+                                { position: 1, weight_kg: 70 },
+                            ],
+                        }),
+                    ],
+                }),
+            ],
+        });
+        expect(dropset.canQuickConfirm.value).toBe(false);
+        dropset.quickCompleteSet('target');
+        expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
+
+        const timed = mountPlayer({
+            blocks: [
+                playerBlock({
+                    sets: [
+                        playerSet({
+                            prescription_mode: 'duration',
+                            target_duration_seconds: 30,
+                            target_reps: null,
+                        }),
+                    ],
+                }),
+            ],
+        });
+        expect(timed.canQuickConfirm.value).toBe(false);
+        timed.quickCompleteSet('target');
+        expect(inertiaMocks().inertiaFormPost).not.toHaveBeenCalled();
+    });
+
     it('manages circuit countdown, next exercise preview, and skipping', async () => {
         const player = mountPlayer({
             blocks: [

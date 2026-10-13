@@ -11,9 +11,13 @@ use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineDropsetSegment;
 use App\Routines\Models\RoutineSetGroup;
 use App\Routines\Models\RoutineWarmUpStep;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Shared\Support\WarmUpStepSupport;
 use App\Shared\Support\Weight;
+use App\Users\Enums\ProgressionStyle;
+use App\Users\Enums\ProgressiveMidBlock;
 use App\Users\Enums\WarmUpDefaultsScope;
 use App\Users\Models\User;
 use Illuminate\Database\Seeder;
@@ -23,12 +27,13 @@ use RuntimeException;
 /**
  * Demo routines for local Play / editor testing (user1@test.com).
  *
- * | Routine | Covers |
- * |---|---|
- * | Barbell Strength | Barbell + plates, WU first block only, setup after WU |
- * | Dumbbell Accessories | Dumbbell + bodyweight dip @ 28.75, WU on every block |
- * | Superset Pump | Supersets, WU on some blocks only, mixed equipment |
- * | Dropset Finishers | Dropsets mixed with single sets, barbell + DB |
+ * | Routine | Structure | Progression |
+ * |---|---|---|
+ * | Barbell Strength | Barbell + plates, WU first block only, setup after WU | Progressive + Auto |
+ * | Dumbbell Accessories | Dumbbell + bodyweight dip @ 28.75, WU on every block | Progressive + Ask |
+ * | Superset Pump | Supersets, WU on some blocks only, mixed equipment | Straight |
+ * | Dropset Finishers | Dropsets mixed with single sets, barbell + DB | Straight |
+ * | Circuit Conditioning | Circuit ≥3 stations, mixed reps + duration, dual rest | Straight |
  */
 final class RoutineSeeder extends Seeder
 {
@@ -38,6 +43,7 @@ final class RoutineSeeder extends Seeder
         'Dumbbell Accessories',
         'Superset Pump',
         'Dropset Finishers',
+        'Circuit Conditioning',
     ];
 
     /** @var array<string, ExerciseProfile> */
@@ -79,6 +85,7 @@ final class RoutineSeeder extends Seeder
         $this->seedDumbbellAccessories($user);
         $this->seedSupersetPump($user);
         $this->seedDropsetFinishers($user);
+        $this->seedCircuitConditioning($user);
     }
 
     private function replaceDemoRoutines(User $user): void
@@ -123,7 +130,13 @@ final class RoutineSeeder extends Seeder
 
     private function seedBarbellStrength(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Barbell Strength', 'preset-strength');
+        $routine = $this->createRoutine(
+            $user,
+            'Barbell Strength',
+            'preset-strength',
+            ProgressionStyle::ProgressiveOverload,
+            ProgressiveMidBlock::Auto,
+        );
 
         // Block 1 — only warm-up in this routine; setup before working; plate guide.
         $this->addBlock($routine, position: 1, exercises: [
@@ -141,7 +154,13 @@ final class RoutineSeeder extends Seeder
 
     private function seedDumbbellAccessories(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Dumbbell Accessories', 'preset-hypertrophy');
+        $routine = $this->createRoutine(
+            $user,
+            'Dumbbell Accessories',
+            'preset-hypertrophy',
+            ProgressionStyle::ProgressiveOverload,
+            ProgressiveMidBlock::Ask,
+        );
         $wu = self::DEFAULT_WARM_UPS;
 
         $this->addBlock($routine, position: 1, exercises: [
@@ -164,7 +183,13 @@ final class RoutineSeeder extends Seeder
 
     private function seedSupersetPump(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Superset Pump', 'preset-strength');
+        $routine = $this->createRoutine(
+            $user,
+            'Superset Pump',
+            'preset-strength',
+            ProgressionStyle::StraightSets,
+            ProgressiveMidBlock::Ask,
+        );
 
         // WU on first block only of the three — "some" blocks.
         $this->addBlock($routine, position: 1, exercises: [
@@ -187,7 +212,13 @@ final class RoutineSeeder extends Seeder
 
     private function seedDropsetFinishers(User $user): void
     {
-        $routine = $this->createRoutine($user, 'Dropset Finishers', 'preset-strength');
+        $routine = $this->createRoutine(
+            $user,
+            'Dropset Finishers',
+            'preset-strength',
+            ProgressionStyle::StraightSets,
+            ProgressiveMidBlock::Ask,
+        );
 
         // Set indexes 0–1 single, index 2 dropset.
         $this->addBlock($routine, position: 1, exercises: [
@@ -208,14 +239,147 @@ final class RoutineSeeder extends Seeder
         ], workingSets: 3, workingRest: 120, warmUps: [], setupAfter: true);
     }
 
-    private function createRoutine(User $user, string $name, ?string $defaultProfileSlug = null): Routine
+    private function seedCircuitConditioning(User $user): void
     {
+        $routine = $this->createRoutine(
+            $user,
+            'Circuit Conditioning',
+            'preset-endurance',
+            ProgressionStyle::StraightSets,
+            ProgressiveMidBlock::Ask,
+        );
+
+        $this->addCircuitBlock($routine, position: 1, stations: [
+            [
+                'name' => 'Push-Up',
+                'equipment' => ExerciseEquipment::BodyOnly,
+                'kg' => 0,
+                'mode' => PrescriptionMode::Reps,
+                'reps' => 12,
+                'profile' => 'preset-endurance',
+            ],
+            [
+                'name' => 'Plank',
+                'equipment' => ExerciseEquipment::BodyOnly,
+                'kg' => 0,
+                'mode' => PrescriptionMode::Duration,
+                'duration_seconds' => 40,
+                'profile' => 'preset-endurance',
+            ],
+            [
+                'name' => 'Pull-Up',
+                'equipment' => ExerciseEquipment::BodyOnly,
+                'kg' => 0,
+                'mode' => PrescriptionMode::Reps,
+                'reps' => 6,
+                'profile' => 'preset-endurance',
+            ],
+        ], rounds: 3, stageRestSeconds: 15, roundRestSeconds: 60, sharedProfileSlug: 'preset-endurance');
+    }
+
+    private function createRoutine(
+        User $user,
+        string $name,
+        ?string $defaultProfileSlug = null,
+        ProgressionStyle $progressionStyle = ProgressionStyle::StraightSets,
+        ProgressiveMidBlock $progressiveMidBlock = ProgressiveMidBlock::Ask,
+    ): Routine {
         return Routine::create([
             'user_id' => $user->id,
             'name' => $name,
             'default_exercise_profile_id' => $this->profile($defaultProfileSlug)?->id,
             'deload_every_n' => 3,
+            'progression_style' => $progressionStyle,
+            'progressive_mid_block' => $progressiveMidBlock,
         ]);
+    }
+
+    /**
+     * @param  list<array{
+     *     name: string,
+     *     equipment: ExerciseEquipment,
+     *     kg: float|int,
+     *     mode: PrescriptionMode,
+     *     reps?: int,
+     *     duration_seconds?: int,
+     *     profile?: string
+     * }>  $stations
+     */
+    private function addCircuitBlock(
+        Routine $routine,
+        int $position,
+        array $stations,
+        int $rounds,
+        int $stageRestSeconds,
+        int $roundRestSeconds,
+        ?string $sharedProfileSlug = null,
+    ): void {
+        if (count($stations) < 3) {
+            throw new RuntimeException('Circuit blocks require at least three stations.');
+        }
+
+        $sharedProfile = $this->profile($sharedProfileSlug);
+
+        DB::transaction(function () use (
+            $routine,
+            $position,
+            $stations,
+            $rounds,
+            $stageRestSeconds,
+            $roundRestSeconds,
+            $sharedProfile,
+            $sharedProfileSlug,
+        ): void {
+            $block = RoutineBlock::create([
+                'routine_id' => $routine->id,
+                'position' => $position,
+                'type' => BlockType::Circuit,
+                'is_superset' => false,
+                'stage_rest_seconds' => $stageRestSeconds,
+                'has_setup_after' => false,
+                'has_setup_after_warm_up' => false,
+                'shared_exercise_profile_id' => $sharedProfile?->id,
+                'shared_profile_fingerprint' => $sharedProfile?->recipe()->sharedFingerprint(),
+            ]);
+
+            foreach (array_values($stations) as $index => $station) {
+                $isTimed = $station['mode'] === PrescriptionMode::Duration;
+                $profile = $this->profile($station['profile'] ?? $sharedProfileSlug);
+                RoutineBlockExercise::create([
+                    'routine_block_id' => $block->id,
+                    'exercise_id' => $this->resolveExercise($station['name'], $station['equipment'])->id,
+                    'position' => $index + 1,
+                    'working_weight_g' => Weight::kgToGrams($station['kg']),
+                    'prescription_mode' => $station['mode'],
+                    'prescribed_reps' => $isTimed
+                        ? null
+                        : ($profile !== null ? $profile->target_reps : ($station['reps'] ?? 10)),
+                    'prescribed_duration_seconds' => $isTimed ? ($station['duration_seconds'] ?? 30) : null,
+                    'achievement_floor_override' => $profile?->floor_override,
+                    'floor_is_derived' => $profile === null ? null : $profile->floor_override === null,
+                    'exercise_profile_id' => $profile?->id,
+                    'exercise_profile_fingerprint' => $profile === null
+                        ? null
+                        : ($sharedProfile === null
+                            ? $profile->recipe()->exerciseFingerprint()
+                            : $profile->recipe()->fingerprint()),
+                ]);
+            }
+
+            RoutineSetGroup::create([
+                'routine_block_id' => $block->id,
+                'type' => SetGroupType::Working,
+                'set_count' => $rounds,
+                'rest_seconds' => $roundRestSeconds,
+            ]);
+
+            RoutineSetGroup::create([
+                'routine_block_id' => $block->id,
+                'type' => SetGroupType::WarmUp,
+                'set_count' => 0,
+                'rest_seconds' => 60,
+            ]);
+        });
     }
 
     /**
@@ -267,6 +431,7 @@ final class RoutineSeeder extends Seeder
             $block = RoutineBlock::create([
                 'routine_id' => $routine->id,
                 'position' => $position,
+                'type' => $isSuperset ? BlockType::Superset : BlockType::Single,
                 'is_superset' => $isSuperset,
                 'has_setup_after' => $setupAfter,
                 'has_setup_after_warm_up' => $setupAfterWarmUp,

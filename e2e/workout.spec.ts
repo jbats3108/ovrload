@@ -19,11 +19,28 @@ async function startBarbellStrength(page: Page): Promise<void> {
 }
 
 async function completeCurrentSet(page: Page): Promise<void> {
+    const targetHit = page.getByRole('button', { name: 'Target hit', exact: true });
     const done = page.getByRole('button', { name: 'Done', exact: true });
-    await done.scrollIntoViewIfNeeded();
-    await done.click();
-    await expect(page.getByRole('button', { name: 'Log set' })).toBeVisible({ timeout: 15_000 });
-    await page.getByRole('button', { name: 'Log set' }).click();
+    const progressBefore = await page.locator('header .font-mono').textContent();
+
+    if (await targetHit.isVisible()) {
+        await targetHit.scrollIntoViewIfNeeded();
+        await targetHit.click();
+    } else {
+        await done.scrollIntoViewIfNeeded();
+        await done.click();
+        const logSet = page.getByRole('button', { name: 'Log set' });
+        // Warm-up Done quick-logs; dropset/timed Done still opens the sheet.
+        const sheetOpened = await logSet
+            .waitFor({ state: 'visible', timeout: 1_500 })
+            .then(() => true)
+            .catch(() => false);
+        if (sheetOpened) {
+            await logSet.click();
+        }
+    }
+
+    await expect(page.locator('header .font-mono')).not.toHaveText(progressBefore ?? '', { timeout: 30_000 });
     await expect(page.locator('header .font-mono')).toHaveText(/\d+\/\d+/, { timeout: 30_000 });
 }
 
@@ -63,6 +80,7 @@ test.describe('workout player', () => {
         await skipRest(page);
         await expect(page.getByText(/warm-up/i)).toBeVisible();
         await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
     });
 
     test('prompts setup after warm-up block with plate guide', async ({ page }) => {

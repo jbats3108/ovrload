@@ -604,6 +604,27 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         router.visit(route('dashboard'));
     };
 
+    const canQuickConfirm = computed(() => {
+        const entry = current.value;
+        if (!entry || props.workout.status !== 'in_progress') {
+            return false;
+        }
+        return !entry.set.is_dropset && entry.set.prescription_mode !== 'duration';
+    });
+
+    const canQuickFloor = computed(() => {
+        const entry = current.value;
+        if (!canQuickConfirm.value || !entry || entry.set.group_type !== 'working') {
+            return false;
+        }
+        return currentExercise.value?.achievement_floor != null;
+    });
+
+    /** Warm-ups use Done (still logs target); working sets use Target hit. */
+    const quickConfirmPrimaryLabel = computed(() => {
+        return current.value?.set.group_type === 'warm_up' ? 'Done' : 'Target hit';
+    });
+
     const openLogSheet = () => {
         if (!current.value || props.workout.status !== 'in_progress') {
             return;
@@ -617,6 +638,24 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
     const cancelLogSheet = () => {
         logPlateLoadDraft.value = null;
         logSheetOpen.value = false;
+    };
+
+    const quickCompleteSet = (mode: 'target' | 'floor'): void => {
+        const entry = current.value;
+        if (!entry || !canQuickConfirm.value) {
+            return;
+        }
+        if (mode === 'floor' && !canQuickFloor.value) {
+            return;
+        }
+
+        syncDraftFromSet(entry);
+        if (mode === 'floor') {
+            setForm.reps = currentExercise.value!.achievement_floor!;
+        } else {
+            setForm.reps = entry.set.target_reps ?? 0;
+        }
+        submitCompleteSet();
     };
 
     const handleLogWeightInput = () => {
@@ -1673,8 +1712,12 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         stageFormatPlateStack,
         groupLabel,
         gramsToKg,
+        canQuickConfirm,
+        canQuickFloor,
+        quickConfirmPrimaryLabel,
         openLogSheet,
         cancelLogSheet,
+        quickCompleteSet,
         completeSet,
         addDropSegment,
         removeDropSegment,

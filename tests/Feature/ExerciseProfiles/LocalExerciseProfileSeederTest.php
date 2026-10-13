@@ -42,7 +42,7 @@ class LocalExerciseProfileSeederTest extends TestCase
         );
         $this->assertSame(['Accessory Volume', 'Power Builder'], $customProfiles->sortBy('name')->pluck('name')->values()->all());
         $this->assertSame($strength->id, $user->default_exercise_profile_id);
-        $this->assertCount(4, $user->routines);
+        $this->assertCount(5, $user->routines);
         $this->assertNotEmpty($routineExercises);
         $this->assertTrue($routineExercises->every(
             static fn (RoutineBlockExercise $exercise): bool => $exercise->exerciseProfile !== null,

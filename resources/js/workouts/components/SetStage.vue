@@ -17,8 +17,12 @@ const {
     canRemoveAdHocBlock,
     canSkipRestOfBlock,
     canParkForLater,
+    canQuickConfirm,
+    canQuickFloor,
+    quickConfirmPrimaryLabel,
     openLogSheet,
     cancelLogSheet,
+    quickCompleteSet,
     completeSet,
     addDropSegment,
     removeDropSegment,
@@ -302,7 +306,35 @@ const setLoggedReps = (value: number | null): void => {
                         </button>
                     </div>
                 </div>
+                <template v-if="canQuickConfirm">
+                    <button
+                        type="button"
+                        class="rounded-full bg-primary px-6 py-4 text-base font-semibold text-primary-foreground disabled:opacity-50"
+                        :disabled="mutating || setForm.processing || workout.status !== 'in_progress'"
+                        @click="quickCompleteSet('target')"
+                    >
+                        {{ quickConfirmPrimaryLabel }}
+                    </button>
+                    <button
+                        v-if="canQuickFloor"
+                        type="button"
+                        class="rounded-full border border-border px-6 py-4 text-base font-semibold text-foreground hover:bg-secondary disabled:opacity-50"
+                        :disabled="mutating || setForm.processing || workout.status !== 'in_progress'"
+                        @click="quickCompleteSet('floor')"
+                    >
+                        Floor hit
+                    </button>
+                    <button
+                        type="button"
+                        class="rounded-full border border-border px-6 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                        :disabled="mutating || setForm.processing || workout.status !== 'in_progress'"
+                        @click="openLogSheet"
+                    >
+                        Edit
+                    </button>
+                </template>
                 <button
+                    v-else
                     type="button"
                     class="rounded-full bg-primary px-6 py-4 text-base font-semibold text-primary-foreground disabled:opacity-50"
                     :disabled="workout.status !== 'in_progress'"

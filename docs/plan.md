@@ -36,6 +36,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 ### Parked (internal — not on public FAQ)
 
 - ~~**Stepper controls for reps and sets**~~ — shipped (clearable +/− on sets/reps/floor; validate on save)
+- ~~**Play quick-confirm (Target hit / Floor hit)**~~ — shipped (working: Target hit / Floor hit; warm-up: Done=target; Edit sheet; dropset/timed keep Done→sheet)
 - **Flexible block timing and entries** — allow circuit blocks with a single entry, or support time-based standard blocks instead of rep-based prescriptions; decide whether this needs a new block type
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
@@ -61,7 +62,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 - **Soft host cap ~100 accounts** — prod: Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 - **Maintenance handoff plan** — reduce ongoing Cursor dependence so a human can keep the app running without constant AI spend
 - **Storybook for components?** — component catalog to support human handover (from Notion inbox)
-- **Business card / flyer design, logo files somewhere** — marketing assets; from Notion inbox
+- ~~**Business card / flyer design, logo files somewhere**~~ — done
 
 ## Backlog: 121 Feedback (gym owner)
 
