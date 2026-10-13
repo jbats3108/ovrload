@@ -24,15 +24,17 @@ test.describe('routine editor', () => {
         await openBarbellEditor(page);
 
         const settings = page.locator('[data-desktop-routine-settings]');
-        await expect(settings).toContainText(/Straight Sets/i);
+        await expect(settings).toContainText(/Progressive · Auto/i);
         await settings.getByRole('button', { name: /Routine settings/i }).click();
 
         const progression = settings.locator('[data-routine-progression]');
         await expect(progression).toBeVisible();
         await progression.getByRole('button', { name: /Progression/i }).click();
         await expect(progression.getByText(/Straight Sets — same weight/i)).toBeVisible();
-        await progression.getByLabel(/Progressive Overload/i).check();
+        await expect(progression.getByLabel(/Progressive Overload/i)).toBeChecked();
         await expect(progression.getByText(/Mid-block bump/i)).toBeVisible();
+        await expect(progression.getByLabel(/Auto-bump next set/i)).toBeChecked();
+        await progression.getByLabel(/Ask on rest/i).check();
         await expect(progression.getByLabel(/Ask on rest/i)).toBeChecked();
     });
 
