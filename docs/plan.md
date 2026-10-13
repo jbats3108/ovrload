@@ -8,7 +8,7 @@ Working backlog for OVRLOAD v2. Update this as items ship or get deferred. Domai
 
 ## Now
 
-- **Play quick-confirm (Target hit / Floor hit)** — working sets: Target hit / Floor hit; warm-ups: Done (= target); Edit opens log sheet; dropsets + timed keep Done → sheet
+-
 
 ## Backlog
 
@@ -36,6 +36,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 ### Parked (internal — not on public FAQ)
 
 - ~~**Stepper controls for reps and sets**~~ — shipped (clearable +/− on sets/reps/floor; validate on save)
+- ~~**Play quick-confirm (Target hit / Floor hit)**~~ — shipped (working: Target hit / Floor hit; warm-up: Done=target; Edit sheet; dropset/timed keep Done→sheet)
 - **Flexible block timing and entries** — allow circuit blocks with a single entry, or support time-based standard blocks instead of rep-based prescriptions; decide whether this needs a new block type
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
