@@ -6,6 +6,7 @@ import { computed, ref } from 'vue';
 const {
     restLabel,
     upcoming,
+    upcomingSupersetPair,
     workout,
     skipRest,
     canSkipRestOfBlock,
@@ -48,7 +49,7 @@ function confirmSkip() {
         <div class="flex min-h-full flex-col items-center justify-center gap-4">
             <p class="text-sm tracking-widest text-muted-foreground uppercase">Rest</p>
             <p class="font-mono text-6xl font-semibold text-primary">{{ restLabel }}</p>
-            <UpcomingCard v-if="upcoming" class="mt-2" :upcoming="upcoming" :weight-unit="workout.weight_unit" />
+            <UpcomingCard v-if="upcoming" class="mt-2" :upcoming="upcoming" :pair="upcomingSupersetPair" :weight-unit="workout.weight_unit" />
             <div v-if="pendingMidBlockBump" class="w-full max-w-md rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-left">
                 <p class="text-sm font-medium text-foreground">Bump next set?</p>
                 <p class="mt-1 text-sm text-muted-foreground">{{ midBlockBumpDescription }}</p>

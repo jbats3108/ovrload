@@ -17,7 +17,7 @@ export type UpcomingPreview = {
 const props = defineProps<{
     upcoming: UpcomingPreview;
     weightUnit: string;
-    /** When set (superset setup), show both exercises instead of a single next set. */
+    /** When set (upcoming incomplete superset round), show both exercises instead of a single next set. */
     pair?: UpcomingPreview[] | null;
 }>();
 
