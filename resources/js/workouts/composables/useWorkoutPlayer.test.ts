@@ -170,10 +170,10 @@ describe('createWorkoutPlayer', () => {
             ],
         });
         expect(player.focus.value.kind).toBe('setup');
-        expect(player.setupSupersetPair.value?.map((item) => item.exerciseName)).toEqual(['Press', 'Row']);
-        expect(player.setupSupersetPair.value?.map((item) => item.letter)).toEqual(['A', 'B']);
-        expect(player.setupSupersetPair.value?.[0].weightLabel).toBe('50');
-        expect(player.setupSupersetPair.value?.[1].weightLabel).toBe('60');
+        expect(player.upcomingSupersetPair.value?.map((item) => item.exerciseName)).toEqual(['Press', 'Row']);
+        expect(player.upcomingSupersetPair.value?.map((item) => item.letter)).toEqual(['A', 'B']);
+        expect(player.upcomingSupersetPair.value?.[0].weightLabel).toBe('50');
+        expect(player.upcomingSupersetPair.value?.[1].weightLabel).toBe('60');
         expect(player.setupSteps.value.map((step) => step.exerciseName)).toEqual(['Press', 'Row']);
         expect(player.setupSteps.value.map((step) => step.letter)).toEqual(['A', 'B']);
         expect(player.setupSteps.value[0]?.plateLoad).not.toBeNull();
@@ -214,8 +214,131 @@ describe('createWorkoutPlayer', () => {
             ],
         });
         expect(player.focus.value.kind).toBe('set');
-        expect(player.setupSupersetPair.value).toBeNull();
         expect(player.setupSteps.value).toEqual([]);
+        expect(player.upcomingSupersetPair.value?.map((item) => item.exerciseName)).toEqual(['Press', 'Row']);
+    });
+
+    it('previews both exercises on rest before a following incomplete superset round', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    id: 1,
+                    position: 0,
+                    sets: [
+                        playerSet({
+                            id: 1,
+                            completed: true,
+                            logged_weight_kg: 100,
+                            logged_reps: 5,
+                            rest_seconds: 90,
+                        }),
+                    ],
+                }),
+                playerBlock({
+                    id: 2,
+                    position: 1,
+                    is_superset: true,
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Press',
+                            working_weight_kg: 50,
+                            prescribed_reps: 8,
+                            achievement_floor: null,
+                            progression_target: null,
+                            position: 0,
+                        },
+                        {
+                            id: 11,
+                            name: 'Row',
+                            working_weight_kg: 60,
+                            prescribed_reps: 10,
+                            achievement_floor: null,
+                            progression_target: null,
+                            position: 1,
+                        },
+                    ],
+                    sets: [
+                        playerSet({
+                            id: 2,
+                            workout_block_exercise_id: 10,
+                            exercise_name: 'Press',
+                            set_index: 0,
+                            target_weight_kg: 50,
+                            target_reps: 8,
+                        }),
+                        playerSet({
+                            id: 3,
+                            workout_block_exercise_id: 11,
+                            exercise_name: 'Row',
+                            set_index: 0,
+                            target_weight_kg: 60,
+                            target_reps: 10,
+                        }),
+                    ],
+                }),
+            ],
+        });
+
+        player.restSecondsLeft.value = 90;
+
+        expect(player.upcoming.value?.exerciseName).toBe('Press');
+        expect(player.upcomingSupersetPair.value?.map((item) => item.exerciseName)).toEqual(['Press', 'Row']);
+        expect(player.upcomingSupersetPair.value?.map((item) => item.letter)).toEqual(['A', 'B']);
+    });
+
+    it('shows only B on rest mid-superset round', () => {
+        const player = mountPlayer({
+            blocks: [
+                playerBlock({
+                    is_superset: true,
+                    exercises: [
+                        {
+                            id: 10,
+                            name: 'Press',
+                            working_weight_kg: 50,
+                            prescribed_reps: 8,
+                            achievement_floor: null,
+                            progression_target: null,
+                            position: 0,
+                        },
+                        {
+                            id: 11,
+                            name: 'Row',
+                            working_weight_kg: 60,
+                            prescribed_reps: 10,
+                            achievement_floor: null,
+                            progression_target: null,
+                            position: 1,
+                        },
+                    ],
+                    sets: [
+                        playerSet({
+                            id: 1,
+                            workout_block_exercise_id: 10,
+                            exercise_name: 'Press',
+                            set_index: 0,
+                            completed: true,
+                            logged_weight_kg: 50,
+                            logged_reps: 8,
+                        }),
+                        playerSet({
+                            id: 2,
+                            workout_block_exercise_id: 11,
+                            exercise_name: 'Row',
+                            set_index: 0,
+                            target_weight_kg: 60,
+                            target_reps: 10,
+                        }),
+                    ],
+                }),
+            ],
+        });
+
+        player.restSecondsLeft.value = 60;
+
+        expect(player.upcoming.value?.exerciseName).toBe('Row');
+        expect(player.upcomingSupersetPair.value).toBeNull();
     });
 
     it('carries setup plate edits into the following set stage', () => {

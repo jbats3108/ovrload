@@ -1089,23 +1089,25 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         return previewForEntry(entry);
     });
 
-    /** Both exercises in the upcoming superset round — only while on Setup. */
-    const setupSupersetPair = computed(() => {
-        if (focus.value.kind !== 'setup') {
-            return null;
-        }
-
+    /**
+     * Both exercises in the upcoming incomplete superset round — for Setup and for Rest
+     * before A (not mid-round rest before B).
+     */
+    const upcomingSupersetPair = computed(() => {
         const entry = flatSets.value.find(({ block, set }) => !block.is_parked && !set.completed) ?? null;
         if (!entry?.block.is_superset) {
             return null;
         }
 
         const round = supersetRoundSets(entry.block, entry.set);
-        if (round.length < 2) {
+        const incomplete = round.filter((set) => !set.completed);
+        if (incomplete.length < 2 || incomplete[0]?.id !== entry.set.id) {
             return null;
         }
 
-        return round.map((set, index) => previewForEntry({ blockIndex: entry.blockIndex, block: entry.block, set }, String.fromCharCode(65 + index)));
+        return incomplete.map((set, index) =>
+            previewForEntry({ blockIndex: entry.blockIndex, block: entry.block, set }, String.fromCharCode(65 + index)),
+        );
     });
 
     type SetupStepView = {
@@ -1676,7 +1678,7 @@ export function createWorkoutPlayer(props: PlayWorkoutProps) {
         progressLabel,
         upcoming,
         setupHint,
-        setupSupersetPair,
+        upcomingSupersetPair,
         setupSteps,
         changeSetupPlate,
         applySetupNearestLoad,
