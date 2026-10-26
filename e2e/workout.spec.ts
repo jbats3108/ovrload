@@ -18,6 +18,12 @@ async function startBarbellStrength(page: Page): Promise<void> {
     await expect(page).toHaveURL(/\/workouts\/[0-9A-HJKMNP-TV-Z]{26}/i);
 }
 
+async function startSupersetPump(page: Page): Promise<void> {
+    const card = page.locator('div.rounded-xl.border').filter({ has: page.getByRole('heading', { name: 'Superset Pump', level: 3 }) });
+    await card.getByRole('button', { name: 'Start' }).click();
+    await expect(page).toHaveURL(/\/workouts\/[0-9A-HJKMNP-TV-Z]{26}/i);
+}
+
 async function completeCurrentSet(page: Page): Promise<void> {
     const targetHit = page.getByRole('button', { name: 'Target hit', exact: true });
     const done = page.getByRole('button', { name: 'Done', exact: true });
@@ -130,5 +136,29 @@ test.describe('workout player', () => {
 
         // Now on exercise 2
         await expect(page.getByRole('button', { name: 'Skip exercise' })).toBeVisible();
+    });
+
+    test('rest Up Next shows both exercises before the next superset round', async ({ page }) => {
+        await startSupersetPump(page);
+
+        // Park the opening warm-up block so we land on the no-WU Arnold/Hammer superset.
+        await expect(page.getByRole('button', { name: 'Later', exact: true })).toBeVisible();
+        await page.getByRole('button', { name: 'Later', exact: true }).click();
+        await expect(page.getByText('Arnold Dumbbell Press')).toBeVisible({ timeout: 15_000 });
+
+        await completeCurrentSet(page);
+        await expect(page.getByText('Alternate Hammer Curl')).toBeVisible({ timeout: 15_000 });
+        await completeCurrentSet(page);
+
+        await expect(page.getByText('Rest', { exact: true })).toBeVisible({ timeout: 15_000 });
+        const upNext = page
+            .locator('div')
+            .filter({ has: page.getByText('Up Next:', { exact: true }) })
+            .last();
+        await expect(upNext).toContainText('A ·');
+        await expect(upNext).toContainText('Arnold Dumbbell Press');
+        await expect(upNext).toContainText('B ·');
+        await expect(upNext).toContainText('Alternate Hammer Curl');
+        await expect(upNext).toContainText('Superset');
     });
 });
