@@ -170,24 +170,21 @@ describe('circuit blocks', () => {
         expect(b.exercises[0].prescription_mode).toBe('reps');
     });
 
-    it('adds and removes exercises respecting the 3 exercise minimum', () => {
+    it('adds and removes exercises respecting the 1 exercise minimum', () => {
         const b = emptyBlock({ type: 'circuit', firstCatalogId: 1 });
         expect(b.exercises).toHaveLength(3);
 
-        // Cannot remove when length <= 3
+        expect(removeCircuitExercise(b, 0)).toBe(true);
+        expect(b.exercises).toHaveLength(2);
+        expect(removeCircuitExercise(b, 0)).toBe(true);
+        expect(b.exercises).toHaveLength(1);
         expect(removeCircuitExercise(b, 0)).toBe(false);
-        expect(b.exercises).toHaveLength(3);
+        expect(b.exercises).toHaveLength(1);
 
-        // Add 4th exercise
         addCircuitExercise(b, 2, 12);
-        expect(b.exercises).toHaveLength(4);
-        expect(b.exercises[3].exercise_id).toBe(2);
-        expect(b.exercises[3].prescribed_reps).toBe(12);
-
-        // Can now remove
-        expect(removeCircuitExercise(b, 1)).toBe(true);
-        expect(b.exercises).toHaveLength(3);
-        expect(removeCircuitExercise(b, 0)).toBe(false);
+        expect(b.exercises).toHaveLength(2);
+        expect(b.exercises[1].exercise_id).toBe(2);
+        expect(b.exercises[1].prescribed_reps).toBe(12);
     });
 
     it('reorders circuit exercises safely', () => {
@@ -207,14 +204,19 @@ describe('circuit blocks', () => {
     it('toggles and sets prescription mode between reps and duration', () => {
         const ex = emptyExercise(1, 10);
         ex.achievement_floor = 8;
+        ex.progression_target = 12;
         ex.exercise_profile_id = 5;
+        const single = emptyBlock({ type: 'single', firstCatalogId: 1 });
+        single.working.dropsets = [{ set_index: 0, segments: [{ weight_kg: 60 }, { weight_kg: 40 }] }];
 
-        setExercisePrescriptionMode(ex, 'duration');
+        setExercisePrescriptionMode(ex, 'duration', single);
         expect(ex.prescription_mode).toBe('duration');
         expect(ex.prescribed_duration_seconds).toBe(30);
         expect(ex.prescribed_reps).toBeNull();
         expect(ex.achievement_floor).toBeNull();
-        expect(ex.exercise_profile_id).toBeNull();
+        expect(ex.progression_target).toBeNull();
+        expect(ex.exercise_profile_id).toBe(5);
+        expect(single.working.dropsets).toEqual([]);
 
         togglePrescriptionMode(ex);
         expect(ex.prescription_mode).toBe('reps');
