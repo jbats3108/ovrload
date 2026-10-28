@@ -13,24 +13,32 @@ A named plan the user owns and can start as a workout. Ordered list of blocks. F
 _Avoid_: Program, split, schedule, workout plan
 
 **Block**:
-One ordered unit inside a routine. Either a single exercise or a **superset** (exactly two exercises). Owns one warm-up Set Group and one working Set Group shared across the block’s exercises. Optional setup after the block.
+One ordered unit inside a routine. A **single** exercise, a **superset** (exactly two), or a **circuit** (one or more stations). Owns one warm-up Set Group and one working Set Group shared across the block’s exercises (circuits have no warm-up). Optional setup after the block.
 _UI_: Shown as **Exercise** (e.g. “Add exercise”, “Exercise N”); keep Block in code, routes, and this glossary.
 _Avoid_: Slot, group, row, exercise entry
 
 **Superset**:
-A block with exactly two exercises played as matched rounds: A → transition → B → then working rest. Not a giant set or circuit.
+A block with exactly two exercises played as matched rounds: A → transition → B → then working rest. Not a giant set or circuit. Reps-only (no timed prescription).
 _Avoid_: Circuit, giant set, pairing (as a noun for the block)
+
+**Circuit**:
+A block with one or more stations played in round-based rotation. Dual rest: station rest between stations in a round (hidden when only one station) and round rest after the last station. Stations may use rep or timed prescriptions. No warm-ups, dropsets, profiles, or automatic progression.
+_Avoid_: Giant set, complex, AMRAP (as product labels)
+
+**Timed prescription**:
+An exercise prescribed by duration in seconds instead of reps (Single or Circuit stations). Play uses a countdown timer. No dropsets, achievement floor, or progression target / bumps while timed. Warm-ups on timed Singles stay rep-based.
+_Avoid_: Timer set, hold, isometric (as product labels for the prescription mode)
 
 **Set Group**:
 A bag of like sets on a block: either warm-up or working. One set count and one rest for the whole group (for a superset, rest is after the pair; transition sits between A and B). Warm-up steps are each a % of that exercise’s working weight with their own reps; each exercise on the block has its own working weight and prescribed rep target. Individual working-set slots may be **Single** or a **Dropset**.
 _Avoid_: Set scheme, wave, drop set (as a name for the Set Group itself)
 
 **Dropset**:
-A working-set *slot* with two or more absolute-weight segments that share one reps target. No rest between segments; the working Set Group’s rest runs after the whole slot. Not available on supersets. Ignored by progression (achievement floor / bump / carry-forward). “Run the rack” is only an editor helper that fills the segment list.
+A working-set *slot* with two or more absolute-weight segments that share one reps target. No rest between segments; the working Set Group’s rest runs after the whole slot. Not available on supersets, circuits, or timed Singles. Ignored by progression (achievement floor / bump / carry-forward). “Run the rack” is only an editor helper that fills the segment list.
 _Avoid_: Drop set (as a Set Group type), strip set, burn-out set
 
 **Single**:
-A working-set *slot* with one weight and one reps target (the default opposite of a **Dropset**).
+A working-set *slot* with one weight and one reps **or** duration target (the default opposite of a **Dropset**). Also the name of a one-exercise block type.
 _Avoid_: Normal set, straight set (as product labels)
 
 **Working Weight**:

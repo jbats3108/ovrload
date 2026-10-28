@@ -37,7 +37,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 - ~~**Stepper controls for reps and sets**~~ — shipped (clearable +/− on sets/reps/floor; validate on save)
 - ~~**Play quick-confirm (Target hit / Floor hit)**~~ — shipped (working: Target hit / Floor hit; warm-up: Done=target; Edit sheet; dropset/timed keep Done→sheet)
-- **Flexible block timing and entries** — allow circuit blocks with a single entry, or support time-based standard blocks instead of rep-based prescriptions; decide whether this needs a new block type
+- ~~**Flexible block timing and entries**~~ — shipped (timed Singles + circuits ≥1 station; no new block type)
 - **Strava integration** — OAuth / export / privacy grill later
 - **Garmin sync** — after Strava
 - **Ad-hoc / off-routine historical log (C2)** — log a lift not on a routine session; own grill (maybe after Play ad-hoc)
@@ -48,7 +48,7 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 - ~~**Routine Progression Style**~~ — shipped (per-routine style + mid-block; Training seeds new routines only)
 - ~~**Per-profile Deload factors**~~ — shipped (weight/reps on Exercise Profile with auto-push; velocity on routine)
 
-**Solo-lifter queue (updated 2026-10-01):** shipped Swap A↔B, Do groups later, Circuits, Progression Style, Stepper controls. Dropped: Better History Edits, lbs, automatic circuit progression, flaky-network drafts. Next: rack inventory → dropsets on supersets. Then Viewable Progression Data. PT / videos stay parked.
+**Solo-lifter queue (updated 2026-10-28):** shipped Swap A↔B, Do groups later, Circuits, Progression Style, Stepper controls, timed Singles + 1-station circuits. Dropped: Better History Edits, lbs, automatic circuit progression, flaky-network drafts. Next: rack inventory → dropsets on supersets. Then Viewable Progression Data. PT / videos stay parked.
 
 ### Code quality & security
 
