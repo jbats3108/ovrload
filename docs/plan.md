@@ -26,11 +26,11 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 4. ~~**Add exercise in Play**~~ — recently added
 5. ~~**Do groups later**~~ — recently added
 6. ~~**Choose an alternate exercise for Deload sessions**~~ — recently added
-7. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning
-8. **Viewable Progression Data** — charts/tables/export; large feature, own grill later
+7. **Gym dumbbell / rack inventory** — full rack range for run-the-rack / planning — deprioritized (low demand)
+8. **Viewable Progression Data** — charts/tables/export; large feature, own grill later — deprioritized (low demand)
 9. ~~**Circuit workouts**~~ — recently added
 10. ~~**Skip a block and come back later in Play**~~ — shipped as **Do groups later**; kept on public FAQ as recently added
-11. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round
+11. **Dropsets on supersets** — multi-segment dropsets inside a two-exercise superset round — deprioritized (low demand)
 12. ~~**Routine Progression Style**~~ — recently added
 
 ### Parked (internal — not on public FAQ)
@@ -43,12 +43,12 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 - **Ad-hoc / off-routine historical log (C2)** — log a lift not on a routine session; own grill (maybe after Play ad-hoc)
 - **Benchmark exercises / 1RMs** — track reference lifts / estimated maxes
 - **In-app product tour** — after the public `/tutorial` page; own grill
-- **PT mode** — new user type; client roster; personal + client routines; PT→client share (includes client switching / former account switcher) — grill: [PT mode](#grill-pt-mode) (parked until after solo-lifter queue)
+- **PT mode** — new user type; client roster; personal + client routines; PT→client share (includes client switching / former account switcher) — grill: [PT mode](#grill-pt-mode) (solo-lifter queue done; unpark when ready)
 - **Exercise videos (PT)** — park until PT mode exists — grill: [Exercise videos](#grill-exercise-videos-pt)
 - ~~**Routine Progression Style**~~ — shipped (per-routine style + mid-block; Training seeds new routines only)
 - ~~**Per-profile Deload factors**~~ — shipped (weight/reps on Exercise Profile with auto-push; velocity on routine)
 
-**Solo-lifter queue (updated 2026-10-28):** shipped Swap A↔B, Do groups later, Circuits, Progression Style, Stepper controls, timed Singles + 1-station circuits. Dropped: Better History Edits, lbs, automatic circuit progression, flaky-network drafts. Next: rack inventory → dropsets on supersets. Then Viewable Progression Data. PT / videos stay parked.
+**Solo-lifter queue (updated 2026-10-28):** shipped Swap A↔B, Do groups later, Circuits, Progression Style, Stepper controls, timed Singles + 1-station circuits. Dropped: Better History Edits, lbs, automatic circuit progression, flaky-network drafts. Deprioritized (low demand): rack inventory, dropsets on supersets, Viewable Progression Data. Public FAQ feature list is clear of high-demand solo items.
 
 ### Code quality & security
 
@@ -79,22 +79,27 @@ Triaged 2026-08-28. Source: Notion [121 Feedback](https://app.notion.com/p/3cae5
 
 **Motivation:** Gym-owner 1:1 — PTs need to manage many clients and their programmes, not just their own training.
 
-**Scope sketch (initial):**
+**Decided (2026-10-28, high level):**
 
-- New **User type** (PT) is the likely starting seam.
-- PT stores **personal** routines/workouts plus **client** routines (individual and possibly group).
-- **Contacts** = client roster (who the PT trains).
-- **Share workouts** lives here: primary case is **PT → client** (assign or push a routine). Demand for peer **individual → individual** share looks low for now.
-- Client **switching** (was “account switcher?” in raw notes) — PT moves between clients without separate logins per client.
+- **Stance:** product extends to trainers; solo UX unchanged; lifters stay the core.
+- **Target:** one pilot gym, invite-only. No billing.
+- **PT** = flag on **User**, set by an admin toggle in Admin. No self-serve PT signup. PTs can still train personally.
+- **Client** has two kinds:
+  - **Managed** — a User row with no login, owned by exactly one PT. All routine/workout/progression logic reused.
+  - **Linked** — a normal User who accepts a PT link (consent) and can unlink any time; history stays with the client.
+- **Claim path:** a managed client can later gain a login and keep history (designed now, built later).
+- **Acting as a client:** PT writes only to managed clients, via a context switch (stays signed in as self; persistent "Acting as <client>" banner; one-tap return). For linked clients the PT gets read-only history and can assign routine copies; never logs or edits as them.
+- **Assigned routines:** one-way copy into the client's account; client owns and edits it; no sync back. Updates = assign a new copy.
+- **Roster:** one PT per client. Managed clients count toward the ~100-account soft cap. Config limit **25 per PT** (no UI).
+- **GDPR (beta):** PT confirms client consent when creating a managed client; PT can export/delete any managed client; deleting a PT prompts export first, then deletes their managed clients. Full retention/processor re-grill stays on the public-launch item.
+- **Naming:** **PT** and **Client** in `CONTEXT.md` (UI copy: "Trainer" / "Client"). Avoid Athlete, Member, Customer.
+- **Out of v1:** PT notes, messaging, scheduling, billing, videos, group clients (group = N individual assignments).
+- **Public docs:** nothing on FAQ/tutorial until slice 1 ships; then document per the tutorial rule.
 
-**Open (grill later):**
+**Open:**
 
-- PT vs admin vs regular user — roles, invites, billing?
-- Client accounts: do clients need their own login, or PT-only records?
-- Group clients — one routine shared across a class, or tagged individuals?
-- Permissions: can clients edit assigned routines, or view-only / log-only?
-- Data ownership and GDPR when PT holds client data
-- How sharing is delivered (in-app assign, link, email?)
+- **Slice order / implementation sequencing** — deferred. Proposed: (1) PT flag, roster, managed clients, switching; (2) link login clients with consent; (3) assign copies + read-only linked history.
+- Unpark from Parked once slice order is agreed.
 
 ## Grill: Exercise videos (PT)
 
