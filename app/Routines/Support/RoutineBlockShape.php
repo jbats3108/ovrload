@@ -100,12 +100,6 @@ final class RoutineBlockShape
      */
     private static function hasTimedExercise(array $exercises): bool
     {
-        foreach ($exercises as $exercise) {
-            if ($exercise->prescriptionMode === PrescriptionMode::Duration) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($exercises, fn ($exercise): bool => $exercise->prescriptionMode === PrescriptionMode::Duration);
     }
 }
