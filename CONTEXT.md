@@ -1,12 +1,20 @@
 # OVRLOAD
 
-Personal strength training for serious lifters: plan routines, log sessions, track progressive overload. Not coaching. Product branding (name, mark, visual direction) lives in `docs/branding.md`.
+Personal strength training for serious lifters: plan routines, log sessions, track progressive overload. Lifters are the core; trainers (PTs) get light tooling to manage and assign to their clients — no messaging, scheduling, or billing. Product branding (name, mark, visual direction) lives in `docs/branding.md`.
 
 ## Language
 
 **User**:
 The account holder who owns routines, workouts, customs, and a plate profile.
 _Avoid_: Athlete, lifter, member
+
+**PT**:
+A User with the trainer flag, granted by an admin. Can still train personally. Manages a roster of Clients. UI copy: "Trainer".
+_Avoid_: Coach, admin
+
+**Client**:
+A User a PT works with. **Managed**: no login, owned by one PT, who acts as them via a context switch. **Linked**: a normal User who accepted the PT's link; the PT sees read-only history and can assign Routine copies. One PT per Client. UI copy: "Client".
+_Avoid_: Athlete, member, customer
 
 **Routine**:
 A named plan the user owns and can start as a workout. Ordered list of blocks. Flat — no calendar or “today’s workout” scheduling.
