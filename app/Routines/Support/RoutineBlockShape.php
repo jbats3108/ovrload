@@ -6,6 +6,7 @@ use App\Routines\Data\Editor\SyncBlockExerciseData;
 use App\Routines\Data\Editor\SyncDropsetData;
 use App\Routines\Data\Editor\SyncWarmUpStepData;
 use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use InvalidArgumentException;
 
 final class RoutineBlockShape
@@ -24,6 +25,7 @@ final class RoutineBlockShape
     ): void {
         $isSuperset = $blockType === BlockType::Superset;
         $isCircuit = $blockType === BlockType::Circuit;
+        $hasTimedExercise = self::hasTimedExercise($exercises);
 
         if ($isSuperset && count($exercises) !== 2) {
             throw new InvalidArgumentException('A superset must have exactly two exercises.');
@@ -33,8 +35,8 @@ final class RoutineBlockShape
             throw new InvalidArgumentException('A non-superset must have exactly one exercise.');
         }
 
-        if ($isCircuit && count($exercises) < 3) {
-            throw new InvalidArgumentException('A circuit must have at least three exercises.');
+        if ($isCircuit && count($exercises) < 1) {
+            throw new InvalidArgumentException('A circuit must have at least one exercise.');
         }
 
         if ($isCircuit && $sharedProfileId !== null) {
@@ -52,6 +54,14 @@ final class RoutineBlockShape
         if ($isCircuit && $steps !== []) {
             throw new InvalidArgumentException('Warm-up steps are not supported on circuits.');
         }
+
+        if ($isSuperset && $hasTimedExercise) {
+            throw new InvalidArgumentException('Timed exercises are not supported on supersets.');
+        }
+
+        if ($blockType === BlockType::Single && $hasTimedExercise && $dropsets !== []) {
+            throw new InvalidArgumentException('Dropsets are not supported on timed exercises.');
+        }
     }
 
     public static function assertCircuitExercise(SyncBlockExerciseData $exerciseData): void
@@ -68,5 +78,34 @@ final class RoutineBlockShape
         if ($exerciseData->achievementFloor !== null) {
             throw new InvalidArgumentException('Achievement floor overrides are not supported on circuits.');
         }
+    }
+
+    public static function assertTimedExercise(SyncBlockExerciseData $exerciseData): void
+    {
+        if ($exerciseData->prescriptionMode !== PrescriptionMode::Duration) {
+            return;
+        }
+
+        if ($exerciseData->progressionTarget !== null) {
+            throw new InvalidArgumentException('Automatic progression targets are not supported on timed exercises.');
+        }
+
+        if ($exerciseData->achievementFloor !== null) {
+            throw new InvalidArgumentException('Achievement floor overrides are not supported on timed exercises.');
+        }
+    }
+
+    /**
+     * @param  list<SyncBlockExerciseData>  $exercises
+     */
+    private static function hasTimedExercise(array $exercises): bool
+    {
+        foreach ($exercises as $exercise) {
+            if ($exercise->prescriptionMode === PrescriptionMode::Duration) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

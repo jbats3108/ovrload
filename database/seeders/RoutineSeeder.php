@@ -314,8 +314,8 @@ final class RoutineSeeder extends Seeder
         int $roundRestSeconds,
         ?string $sharedProfileSlug = null,
     ): void {
-        if (count($stations) < 3) {
-            throw new RuntimeException('Circuit blocks require at least three stations.');
+        if (count($stations) < 1) {
+            throw new RuntimeException('Circuit blocks require at least one station.');
         }
 
         $sharedProfile = $this->profile($sharedProfileSlug);

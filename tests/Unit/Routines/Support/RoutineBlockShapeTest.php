@@ -8,6 +8,7 @@ use App\Routines\Data\Editor\SyncWarmUpStepData;
 use App\Routines\Support\RoutineBlockShape;
 use App\Shared\Data\WeightKgSegmentData;
 use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\WarmUpWeightMode;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
@@ -89,10 +90,15 @@ class RoutineBlockShapeTest extends TestCase
     }
 
     #[Test]
-    public function assert_rejects_circuit_with_too_few_exercises(): void
+    public function assert_accepts_one_and_two_station_circuits(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A circuit must have at least three exercises.');
+        RoutineBlockShape::assert(
+            BlockType::Circuit,
+            [$this->exercise(1)],
+            [],
+            [],
+            null,
+        );
 
         RoutineBlockShape::assert(
             BlockType::Circuit,
@@ -101,6 +107,71 @@ class RoutineBlockShapeTest extends TestCase
             [],
             null,
         );
+
+        $this->addToAssertionCount(2);
+    }
+
+    #[Test]
+    public function assert_rejects_circuit_with_no_exercises(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A circuit must have at least one exercise.');
+
+        RoutineBlockShape::assert(
+            BlockType::Circuit,
+            [],
+            [],
+            [],
+            null,
+        );
+    }
+
+    #[Test]
+    public function assert_rejects_timed_exercises_on_supersets(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Timed exercises are not supported on supersets.');
+
+        RoutineBlockShape::assert(
+            BlockType::Superset,
+            [$this->exercise(1), $this->timedExercise(2)],
+            [],
+            [],
+            null,
+        );
+    }
+
+    #[Test]
+    public function assert_rejects_dropsets_on_timed_singles(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Dropsets are not supported on timed exercises.');
+
+        RoutineBlockShape::assert(
+            BlockType::Single,
+            [$this->timedExercise()],
+            [$this->dropset()],
+            [],
+            null,
+        );
+    }
+
+    #[Test]
+    public function assert_timed_exercise_rejects_progression_target(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Automatic progression targets are not supported on timed exercises.');
+
+        RoutineBlockShape::assertTimedExercise($this->timedExercise(progressionTarget: 8));
+    }
+
+    #[Test]
+    public function assert_timed_exercise_rejects_achievement_floor(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Achievement floor overrides are not supported on timed exercises.');
+
+        RoutineBlockShape::assertTimedExercise($this->timedExercise(achievementFloor: 5));
     }
 
     #[Test]
@@ -216,6 +287,22 @@ class RoutineBlockShapeTest extends TestCase
             exerciseProfileId: $exerciseProfileId,
             deloadExerciseId: $deloadExerciseId,
             deloadWorkingWeightKg: $deloadWorkingWeightKg,
+        );
+    }
+
+    private function timedExercise(
+        int $exerciseId = 1,
+        ?int $progressionTarget = null,
+        ?int $achievementFloor = null,
+    ): SyncBlockExerciseData {
+        return new SyncBlockExerciseData(
+            exerciseId: $exerciseId,
+            workingWeightKg: 0.0,
+            prescribedReps: null,
+            prescriptionMode: PrescriptionMode::Duration,
+            prescribedDurationSeconds: 30,
+            achievementFloor: $achievementFloor,
+            progressionTarget: $progressionTarget,
         );
     }
 
