@@ -1098,6 +1098,82 @@ class WorkoutServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_snapshots_a_timed_single_without_floor_or_progression_target(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Single,
+            'is_superset' => false,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 45,
+            'working_weight_g' => 0,
+            'achievement_floor_override' => 8,
+            'progression_target_override' => 12,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $exercise = $workout->blocks->first()->blockExercises->first();
+
+        $this->assertSame(PrescriptionMode::Duration, $exercise->prescription_mode);
+        $this->assertSame(45, $exercise->prescribed_duration_seconds);
+        $this->assertNull($exercise->prescribed_reps);
+        $this->assertNull($exercise->achievement_floor);
+        $this->assertNull($exercise->progression_target);
+    }
+
+    #[Test]
+    public function it_completes_a_timed_single_exercise_with_duration_seconds(): void
+    {
+        $routine = Routine::factory()->create();
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Single,
+            'is_superset' => false,
+        ]);
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 30,
+            'working_weight_g' => 0,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 1,
+            'rest_seconds' => 45,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine);
+        $set = $workout->blocks->first()->workingSetGroup->sets->first();
+
+        $completedSet = $this->workoutService->completeSet(
+            $set,
+            durationSeconds: 28,
+            weightGrams: 0,
+        );
+
+        $this->assertNotNull($completedSet->completed_at);
+        $this->assertSame(28, $completedSet->duration_seconds);
+        $this->assertNull($completedSet->reps);
+    }
+
+    #[Test]
     public function it_completes_a_timed_circuit_exercise_with_duration_seconds(): void
     {
         $routine = Routine::factory()->create();

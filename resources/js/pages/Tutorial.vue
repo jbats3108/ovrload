@@ -205,12 +205,14 @@ const toc = [
                     block — Play will flip between them each round. Use the superset controls in the editor to add or split that pair, or
                     <strong class="text-foreground">Swap A↔B</strong> to reverse the order. For larger groups,
                     <strong class="text-foreground">circuit blocks</strong>
-                    link 3 or more exercises together with dual rest intervals.
+                    link one or more stations with dual rest intervals. On a standard single exercise, switch
+                    <strong class="text-foreground">Reps</strong> / <strong class="text-foreground">Time</strong> to prescribe holds and other timed
+                    work (dropsets and Floor are unavailable while timed).
                 </p>
                 <TutorialShot
                     name="editor"
                     alt="Routine editor with Progression in Routine settings, and a superset with Swap A↔B"
-                    caption="Editor: Routine settings holds Progression style and Deload; supersets show A/B with Swap A↔B; Target and Floor appear when you choose Customise."
+                    caption="Editor: Routine settings holds Progression style and Deload; supersets show A/B with Swap A↔B; singles offer Reps/Time; Target and Floor appear when you choose Customise on rep-based work."
                 />
                 <p v-if="isSignedIn">
                     <Link :href="route('routines.create')" class="font-medium text-primary underline-offset-2 hover:underline">Create a routine</Link>
@@ -241,20 +243,21 @@ const toc = [
             <section id="circuits" class="mt-12 scroll-mt-20 space-y-3">
                 <h2 class="text-2xl font-bold tracking-tight">Circuit blocks</h2>
                 <p class="text-muted-foreground">
-                    A <strong class="text-foreground">circuit block</strong> groups three or more exercises into a round-based rotation. Add a circuit
-                    from the routine editor using <strong class="text-foreground">+ Circuit</strong>.
+                    A <strong class="text-foreground">circuit block</strong> groups one or more stations into a round-based rotation. Add a circuit
+                    from the routine editor using <strong class="text-foreground">+ Circuit</strong> (new circuits seed three stations; you can remove
+                    down to one).
                 </p>
                 <ul class="list-disc space-y-3 pl-5 text-muted-foreground">
                     <li>
                         <strong class="text-foreground">Dual rest periods:</strong> Circuits use two separate rest values —
-                        <strong class="text-foreground">Station rest</strong> (seconds to transition between exercises within a round, default 15s)
-                        and <strong class="text-foreground">Round rest</strong> (recovery between complete rounds, default 60s), both configurable
-                        with quick presets.
+                        <strong class="text-foreground">Station rest</strong> (seconds to transition between stations within a round, default 15s;
+                        hidden when the circuit has only one station) and <strong class="text-foreground">Round rest</strong> (recovery between
+                        complete rounds, default 60s), both configurable with quick presets.
                     </li>
                     <li>
-                        <strong class="text-foreground">Reps or Timed duration:</strong> Each exercise in a circuit can be prescribed by rep targets
-                        or by timed duration in seconds (such as a 30s plank). Timed exercises run a live countdown timer during Play with pause,
-                        resume, and restart controls.
+                        <strong class="text-foreground">Reps or Timed duration:</strong> Each station can be prescribed by rep targets or by timed
+                        duration in seconds (such as a 30s plank). The same Time option is available on standard single exercises. Timed work runs a
+                        live countdown timer during Play with pause, resume, and restart controls.
                     </li>
                     <li>
                         <strong class="text-foreground">Live skipping:</strong> During Play, you can skip any individual exercise station or tap
@@ -262,8 +265,8 @@ const toc = [
                     </li>
                     <li>
                         <strong class="text-foreground">Exclusions & Progression:</strong> Warm-ups, dropsets, deload alternate lifts, and automatic
-                        progression bumps are excluded on circuits. Circuits participate in Deload sessions with scaled loads and reps without
-                        progression prompts.
+                        progression bumps are excluded on circuits. Timed singles also skip Floor, dropsets, and progression bumps. Circuits
+                        participate in Deload sessions with scaled loads and reps without progression prompts.
                     </li>
                 </ul>
             </section>
@@ -416,10 +419,10 @@ const toc = [
                         </p>
                     </li>
                     <li>
-                        <p class="font-medium text-foreground">Circuit blocks</p>
+                        <p class="font-medium text-foreground">Circuit blocks &amp; timed singles</p>
                         <p class="mt-1">
-                            Three or more exercises linked into a circuit with dual rest periods (station and round rest). Supports rep counts or
-                            timed duration exercises with live countdown timers and round skipping.
+                            One or more stations linked into a circuit with dual rest periods (station rest when 2+, plus round rest). Rep or timed
+                            duration on circuit stations and on standard single exercises, with live countdown timers and round skipping.
                         </p>
                     </li>
                     <li>

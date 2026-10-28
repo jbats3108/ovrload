@@ -34,6 +34,12 @@ final readonly class RoutineBlockExerciseWriter
             RoutineBlockShape::assertCircuitExercise($exerciseData);
         }
 
+        if ($isSuperset && $exerciseData->prescriptionMode === PrescriptionMode::Duration) {
+            throw new InvalidArgumentException('Timed exercises are not supported on supersets.');
+        }
+
+        RoutineBlockShape::assertTimedExercise($exerciseData);
+
         if ($exerciseData->prescriptionMode === PrescriptionMode::Duration) {
             if ($exerciseData->prescribedDurationSeconds === null || $exerciseData->prescribedDurationSeconds < 1) {
                 throw new InvalidArgumentException('Timed exercises require a duration of at least 1 second.');
@@ -84,13 +90,19 @@ final readonly class RoutineBlockExerciseWriter
             'prescribed_reps' => $exerciseData->prescriptionMode === PrescriptionMode::Reps
                 ? $exerciseData->prescribedReps
                 : null,
-            'achievement_floor_override' => $isCircuit ? null : $this->achievementFloorForStorage($exerciseData),
-            'floor_is_derived' => $isCircuit ? null : $this->floorDerivationForAssignment(
-                $exerciseProfile,
-                $exerciseData,
-                $exerciseAssignmentIsCurrent,
-            ),
-            'progression_target_override' => $isCircuit ? null : $exerciseData->progressionTarget,
+            'achievement_floor_override' => $isCircuit || $exerciseData->prescriptionMode === PrescriptionMode::Duration
+                ? null
+                : $this->achievementFloorForStorage($exerciseData),
+            'floor_is_derived' => $isCircuit || $exerciseData->prescriptionMode === PrescriptionMode::Duration
+                ? null
+                : $this->floorDerivationForAssignment(
+                    $exerciseProfile,
+                    $exerciseData,
+                    $exerciseAssignmentIsCurrent,
+                ),
+            'progression_target_override' => $isCircuit || $exerciseData->prescriptionMode === PrescriptionMode::Duration
+                ? null
+                : $exerciseData->progressionTarget,
             'deload_weight_factor' => $this->deloadWeightFactorForStorage($exerciseProfile, $exerciseData),
             'deload_reps_factor' => $this->deloadRepsFactorForStorage($exerciseProfile, $exerciseData),
         ]);

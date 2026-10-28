@@ -60,7 +60,7 @@ const backlogItems = [
     {
         title: 'Circuit workouts',
         description:
-            'Group 3+ exercises into a circuit with customizable station rest and round rest. Supports rep targets or timed duration exercises with interactive player countdowns, round skipping, and collapsed history summaries.',
+            'Group one or more exercises into a circuit with customizable station rest (when 2+) and round rest. Supports rep targets or timed duration (also on standard single exercises) with interactive player countdowns, round skipping, and collapsed history summaries.',
         recentlyAdded: true,
     },
     {

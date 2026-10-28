@@ -150,7 +150,7 @@ export function addCircuitExercise(block: Block, firstCatalogId: number | null =
 }
 
 export function removeCircuitExercise(block: Block, index: number): boolean {
-    if (block.exercises.length <= 3) {
+    if (block.exercises.length <= 1) {
         return false;
     }
     block.exercises.splice(index, 1);
@@ -169,7 +169,7 @@ export function moveCircuitExercise(block: Block, fromIndex: number, toIndex: nu
     return true;
 }
 
-export function setExercisePrescriptionMode(exercise: BlockExercise, mode: 'reps' | 'duration'): void {
+export function setExercisePrescriptionMode(exercise: BlockExercise, mode: 'reps' | 'duration', block?: Block): void {
     if (exercise.prescription_mode === mode) {
         return;
     }
@@ -179,8 +179,9 @@ export function setExercisePrescriptionMode(exercise: BlockExercise, mode: 'reps
         exercise.prescribed_reps = null;
         exercise.achievement_floor = null;
         exercise.progression_target = null;
-        exercise.exercise_profile_id = null;
-        exercise.exercise_profile_fingerprint = null;
+        if (block !== undefined && block.type !== 'circuit' && !block.is_superset) {
+            block.working.dropsets = [];
+        }
     } else {
         exercise.prescription_mode = 'reps';
         exercise.prescribed_reps = exercise.prescribed_reps ?? 10;
@@ -188,8 +189,8 @@ export function setExercisePrescriptionMode(exercise: BlockExercise, mode: 'reps
     }
 }
 
-export function togglePrescriptionMode(exercise: BlockExercise): void {
-    setExercisePrescriptionMode(exercise, exercise.prescription_mode === 'duration' ? 'reps' : 'duration');
+export function togglePrescriptionMode(exercise: BlockExercise, block?: Block): void {
+    setExercisePrescriptionMode(exercise, exercise.prescription_mode === 'duration' ? 'reps' : 'duration', block);
 }
 
 export function toggleSuperset(block: Block, firstCatalogId: number | null = null, prescribedReps = 6): void {

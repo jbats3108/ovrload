@@ -244,7 +244,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                     @update:model-value="(value) => (activeBlock.working.set_count = value)"
                                 />
                             </label>
-                            <label class="block">
+                            <label v-if="activeBlock.exercises.length > 1" class="block">
                                 <span class="text-xs text-muted-foreground"
                                     >Station rest ({{ formatRest(activeBlock.stage_rest_seconds ?? 15) }})</span
                                 >
@@ -260,7 +260,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                 />
                             </label>
                         </div>
-                        <div class="mt-2 flex flex-wrap gap-1">
+                        <div v-if="activeBlock.exercises.length > 1" class="mt-2 flex flex-wrap gap-1">
                             <span class="self-center text-[10px] text-muted-foreground">Presets:</span>
                             <button
                                 v-for="preset in [0, 15, 30, 45]"
@@ -272,7 +272,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                 {{ preset }}s
                             </button>
                         </div>
-                        <div class="mt-3 border-t border-border/50 pt-2">
+                        <div class="mt-3 border-t border-border/50 pt-2" :class="activeBlock.exercises.length > 1 ? '' : 'mt-0 border-t-0 pt-0'">
                             <label class="block">
                                 <span class="text-xs text-muted-foreground">Round rest ({{ formatRest(activeBlock.working.rest_seconds) }})</span>
                                 <input
@@ -329,7 +329,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                 <button
                                     type="button"
                                     title="Remove station"
-                                    :disabled="activeBlock.exercises.length <= 3"
+                                    :disabled="activeBlock.exercises.length <= 1"
                                     class="rounded p-1 text-xs text-muted-foreground hover:text-destructive disabled:opacity-30"
                                     @click="removeCircuitExercise(activeBlock, ei)"
                                 >
@@ -366,7 +366,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                                 ? 'bg-primary text-primary-foreground'
                                                 : 'border border-border text-muted-foreground hover:bg-muted'
                                         "
-                                        @click="setPrescriptionMode(ex, 'reps')"
+                                        @click="setPrescriptionMode(activeBlock, ex, 'reps')"
                                     >
                                         Reps
                                     </button>
@@ -378,7 +378,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                                 ? 'bg-primary text-primary-foreground'
                                                 : 'border border-border text-muted-foreground hover:bg-muted'
                                         "
-                                        @click="setPrescriptionMode(ex, 'duration')"
+                                        @click="setPrescriptionMode(activeBlock, ex, 'duration')"
                                     >
                                         Time
                                     </button>
@@ -483,7 +483,37 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                     class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-center text-2xl font-semibold tabular-nums outline-none focus:border-primary"
                                 />
                             </label>
+                            <div v-if="!activeBlock.is_superset" class="flex flex-col justify-end">
+                                <span class="mb-1 text-xs text-muted-foreground">Prescription</span>
+                                <div class="flex h-11 items-center gap-1">
+                                    <button
+                                        type="button"
+                                        class="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
+                                        :class="
+                                            ex.prescription_mode !== 'duration'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'border border-border text-muted-foreground hover:bg-muted'
+                                        "
+                                        @click="setPrescriptionMode(activeBlock, ex, 'reps')"
+                                    >
+                                        Reps
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex-1 rounded-lg py-2 text-xs font-medium transition-colors"
+                                        :class="
+                                            ex.prescription_mode === 'duration'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'border border-border text-muted-foreground hover:bg-muted'
+                                        "
+                                        @click="setPrescriptionMode(activeBlock, ex, 'duration')"
+                                    >
+                                        Time
+                                    </button>
+                                </div>
+                            </div>
                             <ExerciseProfilePicker
+                                v-else
                                 :model-value="ex.exercise_profile_id ?? null"
                                 :profiles="profileOptions"
                                 variant="compact"
@@ -493,6 +523,17 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                                 @update:model-value="applyProfile(activeBlock, $event, ei)"
                             />
                         </div>
+                        <ExerciseProfilePicker
+                            v-if="!activeBlock.is_superset"
+                            class="mt-2"
+                            :model-value="ex.exercise_profile_id ?? null"
+                            :profiles="profileOptions"
+                            variant="compact"
+                            :required="false"
+                            label="Profile"
+                            :outdated="exerciseProfileIsOutdated(activeBlock, ei)"
+                            @update:model-value="applyProfile(activeBlock, $event, ei)"
+                        />
                         <label class="mt-2 block">
                             <span class="text-xs text-muted-foreground">Exercise note</span>
                             <input
@@ -504,7 +545,33 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                             />
                         </label>
 
-                        <template v-if="exerciseRecipeIsCustom(ex)">
+                        <div v-if="ex.prescription_mode === 'duration'" class="mt-2 rounded-xl border border-border/70 bg-background/50 p-2.5">
+                            <label class="block">
+                                <span class="text-xs text-muted-foreground">Duration (seconds)</span>
+                                <input
+                                    :value="ex.prescribed_duration_seconds ?? 30"
+                                    type="number"
+                                    min="1"
+                                    max="3600"
+                                    data-exercise-duration-mobile
+                                    class="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-lg"
+                                    @input="setExerciseDuration(ex, ($event.target as HTMLInputElement).value)"
+                                />
+                            </label>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                <button
+                                    v-for="preset in [15, 30, 45, 60]"
+                                    :key="preset"
+                                    type="button"
+                                    class="rounded border border-border px-2 py-1 font-mono text-xs hover:bg-muted"
+                                    @click="setExerciseDuration(ex, preset)"
+                                >
+                                    {{ preset }}s
+                                </button>
+                            </div>
+                        </div>
+
+                        <template v-else-if="exerciseRecipeIsCustom(ex)">
                             <div class="mt-2 grid grid-cols-2 gap-2">
                                 <label class="block">
                                     <span class="text-xs text-muted-foreground">Target reps</span>
@@ -656,7 +723,7 @@ const onCustomiseSharedRecipe = (block: Block): void => {
                     </div>
 
                     <EditorDisclosure
-                        v-if="!activeBlock.is_superset"
+                        v-if="!activeBlock.is_superset && activeBlock.exercises[0]?.prescription_mode !== 'duration'"
                         data-dropset-editor
                         :expanded="dropsetsExpanded"
                         label="Dropsets"

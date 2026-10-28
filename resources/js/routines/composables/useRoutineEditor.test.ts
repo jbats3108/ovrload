@@ -671,13 +671,16 @@ describe('createRoutineEditor', () => {
         expect(block.stage_rest_seconds).toBe(15);
         expect(block.working.rest_seconds).toBe(60);
 
-        // Cannot remove when at minimum of 3
+        // Can remove down to one station
+        expect(editor.removeCircuitExercise(block, 0)).toBe(true);
+        expect(block.exercises).toHaveLength(2);
+        expect(editor.removeCircuitExercise(block, 0)).toBe(true);
+        expect(block.exercises).toHaveLength(1);
         expect(editor.removeCircuitExercise(block, 0)).toBe(false);
-        expect(block.exercises).toHaveLength(3);
 
-        // Add 4th station
+        // Add station
         editor.addCircuitExercise(block);
-        expect(block.exercises).toHaveLength(4);
+        expect(block.exercises).toHaveLength(2);
 
         // Reorder stations
         block.exercises[0].exercise_id = 11;
@@ -688,7 +691,7 @@ describe('createRoutineEditor', () => {
 
         // Remove station
         expect(editor.removeCircuitExercise(block, 0)).toBe(true);
-        expect(block.exercises).toHaveLength(3);
+        expect(block.exercises).toHaveLength(1);
     });
 
     it('supports setting prescription mode, duration, and dual rests on circuit blocks', () => {
@@ -697,7 +700,7 @@ describe('createRoutineEditor', () => {
         const block = editor.form.blocks[0];
         const ex = block.exercises[0];
 
-        editor.setPrescriptionMode(ex, 'duration');
+        editor.setPrescriptionMode(block, ex, 'duration');
         expect(ex.prescription_mode).toBe('duration');
         expect(ex.prescribed_duration_seconds).toBe(30);
         expect(ex.prescribed_reps).toBeNull();

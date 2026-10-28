@@ -225,12 +225,12 @@ export function createRoutineEditor(props: EditRoutineProps) {
         return moved;
     };
 
-    const togglePrescriptionMode = (exercise: BlockExercise) => {
-        togglePrescriptionModeLib(exercise);
+    const togglePrescriptionMode = (block: Block, exercise: BlockExercise) => {
+        togglePrescriptionModeLib(exercise, block);
     };
 
-    const setPrescriptionMode = (exercise: BlockExercise, mode: 'reps' | 'duration') => {
-        setExercisePrescriptionModeLib(exercise, mode);
+    const setPrescriptionMode = (block: Block, exercise: BlockExercise, mode: 'reps' | 'duration') => {
+        setExercisePrescriptionModeLib(exercise, mode, block);
     };
 
     const setExerciseDuration = (exercise: BlockExercise, duration: string | number) => {

@@ -123,6 +123,103 @@ class PlayWorkoutControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_uses_round_rest_not_station_rest_for_one_station_circuits(): void
+    {
+        $routine = Routine::factory()->create(['user_id' => $this->user->id]);
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Circuit,
+            'is_superset' => false,
+            'stage_rest_seconds' => 15,
+        ]);
+
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create(['user_id' => $this->user->id])->id,
+            'position' => 1,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 40,
+            'working_weight_g' => 0,
+        ]);
+
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 90,
+        ]);
+
+        $workout = app(WorkoutService::class)->createWorkout($routine);
+
+        $this->actingAs($this->user)
+            ->get(route('workouts.play', $workout))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('workouts/Play')
+                ->where('workout.blocks.0.type', 'circuit')
+                ->where('workout.blocks.0.exercises.0.prescription_mode', 'duration')
+                ->where('workout.blocks.0.sets.0.rest_seconds', 90)
+                ->where('workout.blocks.0.sets.1.rest_seconds', 90)
+            );
+    }
+
+    #[Test]
+    public function it_renders_and_completes_a_timed_single_block(): void
+    {
+        $routine = Routine::factory()->create(['user_id' => $this->user->id]);
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Single,
+            'is_superset' => false,
+        ]);
+
+        RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create(['user_id' => $this->user->id])->id,
+            'position' => 1,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 60,
+            'working_weight_g' => 0,
+        ]);
+
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 2,
+            'rest_seconds' => 45,
+        ]);
+
+        $workout = app(WorkoutService::class)->createWorkout($routine);
+        $set = $workout->blocks->first()->workingSetGroup->sets->first();
+
+        $this->actingAs($this->user)
+            ->get(route('workouts.play', $workout))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('workouts/Play')
+                ->where('workout.blocks.0.type', 'single')
+                ->where('workout.blocks.0.exercises.0.prescription_mode', 'duration')
+                ->where('workout.blocks.0.exercises.0.prescribed_duration_seconds', 60)
+                ->where('workout.blocks.0.sets.0.target_duration_seconds', 60)
+                ->where('workout.blocks.0.sets.0.rest_seconds', 45)
+            );
+
+        $this->actingAs($this->user)
+            ->post(route('workouts.sets.complete', ['workout' => $workout, 'set' => $set]), [
+                'duration_seconds' => 55,
+                'weight_kg' => 0,
+            ])
+            ->assertRedirect();
+
+        $set->refresh();
+        $this->assertSame(55, $set->duration_seconds);
+        $this->assertNull($set->reps);
+        $this->assertNotNull($set->completed_at);
+    }
+
+    #[Test]
     public function it_snapshots_bump_threshold_from_prescribed_reps(): void
     {
         $this->user->update([

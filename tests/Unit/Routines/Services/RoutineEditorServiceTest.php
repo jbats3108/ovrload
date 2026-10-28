@@ -801,19 +801,164 @@ class RoutineEditorServiceTest extends TestCase
     }
 
     #[Test]
-    public function sync_rejects_circuit_with_fewer_than_three_exercises(): void
+    public function sync_accepts_one_and_two_station_circuits(): void
+    {
+        $routine = Routine::factory()->create();
+        $exerciseA = Exercise::factory()->create();
+        $exerciseB = Exercise::factory()->create();
+
+        $oneStation = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'One Station Circuit',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([$exerciseA->id]),
+            ],
+        ]));
+        $this->assertCount(1, $oneStation->blocks->firstOrFail()->blockExercises);
+
+        $twoStation = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Two Station Circuit',
+            'blocks' => [
+                RoutineEditorPayload::circuitBlock([$exerciseA->id, $exerciseB->id]),
+            ],
+        ]));
+        $this->assertCount(2, $twoStation->blocks->firstOrFail()->blockExercises);
+    }
+
+    #[Test]
+    public function sync_creates_timed_single_block(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Timed Plank',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'working_weight_kg' => 0,
+                    'prescription_mode' => 'duration',
+                    'prescribed_duration_seconds' => 60,
+                    'prescribed_reps' => null,
+                ]),
+            ],
+        ]));
+
+        $row = $result->blocks->firstOrFail()->blockExercises->firstOrFail();
+        $this->assertSame(PrescriptionMode::Duration, $row->prescription_mode);
+        $this->assertSame(60, $row->prescribed_duration_seconds);
+        $this->assertNull($row->prescribed_reps);
+    }
+
+    #[Test]
+    public function sync_rejects_timed_exercises_on_supersets(): void
     {
         $routine = Routine::factory()->create();
         $exerciseA = Exercise::factory()->create();
         $exerciseB = Exercise::factory()->create();
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A circuit must have at least three exercises.');
+        $this->expectExceptionMessage('Timed exercises are not supported on supersets.');
 
         $this->service->sync($routine, SyncRoutineData::from([
-            'name' => 'Too Short Circuit',
+            'name' => 'Timed Superset',
             'blocks' => [
-                RoutineEditorPayload::circuitBlock([$exerciseA->id, $exerciseB->id]),
+                [
+                    'is_superset' => true,
+                    'has_setup_after' => false,
+                    'exercises' => [
+                        [
+                            'exercise_id' => $exerciseA->id,
+                            'working_weight_kg' => 0,
+                            'prescription_mode' => 'duration',
+                            'prescribed_duration_seconds' => 30,
+                            'prescribed_reps' => null,
+                        ],
+                        [
+                            'exercise_id' => $exerciseB->id,
+                            'working_weight_kg' => 40,
+                            'prescribed_reps' => 8,
+                        ],
+                    ],
+                    'working' => ['set_count' => 2, 'rest_seconds' => 120],
+                    'warm_up' => ['set_count' => 0, 'rest_seconds' => 60, 'steps' => []],
+                ],
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_dropsets_on_timed_singles(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Dropsets are not supported on timed exercises.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Timed With Dropset',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'prescription_mode' => 'duration',
+                    'prescribed_duration_seconds' => 30,
+                    'prescribed_reps' => null,
+                    'working' => [
+                        'set_count' => 3,
+                        'rest_seconds' => 60,
+                        'dropsets' => [
+                            [
+                                'set_index' => 0,
+                                'segments' => [
+                                    ['weight_kg' => 0],
+                                    ['weight_kg' => 0],
+                                ],
+                            ],
+                        ],
+                    ],
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_progression_target_on_timed_single(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Automatic progression targets are not supported on timed exercises.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Timed Progression',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'prescription_mode' => 'duration',
+                    'prescribed_duration_seconds' => 30,
+                    'prescribed_reps' => null,
+                    'progression_target' => 12,
+                ]),
+            ],
+        ]));
+    }
+
+    #[Test]
+    public function sync_rejects_achievement_floor_on_timed_single(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Achievement floor overrides are not supported on timed exercises.');
+
+        $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Timed Floor',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'prescription_mode' => 'duration',
+                    'prescribed_duration_seconds' => 30,
+                    'prescribed_reps' => null,
+                    'achievement_floor' => 8,
+                ]),
             ],
         ]));
     }

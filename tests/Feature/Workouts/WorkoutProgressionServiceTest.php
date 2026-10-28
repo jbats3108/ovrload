@@ -8,6 +8,8 @@ use App\Routines\Models\RoutineBlock;
 use App\Routines\Models\RoutineBlockExercise;
 use App\Routines\Models\RoutineDropsetSegment;
 use App\Routines\Models\RoutineSetGroup;
+use App\Shared\Enums\BlockType;
+use App\Shared\Enums\PrescriptionMode;
 use App\Shared\Enums\SetGroupType;
 use App\Users\Enums\ProgressionStyle;
 use App\Users\Models\User;
@@ -62,6 +64,42 @@ class WorkoutProgressionServiceTest extends TestCase
         $this->assertSame($routineExercise->id, $bumps->first()->routineBlockExerciseId);
         $this->assertSame(80000, $bumps->first()->fromWeightG);
         $this->assertSame(82500, $bumps->first()->toWeightG);
+    }
+
+    #[Test]
+    public function finish_ignores_timed_single_sets_for_progression(): void
+    {
+        $user = User::factory()->create(['achievement_floor_default' => 4]);
+        $routine = Routine::factory()->create(['user_id' => $user->id]);
+        $block = RoutineBlock::create([
+            'routine_id' => $routine->id,
+            'position' => 1,
+            'type' => BlockType::Single,
+            'is_superset' => false,
+        ]);
+        $routineExercise = RoutineBlockExercise::create([
+            'routine_block_id' => $block->id,
+            'exercise_id' => Exercise::factory()->create()->id,
+            'position' => 1,
+            'working_weight_g' => 0,
+            'prescription_mode' => PrescriptionMode::Duration,
+            'prescribed_duration_seconds' => 45,
+            'prescribed_reps' => null,
+        ]);
+        RoutineSetGroup::create([
+            'routine_block_id' => $block->id,
+            'type' => SetGroupType::Working,
+            'set_count' => 1,
+            'rest_seconds' => 60,
+        ]);
+
+        $workout = $this->workoutService->createWorkout($routine->fresh(['user', 'blocks.blockExercises', 'blocks.setGroups']));
+        $set = $this->firstSet($workout->id);
+        $this->workoutService->completeSet($set, durationSeconds: 45, weightGrams: 0);
+        $bumps = $this->workoutService->finishWorkout($workout);
+
+        $this->assertCount(0, $bumps);
+        $this->assertSame(0, $routineExercise->fresh()->working_weight_g);
     }
 
     #[Test]
