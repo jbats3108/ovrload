@@ -43,7 +43,7 @@ Refactoring backlog after the exercise-profiles pivot and related feature growth
 |------|-------|-------|
 | B1. Fingerprint / assignment helper | `ExerciseProfileAssignment` | **Done** — used by writers + assignment sync |
 | B2. Deferred exercise picker payload | `ExercisePickerOptions::deferFor(User)` | **Done** — `EditRoutineController`, `PlayWorkoutController` |
-| B3. Published profiles query | `ExerciseProfileService` | Private `publishedProfilesFor(User, ?includeArchivedIds)` for `pageDataFor`, `optionsForUser`, `optionsForRoutineEditor` |
+| B3. Published profiles query | `ExerciseProfileService` | **Done** — `publishedProfilesFor(User, includeArchivedIds)` for `pageDataFor`, `optionsForUser`, `optionsForRoutineEditor` |
 | B4. Routine structure eager-load | `Routine::EDITOR_STRUCTURE` (+ `_WITH_DELOAD`) | **Done** — editor, duplicator, historical create, workout paths |
 
 ---
@@ -129,7 +129,6 @@ Public API unchanged. E2 still applies (do not merge writers with `RoutineDuplic
 
 ## Remaining open
 
-- **B3** — published profiles query helper
 - **D2** — finish splitting user-custom / page-data off `ExerciseProfileService` if it grows again
 - **F2** — filter `syncProfile` routines with `whereHas`
 - **F3** — progression session adapter
@@ -138,7 +137,7 @@ Public API unchanged. E2 still applies (do not merge writers with `RoutineDuplic
 ## Suggested PR order
 
 1. **A** — merge first (bug + auth) — largely shipped
-2. **B** — DRY helpers — B1/B2/B4 shipped; B3 open
+2. **B** — DRY helpers — shipped
 3. **C** — set logger — shipped
 4. **D/E/F** — pick one seam per PR; do not batch
 
