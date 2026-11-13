@@ -54,15 +54,16 @@ Public order matches `/beta-tester-faqs`, including recently added items.
 
 - **PHP coverage baseline (advisory)** — Sail: `npm run sail:coverage` → `coverage/index.html`; local baseline **92.28%**; advisory **90%** floor via `test:coverage:threshold` (`continue-on-error`). Hard gates later.
 - **Infection mutation baseline** — Sail: `npm run sail:infection` / `composer test:infection` (scope: `Support` + `Policies` + domain `Services` via `infection.json5` → `coverage/infection.html`). **Baseline 2026-09-16:** Covered MSI **79.53%** (1831 mutants; 1227 killed, 337 escaped, 82 timeouts, 178 skipped/slow, 7 ignored). Pilot Support/Policies escapes largely killed via policy/warm-up unit tests. **`WorkoutProgressionService` slice (2026-11-13):** filtered run Covered MSI **100%** (carry-forward via query + required `refresh()`, explicit `setGroup` check, PO empty-guard helpers). **`WorkoutSessionService` slice (2026-11-13):** Covered MSI **100%** (192 mutants; 109 killed, 0 escaped; dropped redundant pre-lock `removeAdHocBlock` guards that shadowed locked checks). **Routine block writers (2026-11-13):** `RoutineBlockExerciseWriter` + `RoutineBlockProfileGuard` Covered MSI **100%**; `RoutineBlockWriter` **100%** (was 89% — dropset index list, warm-up upper-only clamp, setup-after / fixed-weight asserts). Remaining hotspots: `ExerciseProfileService`, `UserDataExporter`. **Noise policy:** disable `PublicVisibility` / `UnwrapArrayValues` / `ReturnRemoval` / cast mutators / `ArrayItem`; ignore `ArrayItemRemoval`/`MethodCallRemoval` on `with|load|loadMissing|fresh` and `lockForUpdate`. Prefer killing real escapes with asserts. Next: service slices; then diff-only PR Infection; no CI MSI gate yet.
-- **Routine editor service seams (D3)** — `RoutineEditorService` sync facade; `RoutineBlockWriter` orchestrates; `RoutineBlockExerciseWriter` + `RoutineBlockProfileGuard` + `RoutineBlockShape` hold the branching (see `docs/refactor/backend-tidy-plan.md`).
+- ~~**Routine editor service seams (D3)**~~ — shipped (`RoutineEditorService` facade + block writers / profile guard / shape; see `docs/refactor/backend-tidy-plan.md`)
 - **GDPR (public launch)** — re-grill retention, cookie CMP, and processor DPAs before open registration; beta: privacy page + Account export/delete + invite cascade done
 
 ### Ops (internal)
 
-- **Soft host cap ~100 accounts** — prod: Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 - **Maintenance handoff plan** — reduce ongoing Cursor dependence so a human can keep the app running without constant AI spend
 - **Storybook for components?** — component catalog to support human handover (from Notion inbox)
 - ~~**Business card / flyer design, logo files somewhere**~~ — done
+
+**Note (not backlog):** soft host cap ~100 accounts — prod Laravel Cloud Flex **512 MiB** app (~17 concurrent HTTP per replica) + MySQL **512 MiB** / **5 GB**. Pause / slow Admin invites before upgrading or asking for money. Not advertised on public FAQ.
 
 ## Backlog: 121 Feedback (gym owner)
 
