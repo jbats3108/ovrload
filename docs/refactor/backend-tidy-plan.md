@@ -25,13 +25,13 @@ Refactoring backlog after the exercise-profiles pivot and related feature growth
 
 | Task | Files | Notes |
 |------|-------|-------|
-| A1. Include block shared profile in referenced IDs | `ExerciseProfileService::profileIdsReferencedBy()` | Add `RoutineBlock.shared_exercise_profile_id` so archived profiles still appear in editor/Preferences picker when referenced only at block level |
-| A2. In-progress workout guard | `WorkoutService` | Extract `assertInProgress(Workout)`; replace ~8 duplicate checks |
-| A3. `completeDropset()` visibility | `WorkoutService` | `private`; only called from `completeSet()` |
+| A1. Include block shared profile in referenced IDs | `ExerciseProfileAssignmentService::profileIdsReferencedBy()` | **Done (by design)** — picker refs exercise + routine default; shared-only archived stays excluded (`options_for_routine_editor_ignores_archived_profiles_only_on_shared_assignment`) |
+| A2. In-progress workout guard | `WorkoutSessionService` | **Done** — `assertInProgress(Workout)` used across session mutations |
+| A3. `completeDropset()` visibility | `WorkoutSessionService` | **Done (n/a)** — dropset path is `promoteToDropset` / `demoteFromDropset`; no separate `completeDropset` |
 | A4. Exercise-profile route authorization | `routes/settings.php`, `ExerciseProfilePolicy`, controllers | **Done** — policy `create` / `sync` / `archive`; `->can()` on settings routes; controller Gate + service asserts |
 | A5. Archive policy semantics | `ArchiveExerciseProfileController` | **Done** — uses `archive` ability, not `delete` |
 
-**Tests:** extend `ExerciseProfileServiceTest` for A1; `ExerciseProfilePolicyTest` + feature 403s cover A4/A5.
+**Tests:** `ExerciseProfileServiceTest` (A1 design); `ExerciseProfilePolicyTest` + feature 403s cover A4/A5.
 
 ---
 
@@ -41,21 +41,21 @@ Refactoring backlog after the exercise-profiles pivot and related feature growth
 
 | Task | Files | Notes |
 |------|-------|-------|
-| B1. Fingerprint / assignment helper | New `ExerciseProfileAssignment` (or static helper on existing service) | Unify branching in `RoutineEditorService`, `ExerciseProfileService::syncProfile` |
-| B2. Deferred exercise picker payload | New builder; `EditRoutineController`, `PlayWorkoutController`, optionally `IndexAdminExercisesController` | Shared `ExercisePickerOptions::deferFor(User)` |
+| B1. Fingerprint / assignment helper | `ExerciseProfileAssignment` | **Done** — used by writers + assignment sync |
+| B2. Deferred exercise picker payload | `ExercisePickerOptions::deferFor(User)` | **Done** — `EditRoutineController`, `PlayWorkoutController` |
 | B3. Published profiles query | `ExerciseProfileService` | Private `publishedProfilesFor(User, ?includeArchivedIds)` for `pageDataFor`, `optionsForUser`, `optionsForRoutineEditor` |
-| B4. Routine structure eager-load | Constant or scope on `Routine` | Reuse graph in `WorkoutService`, `RoutineEditorPageData`, `RoutineDuplicator`, `HistoricalCreatePageData` |
+| B4. Routine structure eager-load | `Routine::EDITOR_STRUCTURE` (+ `_WITH_DELOAD`) | **Done** — editor, duplicator, historical create, workout paths |
 
 ---
 
-## Slice C — Workout logging DRY
+## Slice C — Workout logging DRY — **done**
 
 **Goal:** One code path for set values (play + history). ~1 day.
 
 | Task | Files | Notes |
 |------|-------|-------|
-| C1. `WorkoutSetLogger` (or similar) | New class; `WorkoutService`, `WorkoutHistoryService` | `applyLoggedValues(WorkoutSet, reps, weight?, segments?, plateStack?, completedAt?)` |
-| C2. Tests | Feature tests for play complete + history edit | Lock behaviour before/after |
+| C1. `WorkoutSetLogger` | `WorkoutSetLogger`, session/history/snapshot | **Done** — `applyLoggedValues(...)` |
+| C2. Tests | Feature tests for play complete + history edit | **Done** |
 
 ---
 
@@ -63,23 +63,21 @@ Refactoring backlog after the exercise-profiles pivot and related feature growth
 
 **Goal:** Split god services without changing public API surface initially.
 
-### D1. `WorkoutService` (~980 lines)
+### D1. `WorkoutService` — **done**
 
-| Seam | Methods |
-|------|---------|
-| Snapshot | `snapshotRoutineOntoWorkout`, historical snapshot helpers |
-| Session | `completeSet`, `addWorkingSet`, `skipRestOfBlock`, dropset promote/demote, ad-hoc block |
-| Lifecycle | `createWorkout`, `finishWorkout`, `discardWorkout`, `createHistoricalWorkout`, `inProgressFor` |
+| Seam | Module |
+|------|--------|
+| Snapshot | `WorkoutSnapshotService` |
+| Session | `WorkoutSessionService` |
+| Lifecycle | thin `WorkoutService` facade (~408 lines) |
 
-**Options:** (A) `WorkoutSnapshotService` + `WorkoutSessionService` + thin facade, or (B) private collaborator classes inside one service.
+### D2. `ExerciseProfileService` — **partial**
 
-### D2. `ExerciseProfileService` (~750 lines)
-
-| Seam | Methods |
-|------|---------|
-| Admin presets | `createPreset`, `updatePresetDraft`, `publishPreset`, … |
-| User customs | `createCustom`, `archive`, `delete`, `restore`, … |
-| Assignment | `syncProfile`, `staleAssignmentCountsForUser`, `assignedRoutinesByProfileId` |
+| Seam | Module |
+|------|--------|
+| Admin presets | `ExerciseProfilePresetService` |
+| Assignment | `ExerciseProfileAssignmentService` |
+| User customs / page data | still on `ExerciseProfileService` (~405 lines) |
 
 ### D3. `RoutineEditorService` — **done**
 
@@ -101,8 +99,8 @@ Public API unchanged. E2 still applies (do not merge writers with `RoutineDuplic
 
 | Task | Notes |
 |------|-------|
-| E1. Shared routine block reader | `RoutineBlockStructureData::fromRoutineBlock()` used by `RoutineEditorPageData` and `HistoricalCreateBlockData` |
-| E2. Defer block-tree writers | `RoutineEditorService`, `RoutineDuplicator`, `WorkoutService::snapshotRoutineOntoWorkout` stay separate (different tables) |
+| E1. Shared routine block reader | **Done** — `RoutineBlockStructureData::fromRoutineBlock()` used by `RoutineEditorPageData` and `HistoricalCreateBlockData` |
+| E2. Defer block-tree writers | **Done (policy)** — editor / duplicator / workout snapshot stay separate (different tables) |
 
 **Pattern to follow:** `HistoryDetailPageData` already wraps `WorkoutPlayerPageData` — extend that reuse model upward for routine reads.
 
@@ -112,8 +110,8 @@ Public API unchanged. E2 still applies (do not merge writers with `RoutineDuplic
 
 | Task | Files | Notes |
 |------|-------|-------|
-| F1. Scoped workout route bind | `AppServiceProvider` | Match routine bind: owner-scoped ULID → 404 not 403 |
-| F2. `syncProfile()` routine filter | `ExerciseProfileService` | `whereHas` blocks/exercises referencing profile id instead of all routines |
+| F1. Scoped workout route bind | `AppServiceProvider` | **Done** — owner-scoped ULID → 404 not 403 |
+| F2. `syncProfile()` routine filter | `ExerciseProfileAssignmentService` | `whereHas` blocks/exercises referencing profile id instead of all routines |
 | F3. Progression session store | `WorkoutProgressionService`, finish/history controllers | Extract session adapter; remove duplicate `forgetSiblingProgressionSessions` in controllers |
 | F4. Backfill out of seeders | `DatabaseSeeder`, `E2eSeeder` | **After** prod migration verified; keep migration + dedicated tests |
 
@@ -129,11 +127,19 @@ Public API unchanged. E2 still applies (do not merge writers with `RoutineDuplic
 
 ---
 
+## Remaining open
+
+- **B3** — published profiles query helper
+- **D2** — finish splitting user-custom / page-data off `ExerciseProfileService` if it grows again
+- **F2** — filter `syncProfile` routines with `whereHas`
+- **F3** — progression session adapter
+- **F4** — backfill out of seeders (after prod verification)
+
 ## Suggested PR order
 
-1. **A** — merge first (bug + auth)
-2. **B** — DRY helpers
-3. **C** — set logger (when next touching workouts/history)
+1. **A** — merge first (bug + auth) — largely shipped
+2. **B** — DRY helpers — B1/B2/B4 shipped; B3 open
+3. **C** — set logger — shipped
 4. **D/E/F** — pick one seam per PR; do not batch
 
 Update `docs/plan.md` **Shipped** when slices land; add open slices to **Code quality & security** backlog until done.
