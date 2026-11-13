@@ -946,6 +946,72 @@ class WorkoutServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_removes_an_empty_ad_hoc_block(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $exercise = Exercise::factory()->shared()->create();
+        $adHocBlock = $this->workoutService->addAdHocExercise($workout, $exercise->id);
+
+        $this->workoutService->removeAdHocBlock($adHocBlock);
+
+        $this->assertDatabaseMissing('workout_blocks', ['id' => $adHocBlock->id]);
+    }
+
+    #[Test]
+    public function it_rejects_removing_a_non_ad_hoc_block(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $routineBlock = $workout->blocks->first()->load('workout');
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::AD_HOC_BLOCK_ONLY_ERROR);
+
+        $this->workoutService->removeAdHocBlock($routineBlock);
+    }
+
+    #[Test]
+    public function it_rejects_removing_an_ad_hoc_block_with_logged_sets(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $exercise = Exercise::factory()->shared()->create();
+        $adHocBlock = $this->workoutService->addAdHocExercise($workout, $exercise->id);
+        $set = WorkoutSet::query()
+            ->whereHas('setGroup', fn ($query) => $query
+                ->where('workout_block_id', $adHocBlock->id)
+                ->where('type', SetGroupType::Working))
+            ->firstOrFail();
+        $this->workoutService->completeSet($set, reps: 6, weightGrams: 80000);
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::AD_HOC_BLOCK_HAS_LOGGED_SETS_ERROR);
+
+        $this->workoutService->removeAdHocBlock($adHocBlock->fresh(['workout']));
+    }
+
+    #[Test]
+    public function it_rejects_removing_an_ad_hoc_block_when_workout_is_not_in_progress(): void
+    {
+        $routine = Routine::factory()->create();
+        $this->seedPlayableRoutineBlock($routine, setCount: 1);
+        $workout = $this->workoutService->createWorkout($routine);
+        $exercise = Exercise::factory()->shared()->create();
+        $adHocBlock = $this->workoutService->addAdHocExercise($workout, $exercise->id);
+        $workout->update(['status' => WorkoutStatus::Finished]);
+        $adHocBlock->setRelation('workout', $workout->fresh());
+
+        $this->expectException(WorkoutServiceException::class);
+        $this->expectExceptionMessage(WorkoutService::WORKOUT_NOT_IN_PROGRESS_ERROR);
+
+        $this->workoutService->removeAdHocBlock($adHocBlock);
+    }
+
+    #[Test]
     public function it_snapshots_a_circuit_block_with_mixed_rep_and_timed_exercises(): void
     {
         $routine = Routine::factory()->create();
