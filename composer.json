@@ -106,6 +106,10 @@
             "Composer\\Config::disableProcessTimeout",
             "npm run sail:infection"
         ],
+        "test:infection:diff": [
+            "Composer\\Config::disableProcessTimeout",
+            "npm run sail:infection -- --git-diff-lines --git-diff-base=origin/main --only-covering-test-cases --show-mutations=max"
+        ],
         "lint": [
             "@php vendor/bin/pint --ansi"
         ],
@@ -151,7 +155,8 @@
         "test:coverage": "Sail PHPUnit coverage → coverage/ (HTML/Clover/Crap4j); requires npm run sail:up.",
         "test:coverage:check": "Sail suite with advisory 90% floor (npm run sail:coverage -- --check).",
         "test:coverage:threshold": "Compare coverage/clover.xml to the advisory 90% floor (CI uses continue-on-error).",
-        "test:infection": "Sail Infection (Support/Policies/Services → coverage/infection.html); requires npm run sail:up."
+        "test:infection": "Sail Infection (Support/Policies/Services → coverage/infection.html); requires npm run sail:up.",
+        "test:infection:diff": "Sail Infection on lines changed vs origin/main. CI runs the same diff filter against the PR base SHA (advisory, no MSI gate)."
     },
     "extra": {
         "laravel": {

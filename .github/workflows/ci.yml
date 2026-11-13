@@ -82,7 +82,7 @@ jobs:
   test:
     name: test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     needs: quality
     steps:
       - uses: actions/checkout@v5
@@ -151,11 +151,29 @@ jobs:
         run: npm run test:e2e
 
       - name: PHPUnit
-        run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage/clover.xml --coverage-html=coverage --colors=always
+        run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage/clover.xml --coverage-html=coverage --coverage-xml=coverage/phpunit-xml --colors=always
 
       - name: PHP coverage threshold (advisory)
         run: composer test:coverage:threshold
         continue-on-error: true
+
+      # Diff-only, no MSI minimum. Escapes stay in the log; continue-on-error keeps them from blocking merge.
+      - name: Infection on pull request diff (advisory)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 10
+        env:
+          INFECTION_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$INFECTION_BASE"
+          ./vendor/bin/infection \
+            --git-diff-lines \
+            --git-diff-base="$INFECTION_BASE" \
+            --coverage=coverage/phpunit-xml \
+            --skip-initial-tests \
+            --only-covering-test-cases \
+            --show-mutations=max \
+            --threads=max
 
       - name: Upload PHP coverage HTML
         if: always()
