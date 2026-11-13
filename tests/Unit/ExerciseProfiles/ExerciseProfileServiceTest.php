@@ -206,6 +206,33 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
+    public function sync_only_loads_routines_that_reference_the_profile(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create([
+            'target_reps' => 6,
+            'working_rest_seconds' => 120,
+            'warm_up_steps' => [['percent' => 50, 'reps' => 5]],
+        ]);
+        $other = ExerciseProfile::factory()->forUser($user)->create(['name' => 'Other']);
+        $linkedRoutine = Routine::factory()->withUser($user)->create(['name' => 'Linked']);
+        $unrelatedRoutine = Routine::factory()->withUser($user)->create(['name' => 'Unrelated']);
+        $linked = $this->createAssignedBlock($linkedRoutine, $profile);
+        $unrelated = $this->createAssignedBlock($unrelatedRoutine, $other);
+
+        $profile->update([
+            'target_reps' => 8,
+            'recipe_fingerprint' => $profile->recipe()->fingerprint(),
+        ]);
+
+        $updated = $this->profiles->syncProfile($user, $profile->fresh());
+
+        $this->assertSame(2, $updated);
+        $this->assertSame(8, $linked->fresh()->blockExercises->firstOrFail()->prescribed_reps);
+        $this->assertSame(6, $unrelated->fresh()->blockExercises->firstOrFail()->prescribed_reps);
+    }
+
+    #[Test]
     public function it_counts_only_the_exercise_assignment_on_mixed_shared_and_exercise_profiles(): void
     {
         $user = User::factory()->create();

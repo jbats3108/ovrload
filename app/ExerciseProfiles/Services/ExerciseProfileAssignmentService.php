@@ -28,6 +28,15 @@ final readonly class ExerciseProfileAssignmentService
             $updated = 0;
 
             $routines = $user->routines()
+                ->where(function ($query) use ($lockedProfile): void {
+                    $query->whereHas(
+                        'blocks',
+                        fn ($blocks) => $blocks->where('shared_exercise_profile_id', $lockedProfile->id),
+                    )->orWhereHas(
+                        'blocks.blockExercises',
+                        fn ($exercises) => $exercises->where('exercise_profile_id', $lockedProfile->id),
+                    );
+                })
                 ->with([
                     'blocks.blockExercises',
                     'blocks.setGroups.warmUpSteps',

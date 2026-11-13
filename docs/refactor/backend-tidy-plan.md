@@ -111,7 +111,7 @@ Public API unchanged. E2 still applies (do not merge writers with `RoutineDuplic
 | Task | Files | Notes |
 |------|-------|-------|
 | F1. Scoped workout route bind | `AppServiceProvider` | **Done** — owner-scoped ULID → 404 not 403 |
-| F2. `syncProfile()` routine filter | `ExerciseProfileAssignmentService` | `whereHas` blocks/exercises referencing profile id instead of all routines |
+| F2. `syncProfile()` routine filter | `ExerciseProfileAssignmentService` | **Done** — `whereHas` blocks/exercises referencing profile id instead of all routines |
 | F3. Progression session store | `WorkoutProgressionService`, finish/history controllers | Extract session adapter; remove duplicate `forgetSiblingProgressionSessions` in controllers |
 | F4. Backfill out of seeders | `DatabaseSeeder`, `E2eSeeder` | **After** prod migration verified; keep migration + dedicated tests |
 
@@ -130,7 +130,6 @@ Public API unchanged. E2 still applies (do not merge writers with `RoutineDuplic
 ## Remaining open
 
 - **D2** — finish splitting user-custom / page-data off `ExerciseProfileService` if it grows again
-- **F2** — filter `syncProfile` routines with `whereHas`
 - **F3** — progression session adapter
 - **F4** — backfill out of seeders (after prod verification)
 
