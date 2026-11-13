@@ -28,10 +28,10 @@ Refactoring backlog after the exercise-profiles pivot and related feature growth
 | A1. Include block shared profile in referenced IDs | `ExerciseProfileService::profileIdsReferencedBy()` | Add `RoutineBlock.shared_exercise_profile_id` so archived profiles still appear in editor/Preferences picker when referenced only at block level |
 | A2. In-progress workout guard | `WorkoutService` | Extract `assertInProgress(Workout)`; replace ~8 duplicate checks |
 | A3. `completeDropset()` visibility | `WorkoutService` | `private`; only called from `completeSet()` |
-| A4. Exercise-profile route authorization | `routes/settings.php`, `ExerciseProfilePolicy`, controllers | Add policy abilities (`sync`, `archive`, …); wire `->can()` on routes; keep service asserts as defense-in-depth |
-| A5. Archive policy semantics | `ArchiveExerciseProfileController` | Use dedicated `archive` ability, not `delete` |
+| A4. Exercise-profile route authorization | `routes/settings.php`, `ExerciseProfilePolicy`, controllers | **Done** — policy `create` / `sync` / `archive`; `->can()` on settings routes; controller Gate + service asserts |
+| A5. Archive policy semantics | `ArchiveExerciseProfileController` | **Done** — uses `archive` ability, not `delete` |
 
-**Tests:** extend `ExerciseProfileServiceTest` for A1; existing feature tests cover A4/A5.
+**Tests:** extend `ExerciseProfileServiceTest` for A1; `ExerciseProfilePolicyTest` + feature 403s cover A4/A5.
 
 ---
 

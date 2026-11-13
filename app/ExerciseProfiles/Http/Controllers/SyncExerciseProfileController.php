@@ -9,6 +9,7 @@ use App\Shared\Http\Controllers\Controller;
 use App\Users\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class SyncExerciseProfileController extends Controller
@@ -20,6 +21,7 @@ class SyncExerciseProfileController extends Controller
     ): RedirectResponse {
         /** @var User $user */
         $user = $request->user();
+        Gate::authorize('sync', $exerciseProfile);
 
         try {
             $updated = $profiles->syncProfile($user, $exerciseProfile);

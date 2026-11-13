@@ -192,6 +192,46 @@ class ExerciseProfileControllerTest extends TestCase
     }
 
     #[Test]
+    public function a_user_cannot_archive_another_users_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create();
+
+        $this->actingAs($other)
+            ->post(route('exercise-profiles.archive', $profile))
+            ->assertForbidden();
+
+        $this->assertSame(ExerciseProfileStatus::Published, $profile->fresh()->status);
+    }
+
+    #[Test]
+    public function a_user_cannot_sync_another_users_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create();
+
+        $this->actingAs($other)
+            ->post(route('exercise-profiles.sync', $profile))
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function a_user_cannot_update_another_users_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create(['name' => 'Owner Push']);
+
+        $this->actingAs($other)
+            ->put(route('exercise-profiles.update', $profile), $this->profilePayload('Hijacked'))
+            ->assertForbidden();
+
+        $this->assertSame('Owner Push', $profile->fresh()->name);
+    }
+
+    #[Test]
     public function a_user_cannot_archive_their_current_default_profile(): void
     {
         $user = User::factory()->create();

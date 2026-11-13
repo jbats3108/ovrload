@@ -102,6 +102,79 @@ class ExerciseProfilePolicyTest extends TestCase
     }
 
     #[Test]
+    public function any_authenticated_user_can_create_a_custom_profile(): void
+    {
+        $user = User::factory()->withRole('user')->create();
+
+        $this->assertTrue($this->policy->create($user));
+    }
+
+    #[Test]
+    public function the_owner_can_sync_their_published_custom_profile(): void
+    {
+        $user = User::factory()->withRole('user')->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+
+        $this->assertTrue($this->policy->sync($user, $profile));
+    }
+
+    #[Test]
+    public function another_user_cannot_sync_a_custom_profile(): void
+    {
+        $owner = User::factory()->withRole('user')->create();
+        $other = User::factory()->withRole('user')->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create();
+
+        $this->assertFalse($this->policy->sync($other, $profile));
+    }
+
+    #[Test]
+    public function the_owner_cannot_sync_an_archived_custom_profile(): void
+    {
+        $user = User::factory()->withRole('user')->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->archived()->create();
+
+        $this->assertFalse($this->policy->sync($user, $profile));
+    }
+
+    #[Test]
+    public function the_owner_can_archive_their_published_custom_profile(): void
+    {
+        $user = User::factory()->withRole('user')->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create();
+
+        $this->assertTrue($this->policy->archive($user, $profile));
+    }
+
+    #[Test]
+    public function another_user_cannot_archive_a_custom_profile(): void
+    {
+        $owner = User::factory()->withRole('user')->create();
+        $other = User::factory()->withRole('user')->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create();
+
+        $this->assertFalse($this->policy->archive($other, $profile));
+    }
+
+    #[Test]
+    public function the_owner_cannot_archive_an_archived_custom_profile(): void
+    {
+        $user = User::factory()->withRole('user')->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->archived()->create();
+
+        $this->assertFalse($this->policy->archive($user, $profile));
+    }
+
+    #[Test]
+    public function an_admin_cannot_archive_a_published_preset(): void
+    {
+        $admin = User::factory()->withRole('admin')->create();
+        $profile = ExerciseProfile::factory()->preset()->create();
+
+        $this->assertFalse($this->policy->archive($admin, $profile));
+    }
+
+    #[Test]
     public function the_owner_can_delete_their_custom_profile(): void
     {
         $user = User::factory()->withRole('user')->create();
