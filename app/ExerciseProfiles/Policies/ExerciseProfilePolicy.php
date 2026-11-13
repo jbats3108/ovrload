@@ -18,6 +18,11 @@ class ExerciseProfilePolicy
             : $exerciseProfile->user_id === $user->id;
     }
 
+    public function create(User $user): bool
+    {
+        return true;
+    }
+
     public function update(User $user, ExerciseProfile $exerciseProfile): bool
     {
         if ($exerciseProfile->isPreset()) {
@@ -25,9 +30,17 @@ class ExerciseProfilePolicy
                 && $exerciseProfile->status === ExerciseProfileStatus::Draft;
         }
 
-        return $exerciseProfile->isCustom()
-            && $exerciseProfile->user_id === $user->id
-            && $exerciseProfile->status === ExerciseProfileStatus::Published;
+        return $this->ownsPublishedCustom($user, $exerciseProfile);
+    }
+
+    public function sync(User $user, ExerciseProfile $exerciseProfile): bool
+    {
+        return $this->ownsPublishedCustom($user, $exerciseProfile);
+    }
+
+    public function archive(User $user, ExerciseProfile $exerciseProfile): bool
+    {
+        return $this->ownsPublishedCustom($user, $exerciseProfile);
     }
 
     public function delete(User $user, ExerciseProfile $exerciseProfile): bool
@@ -52,5 +65,12 @@ class ExerciseProfilePolicy
         return $user->isAdmin()
             && $exerciseProfile->isPreset()
             && $exerciseProfile->status === ExerciseProfileStatus::Draft;
+    }
+
+    private function ownsPublishedCustom(User $user, ExerciseProfile $exerciseProfile): bool
+    {
+        return $exerciseProfile->isCustom()
+            && $exerciseProfile->user_id === $user->id
+            && $exerciseProfile->status === ExerciseProfileStatus::Published;
     }
 }

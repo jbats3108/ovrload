@@ -31,8 +31,7 @@ class ExerciseProfileService
     public function pageDataFor(User $user): ExerciseProfilePageData
     {
         $defaultId = $this->defaultProfileId($user);
-        $custom = $this->publishedCustomProfilesFor($user);
-        $presets = $this->publishedPresetProfiles();
+        [$custom, $presets] = $this->publishedProfilesFor($user);
 
         $profiles = $this->orderedProfiles($custom, $presets, $defaultId);
         $staleAssignmentCounts = $this->assignments->staleAssignmentCountsForUser($user, $profiles);
@@ -70,8 +69,7 @@ class ExerciseProfileService
      */
     public function optionsForUser(User $user, ?int $defaultId = null): array
     {
-        $custom = $this->publishedCustomProfilesFor($user);
-        $presets = $this->publishedPresetProfiles();
+        [$custom, $presets] = $this->publishedProfilesFor($user);
 
         $options = [];
         foreach ($this->orderedProfiles($custom, $presets, $defaultId) as $profile) {
@@ -89,12 +87,11 @@ class ExerciseProfileService
         $routine->loadMissing(['blocks.blockExercises']);
 
         $referencedIds = $this->assignments->profileIdsReferencedBy($routine);
-        $profiles = $this->selectableCustomProfilesFor($user, $referencedIds);
-        $presets = $this->publishedPresetProfiles();
+        [$customs, $presets] = $this->publishedProfilesFor($user, $referencedIds);
         $defaultId = $this->defaultProfileId($user);
 
         $options = [];
-        foreach ($profiles->concat($presets) as $profile) {
+        foreach ($customs->concat($presets) as $profile) {
             $options[] = ExerciseProfileOptionData::fromProfile($profile, $profile->id === $defaultId);
         }
 
@@ -251,14 +248,17 @@ class ExerciseProfileService
     }
 
     /**
-     * @return Collection<int, ExerciseProfile>
+     * Published customs (+ optional archived-by-id) and published presets for pickers.
+     *
+     * @param  list<int>  $includeArchivedIds
+     * @return array{0: Collection<int, ExerciseProfile>, 1: Collection<int, ExerciseProfile>}
      */
-    private function publishedCustomProfilesFor(User $user): Collection
+    private function publishedProfilesFor(User $user, array $includeArchivedIds = []): array
     {
-        return $user->exerciseProfiles()
-            ->where('status', ExerciseProfileStatus::Published)
-            ->orderBy('name')
-            ->get();
+        return [
+            $this->selectableCustomProfilesFor($user, $includeArchivedIds),
+            $this->publishedPresetProfiles(),
+        ];
     }
 
     /**
@@ -281,7 +281,10 @@ class ExerciseProfileService
     private function selectableCustomProfilesFor(User $user, array $includeArchivedIds): Collection
     {
         if ($includeArchivedIds === []) {
-            return $this->publishedCustomProfilesFor($user);
+            return $user->exerciseProfiles()
+                ->where('status', ExerciseProfileStatus::Published)
+                ->orderBy('name')
+                ->get();
         }
 
         return $user->exerciseProfiles()
