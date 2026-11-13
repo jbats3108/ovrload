@@ -114,12 +114,12 @@ final readonly class RoutineBlockWriter
                 'position' => $stepIndex + 1,
                 'weight_mode' => $step->mode,
                 'percent_of_working' => $step->mode === WarmUpWeightMode::Percent
-                    ? min(100, max(1, $step->percent ?? 1))
+                    ? min(100, (int) $step->percent)
                     : null,
                 'weight_g' => $step->mode === WarmUpWeightMode::Fixed && $step->weightKg !== null
                     ? Weight::kgToGrams($step->weightKg)
                     : null,
-                'reps' => min(100, max(1, $step->reps)),
+                'reps' => min(100, $step->reps),
                 'has_setup_after' => $step->hasSetupAfter,
             ]);
         }
@@ -130,6 +130,7 @@ final readonly class RoutineBlockWriter
      */
     private function persistDropsets(RoutineSetGroup $workingGroup, int $setCount, array $dropsets): void
     {
+        /** @var list<int> $seenIndexes */
         $seenIndexes = [];
 
         foreach ($dropsets as $dropset) {
@@ -139,13 +140,13 @@ final readonly class RoutineBlockWriter
                 );
             }
 
-            if (isset($seenIndexes[$dropset->setIndex])) {
+            if (in_array($dropset->setIndex, $seenIndexes, true)) {
                 throw new InvalidArgumentException(
                     "Duplicate dropset entry for set index {$dropset->setIndex}."
                 );
             }
 
-            $seenIndexes[$dropset->setIndex] = true;
+            $seenIndexes[] = $dropset->setIndex;
 
             $segments = array_values($dropset->segments->all());
 

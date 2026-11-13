@@ -270,18 +270,7 @@ final readonly class WorkoutSessionService
      */
     public function removeAdHocBlock(WorkoutBlock $block): void
     {
-        $block->loadMissing(['workout', 'setGroups.sets']);
-
-        $this->assertInProgress($block->workout);
-
-        if (! $block->is_ad_hoc) {
-            throw new WorkoutServiceException(WorkoutService::AD_HOC_BLOCK_ONLY_ERROR);
-        }
-
-        if ($block->setGroups->flatMap(fn (WorkoutSetGroup $group) => $group->sets)
-            ->contains(fn (WorkoutSet $set): bool => $set->completed_at !== null)) {
-            throw new WorkoutServiceException(WorkoutService::AD_HOC_BLOCK_HAS_LOGGED_SETS_ERROR);
-        }
+        $block->loadMissing('workout');
 
         DB::transaction(function () use ($block): void {
             $locked = $this->lockInProgressWorkout($block->workout);

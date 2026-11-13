@@ -27,11 +27,10 @@ jobs:
       - uses: actions/checkout@v5
         with:
           # Required so auto-commit can push back to the PR branch.
+          # Always use GITHUB_TOKEN for fetch — a stale CI_PUSH_TOKEN PAT would
+          # otherwise fail checkout before any quality steps run.
           ref: ${{ github.head_ref || github.ref_name }}
-          # PAT so the quality push re-triggers CI without "Approve workflows".
-          # GITHUB_TOKEN pushes leave pull_request runs in an approval-required state.
-          # Falls back for fork PRs (secrets unavailable) — commit step already continue-on-error.
-          token: ${{ secrets.CI_PUSH_TOKEN || github.token }}
+          token: ${{ github.token }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -65,6 +64,10 @@ jobs:
           commit_message: Apply CI quality fixes
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          # PAT so the quality push re-triggers CI without "Approve workflows".
+          # GITHUB_TOKEN pushes leave pull_request runs in an approval-required state.
+          # Falls back for fork PRs (secrets unavailable) — continue-on-error below.
+          token: ${{ secrets.CI_PUSH_TOKEN || github.token }}
         # Fork PRs cannot push unless "Allow edits by maintainers" is enabled.
         continue-on-error: true
 

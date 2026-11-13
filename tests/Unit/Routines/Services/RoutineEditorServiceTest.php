@@ -12,6 +12,7 @@ use App\Routines\Data\Editor\SyncWarmUpData;
 use App\Routines\Data\Editor\SyncWarmUpStepData;
 use App\Routines\Exceptions\RoutineStaleException;
 use App\Routines\Models\Routine;
+use App\Routines\Services\RoutineBlockWriter;
 use App\Routines\Services\RoutineEditorService;
 use App\Shared\Enums\BlockType;
 use App\Shared\Enums\PrescriptionMode;
@@ -1470,5 +1471,97 @@ class RoutineEditorServiceTest extends TestCase
         $this->assertSame(1, $step->percent_of_working);
         $this->assertSame(1, $step->reps);
         $this->assertSame(1, $step->position);
+    }
+
+    #[Test]
+    public function sync_persists_setup_after_on_a_non_final_block(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $result = $this->service->sync($routine, SyncRoutineData::from([
+            'name' => 'Non-final setup',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, ['has_setup_after' => true]),
+                RoutineEditorPayload::block($exercise->id, ['has_setup_after' => false]),
+            ],
+        ]));
+
+        $blocks = $result->blocks->sortBy('position')->values();
+        $this->assertTrue($blocks[0]->has_setup_after);
+        $this->assertFalse($blocks[1]->has_setup_after);
+    }
+
+    #[Test]
+    public function block_writer_defaults_is_last_block_to_false(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+        $blockData = SyncRoutineBlockData::from(RoutineEditorPayload::block($exercise->id, [
+            'has_setup_after' => true,
+        ]));
+
+        app(RoutineBlockWriter::class)->create($routine, 1, $blockData);
+
+        $this->assertTrue($routine->fresh(['blocks'])->blocks->first()->has_setup_after);
+    }
+
+    #[Test]
+    public function sync_ignores_weight_kg_on_percent_warm_up_steps(): void
+    {
+        $routine = Routine::factory()->create();
+        $exercise = Exercise::factory()->create();
+
+        $data = SyncRoutineData::from([
+            'name' => 'Percent ignores kg',
+            'blocks' => [
+                RoutineEditorPayload::block($exercise->id, [
+                    'warm_up' => [
+                        'set_count' => 1,
+                        'rest_seconds' => 60,
+                        'steps' => [
+                            ['percent' => 50, 'reps' => 5],
+                        ],
+                    ],
+                ]),
+            ],
+        ]);
+
+        $block = $data->blocks->first();
+        $steps = new SyncWarmUpData(
+            setCount: 1,
+            restSeconds: 60,
+            steps: new DataCollection(
+                SyncWarmUpStepData::class,
+                [
+                    new SyncWarmUpStepData(
+                        mode: WarmUpWeightMode::Percent,
+                        percent: 50,
+                        weightKg: 60.0,
+                        reps: 5,
+                    ),
+                ],
+            ),
+        );
+
+        $result = $this->service->sync($routine, new SyncRoutineData(
+            name: 'Percent ignores kg',
+            blocks: new DataCollection(
+                SyncRoutineBlockData::class,
+                [new SyncRoutineBlockData(
+                    isSuperset: $block->isSuperset,
+                    hasSetupAfter: $block->hasSetupAfter,
+                    exercises: $block->exercises,
+                    working: $block->working,
+                    warmUp: $steps,
+                    hasSetupAfterWarmUp: $block->hasSetupAfterWarmUp,
+                )],
+            ),
+        ));
+
+        $step = $result->blocks->first()->warmUpSetGroup->warmUpSteps->first();
+        $this->assertSame(WarmUpWeightMode::Percent, $step->weight_mode);
+        $this->assertSame(50, $step->percent_of_working);
+        $this->assertNull($step->weight_g);
     }
 }
