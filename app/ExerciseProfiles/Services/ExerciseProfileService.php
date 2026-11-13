@@ -171,10 +171,9 @@ class ExerciseProfileService
                 'recipe_fingerprint' => $recipe->fingerprint(),
             ]);
 
-            $fresh = $profile->fresh() ?? $profile;
-            $this->assignments->pushDeloadFactors($fresh);
+            $this->assignments->pushDeloadFactors($profile);
 
-            return $fresh;
+            return $profile;
         });
     }
 

@@ -528,6 +528,52 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
+    public function create_custom_keeps_suffixing_until_the_slug_is_free(): void
+    {
+        $user = User::factory()->create();
+        ExerciseProfile::factory()->forUser($user)->create([
+            'name' => 'Taken',
+            'slug' => 'pump-day',
+        ]);
+        ExerciseProfile::factory()->forUser($user)->create([
+            'name' => 'Taken Two',
+            'slug' => 'pump-day-2',
+        ]);
+
+        $profile = $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => 'Pump Day',
+            'target_reps' => 8,
+            'working_rest_seconds' => 90,
+        ]));
+
+        $this->assertSame('pump-day-3', $profile->slug);
+    }
+
+    #[Test]
+    public function create_custom_stores_warm_up_steps_in_storage_shape(): void
+    {
+        $user = User::factory()->create();
+
+        $profile = $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => 'Ladder',
+            'target_reps' => 5,
+            'working_rest_seconds' => 180,
+            'warm_up_steps' => [
+                ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+                ['mode' => 'percent', 'percent' => 50, 'reps' => 5],
+            ],
+        ]));
+
+        $this->assertSame(
+            [
+                ['mode' => 'fixed', 'weight_kg' => 60, 'reps' => 5],
+                ['mode' => 'percent', 'percent' => 50, 'reps' => 5],
+            ],
+            $profile->warm_up_steps,
+        );
+    }
+
+    #[Test]
     public function create_custom_rewrites_empty_and_preset_prefixed_slugs(): void
     {
         $user = User::factory()->create();
@@ -561,6 +607,56 @@ class ExerciseProfileServiceTest extends TestCase
             |> array_values(...);
         $this->assertCount(1, $defaults);
         $this->assertSame($custom->id, $defaults[0]->id);
+    }
+
+    #[Test]
+    public function options_for_routine_editor_marks_the_user_default_and_lists_presets(): void
+    {
+        $user = User::factory()->create();
+        $custom = ExerciseProfile::factory()->forUser($user)->create(['name' => 'My Custom']);
+        $user->forceFill(['default_exercise_profile_id' => $custom->id])->save();
+        $preset = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
+        $routine = Routine::factory()->withUser($user)->create();
+
+        $options = $this->profiles->optionsForRoutineEditor($user->fresh(), $routine);
+
+        $this->assertGreaterThan(1, count($options));
+        $defaults = array_filter($options, fn ($option): bool => $option->isDefault)
+            |> array_values(...);
+        $this->assertCount(1, $defaults);
+        $this->assertSame($custom->id, $defaults[0]->id);
+        $this->assertTrue(collect($options)->contains(fn ($option): bool => $option->id === $preset->id));
+    }
+
+    #[Test]
+    public function page_data_reports_zero_stale_assignments_for_presets(): void
+    {
+        $user = User::factory()->create();
+        $preset = ExerciseProfile::query()->where('slug', 'preset-strength')->firstOrFail();
+
+        $page = $this->profiles->pageDataFor($user);
+        $match = collect($page->profiles->all())->firstWhere('id', $preset->id);
+
+        $this->assertNotNull($match);
+        $this->assertSame(0, $match->staleAssignmentCount);
+    }
+
+    #[Test]
+    public function page_data_lists_routines_still_referencing_an_archived_profile(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->archived()->create(['name' => 'Old Pump']);
+        $routine = Routine::factory()->withUser($user)->create(['name' => 'Push Day']);
+        $this->createAssignedBlock($routine, $profile);
+
+        $page = $this->profiles->pageDataFor($user);
+        $archived = collect($page->archivedProfiles->all())->firstWhere('id', $profile->id);
+
+        $this->assertNotNull($archived);
+        $this->assertSame(
+            [['name' => 'Push Day', 'slug' => $routine->slug]],
+            $archived->assignedRoutines,
+        );
     }
 
     #[Test]
@@ -664,6 +760,79 @@ class ExerciseProfileServiceTest extends TestCase
     }
 
     #[Test]
+    public function assert_assignable_rejects_unpublished_profiles(): void
+    {
+        $user = User::factory()->create();
+        $draft = ExerciseProfile::factory()->preset()->draft()->create();
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->assertAssignable($user, $draft);
+    }
+
+    #[Test]
+    public function assert_assignable_allows_an_archived_custom_profile(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->archived()->create();
+
+        $this->profiles->assertAssignable($user, $profile);
+
+        $this->assertSame(ExerciseProfileStatus::Archived, $profile->status);
+    }
+
+    #[Test]
+    public function update_custom_trims_the_name(): void
+    {
+        $user = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($user)->create(['name' => 'Pump']);
+
+        $updated = $this->profiles->updateCustom($user, $profile, SaveExerciseProfileData::from([
+            'name' => '  Pump Day  ',
+            'target_reps' => $profile->target_reps,
+            'working_rest_seconds' => $profile->working_rest_seconds,
+            'warm_up_steps' => $profile->warmUpStepList(),
+        ]));
+
+        $this->assertSame('Pump Day', $updated->name);
+    }
+
+    #[Test]
+    public function update_custom_rejects_another_users_profile(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $profile = ExerciseProfile::factory()->forUser($owner)->create(['name' => 'Pump']);
+
+        $this->expectException(ExerciseProfileNotEditableException::class);
+
+        $this->profiles->updateCustom($other, $profile, SaveExerciseProfileData::from([
+            'name' => 'Hijack',
+            'target_reps' => $profile->target_reps,
+            'working_rest_seconds' => $profile->working_rest_seconds,
+            'warm_up_steps' => $profile->warmUpStepList(),
+        ]));
+    }
+
+    #[Test]
+    public function update_custom_rejects_a_duplicate_name(): void
+    {
+        $user = User::factory()->create();
+        ExerciseProfile::factory()->forUser($user)->create(['name' => 'Pump Day']);
+        $profile = ExerciseProfile::factory()->forUser($user)->create(['name' => 'Other']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('You already have a profile with that name.');
+
+        $this->profiles->updateCustom($user, $profile, SaveExerciseProfileData::from([
+            'name' => 'Pump Day',
+            'target_reps' => $profile->target_reps,
+            'working_rest_seconds' => $profile->working_rest_seconds,
+            'warm_up_steps' => $profile->warmUpStepList(),
+        ]));
+    }
+
+    #[Test]
     public function name_availability_rejects_ascii_case_variants(): void
     {
         $user = User::factory()->create();
@@ -674,6 +843,22 @@ class ExerciseProfileServiceTest extends TestCase
 
         $this->profiles->createCustom($user, SaveExerciseProfileData::from([
             'name' => 'PUMP DAY',
+            'target_reps' => 8,
+            'working_rest_seconds' => 90,
+        ]));
+    }
+
+    #[Test]
+    public function name_availability_rejects_multibyte_case_variants(): void
+    {
+        $user = User::factory()->create();
+        ExerciseProfile::factory()->forUser($user)->create(['name' => 'äther']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('You already have a profile with that name.');
+
+        $this->profiles->createCustom($user, SaveExerciseProfileData::from([
+            'name' => 'ÄTHER',
             'target_reps' => 8,
             'working_rest_seconds' => 90,
         ]));

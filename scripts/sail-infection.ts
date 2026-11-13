@@ -6,7 +6,9 @@
  * Usage (host, Sail must be up):
  *   npm run sail:infection
  *   npm run sail:infection -- --show-mutations
+ *   npm run sail:infection -- --git-diff-lines --git-diff-base=origin/main
  *   composer test:infection
+ *   composer test:infection:diff
  */
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
