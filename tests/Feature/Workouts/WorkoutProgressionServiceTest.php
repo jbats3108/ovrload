@@ -72,6 +72,22 @@ class WorkoutProgressionServiceTest extends TestCase
     }
 
     #[Test]
+    public function finish_bump_from_weight_uses_carried_forward_routine_weight(): void
+    {
+        [$routine, $routineExercise] = $this->seedRoutine(workingWeightG: 80000, prescribedReps: 6, achievementFloor: 4);
+        $workout = $this->workoutService->createWorkout($routine);
+        $set = $this->firstSet($workout->id);
+
+        $this->workoutService->completeSet($set, reps: 6, weightGrams: 85000);
+        $bumps = $this->workoutService->finishWorkout($workout);
+
+        $this->assertCount(1, $bumps);
+        $this->assertSame(85000, $routineExercise->fresh()->working_weight_g);
+        $this->assertSame(85000, $bumps->first()->fromWeightG);
+        $this->assertSame(87500, $bumps->first()->toWeightG);
+    }
+
+    #[Test]
     public function finish_ignores_timed_single_sets_for_progression(): void
     {
         $user = User::factory()->create(['achievement_floor_default' => 4]);

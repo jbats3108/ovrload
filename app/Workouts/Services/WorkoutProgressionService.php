@@ -15,6 +15,7 @@ use App\Workouts\Models\WorkoutBlockExercise;
 use App\Workouts\Models\WorkoutSet;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use LogicException;
 use Spatie\LaravelData\DataCollection;
 
 final class WorkoutProgressionService
@@ -327,7 +328,8 @@ final class WorkoutProgressionService
     {
         return $workoutExercise->sets
             ->filter(fn (WorkoutSet $set): bool => $set->completed_at !== null
-                && $set->setGroup?->type === SetGroupType::Working
+                && $set->setGroup !== null
+                && $set->setGroup->type === SetGroupType::Working
                 && $set->reps !== null
                 && $set->weight_g !== null
                 && ! $set->isDropset())
@@ -353,8 +355,10 @@ final class WorkoutProgressionService
         }
 
         if ($highestAchieved > $routineExercise->working_weight_g) {
-            $routineExercise->working_weight_g = (int) $highestAchieved;
-            $routineExercise->save();
+            // Keep the in-memory model stale so refresh() before bump fromWeight is required.
+            RoutineBlockExercise::query()
+                ->whereKey($routineExercise->id)
+                ->update(['working_weight_g' => (int) $highestAchieved]);
         }
     }
 
@@ -368,12 +372,14 @@ final class WorkoutProgressionService
         $style = $workout->progression_style ?? ProgressionStyle::StraightSets;
 
         if ($style === ProgressionStyle::ProgressiveOverload) {
+            if ($workingSets->isEmpty()) {
+                return false;
+            }
+
             $decisive = $this->lastSetAtTopWeight($workingSets);
             $lastWorking = $this->lastWorkingSet($workingSets);
 
-            return $decisive !== null
-                && $lastWorking !== null
-                && $decisive->is($lastWorking)
+            return $decisive->is($lastWorking)
                 && $decisive->weight_g >= $workoutExercise->working_weight_g
                 && $decisive->reps >= $target;
         }
@@ -387,41 +393,45 @@ final class WorkoutProgressionService
     /**
      * Chronologically last completed working set in the block.
      *
-     * @param  Collection<int, WorkoutSet>  $workingSets
+     * @param  Collection<int, WorkoutSet>  $workingSets  non-empty
      */
-    private function lastWorkingSet(Collection $workingSets): ?WorkoutSet
+    private function lastWorkingSet(Collection $workingSets): WorkoutSet
     {
-        if ($workingSets->isEmpty()) {
-            return null;
-        }
-
-        return $workingSets
+        $last = $workingSets
             ->sortBy([
                 ['set_index', 'asc'],
                 ['id', 'asc'],
             ])
             ->last();
+
+        if (! $last instanceof WorkoutSet) {
+            throw new LogicException('Expected a completed working set.');
+        }
+
+        return $last;
     }
 
     /**
      * Among completed working sets, the chronologically last set at the session's heaviest weight.
      *
-     * @param  Collection<int, WorkoutSet>  $workingSets
+     * @param  Collection<int, WorkoutSet>  $workingSets  non-empty
      */
-    private function lastSetAtTopWeight(Collection $workingSets): ?WorkoutSet
+    private function lastSetAtTopWeight(Collection $workingSets): WorkoutSet
     {
-        if ($workingSets->isEmpty()) {
-            return null;
-        }
-
         $topWeight = $workingSets->max('weight_g');
 
-        return $workingSets
+        $decisive = $workingSets
             ->filter(fn (WorkoutSet $set): bool => $set->weight_g === $topWeight)
             ->sortBy([
                 ['set_index', 'asc'],
                 ['id', 'asc'],
             ])
             ->last();
+
+        if (! $decisive instanceof WorkoutSet) {
+            throw new LogicException('Expected a top-weight working set.');
+        }
+
+        return $decisive;
     }
 }
